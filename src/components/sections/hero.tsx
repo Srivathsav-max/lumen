@@ -16,6 +16,25 @@ export function HeroSection() {
         <MoxiumLumenEffect />
       </div>
       
+      {/* Add animation keyframes for gradient movement */}
+      <style jsx global>{`
+        @keyframes gradient-x {
+          0% {
+            background-position: 0% 50%;
+          }
+          50% {
+            background-position: 100% 50%;
+          }
+          100% {
+            background-position: 0% 50%;
+          }
+        }
+        .animate-gradient-x {
+          background-size: 200% 200%;
+          animation: gradient-x 3s linear infinite;
+        }
+      `}</style>
+      
       <div className="container relative mx-auto px-4 sm:px-6 lg:px-8 z-10 mt-16">
         <div className="max-w-5xl mx-auto">
           <div className="flex items-center justify-center gap-2 mb-6 sm:mb-8">
@@ -55,15 +74,21 @@ export function HeroSection() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, delay: 0.8 }}
-            className="flex flex-col sm:flex-row gap-4 justify-center px-4"
+            className="flex justify-center px-4"
           >
-            <button className="inline-flex items-center justify-center px-6 py-3.5 rounded-lg text-white font-medium transition-all duration-300 hover:scale-105 bg-indigo-600 hover:bg-indigo-700 shadow-lg shadow-indigo-200/50 text-sm sm:text-base">
-              <BrainCircuit className="w-5 h-5 mr-2" />
-              Discover Your Learning Path
-            </button>
-            <button className="inline-flex items-center justify-center px-6 py-3.5 rounded-lg text-gray-900 font-medium border-2 border-gray-200 hover:border-gray-300 transition-all duration-300 bg-white/80 backdrop-blur-sm hover:bg-white text-sm sm:text-base">
-              How Moxium Works
-            </button>
+            <div className="relative group">
+              {/* Gradient border using pseudo-element */}
+              <div className="absolute -inset-0.5 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 rounded-full opacity-75 blur-sm group-hover:opacity-100 transition duration-300 animate-gradient-x"></div>
+              
+              {/* Inner glow effect */}
+              <div className="absolute -inset-0.5 bg-gradient-to-r from-blue-500 via-indigo-500 to-purple-500 rounded-full opacity-50 group-hover:opacity-70 transition duration-300"></div>
+              
+              {/* Main button */}
+              <button className="relative inline-flex items-center justify-center px-8 py-4 rounded-full text-white font-medium transition-all duration-300 hover:scale-105 bg-black border-2 border-transparent text-base z-10">
+                <Sparkles className="w-5 h-5 mr-2 text-indigo-400" />
+                <span>Coming Soon</span>
+              </button>
+            </div>
           </motion.div>
         </div>
       </div>
