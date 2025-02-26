@@ -26,16 +26,6 @@ export const FeaturesSection = () => {
           <div className="container mx-auto px-4">
             <div className="flex space-x-1 overflow-x-auto">
               <button 
-                onClick={() => setActiveTab('technology')}
-                className={`px-4 py-3 font-medium text-sm whitespace-nowrap transition-all ${
-                  activeTab === 'technology' 
-                    ? 'text-indigo-600 border-b-2 border-indigo-600' 
-                    : 'text-gray-600 hover:text-gray-800'
-                }`}
-              >
-                Core Technology
-              </button>
-              <button 
                 onClick={() => setActiveTab('features')}
                 className={`px-4 py-3 font-medium text-sm whitespace-nowrap transition-all ${
                   activeTab === 'features' 
@@ -54,6 +44,16 @@ export const FeaturesSection = () => {
                 }`}
               >
                 Workflow
+              </button>
+              <button 
+                onClick={() => setActiveTab('technology')}
+                className={`px-4 py-3 font-medium text-sm whitespace-nowrap transition-all ${
+                  activeTab === 'technology' 
+                    ? 'text-indigo-600 border-b-2 border-indigo-600' 
+                    : 'text-gray-600 hover:text-gray-800'
+                }`}
+              >
+                Core Technology
               </button>
             </div>
           </div>
