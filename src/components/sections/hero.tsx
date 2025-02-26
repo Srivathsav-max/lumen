@@ -1,81 +1,69 @@
 "use client";
-
-import { BrainCircuit, Sparkles } from "lucide-react";
+import { BrainCircuit, Sparkles, Share2 } from "lucide-react";
 import { motion } from "framer-motion";
 import { MoxiumLumenEffect } from "../ui/google-gemini-effect";
 import React, { useRef } from "react";
+import { Navbar } from "../ui/navbar";
 
 export function HeroSection() {
   const ref = useRef(null);
+  
   return (
-    <section className="relative min-h-[100vh] flex items-center overflow-hidden bg-white" ref={ref}>
+    <section className="relative h-screen flex items-center justify-center overflow-hidden bg-gradient-to-b from-white to-gray-50" ref={ref}>
+      <Navbar />
       <div className="absolute inset-0 bg-grid-small opacity-5"></div>
       <div className="absolute inset-0 opacity-75">
         <MoxiumLumenEffect />
       </div>
       
-      <div className="container relative mx-auto px-4 z-10">
-        <div className="max-w-4xl mx-auto">
-          <div className="flex items-center justify-center gap-2 mb-8">
-            <div className="inline-flex items-center gap-2 rounded-full bg-white/10 backdrop-blur-sm px-4 py-1 text-sm text-indigo-600 ring-1 ring-inset ring-indigo-500/20 hover:bg-white/20 transition-colors">
-              <Sparkles className="h-4 w-4" />
-              <span>Introducing AI-Powered Learning</span>
+      <div className="container relative mx-auto px-4 sm:px-6 lg:px-8 z-10 mt-16">
+        <div className="max-w-5xl mx-auto">
+          <div className="flex items-center justify-center gap-2 mb-6 sm:mb-8">
+            <div className="inline-flex items-center gap-2 rounded-full bg-white/80 backdrop-blur-sm px-4 py-2 text-sm font-medium ring-1 ring-inset ring-indigo-500/20 hover:ring-indigo-500/30 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 group">
+              <Sparkles className="h-4 w-4 text-indigo-600 group-hover:text-indigo-500" />
+              <span className="bg-clip-text text-transparent bg-gradient-to-r from-indigo-600 via-purple-600 to-blue-600 group-hover:from-indigo-500 group-hover:via-purple-500 group-hover:to-blue-500">
+                Moxium-Lumen: A Unit for Your Brilliance
+              </span>
             </div>
           </div>
           
-          <motion.h1 
+          <motion.h1
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, delay: 0.2 }}
-            className="text-center text-5xl md:text-7xl font-bold mb-8">
+            className="text-center text-4xl sm:text-5xl lg:text-6xl font-bold mb-4 sm:mb-6 px-4"
+          >
+            <span className="bg-clip-text text-transparent bg-gradient-to-r from-indigo-600 via-blue-600 to-cyan-600">
+              Personalized Learning Paths,
+            </span>
+            <br />
             <span className="text-gray-900">
-              Transform Your Learning Journey
+              Adaptive to Your Potential
             </span>
           </motion.h1>
           
-          <motion.p 
+          <motion.p
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, delay: 0.4 }}
-            className="text-xl text-center text-gray-600 mb-12 max-w-3xl mx-auto leading-relaxed"
+            className="text-lg sm:text-xl text-center text-gray-700 mb-6 sm:mb-8 max-w-3xl mx-auto leading-relaxed px-4"
           >
-            Experience personalized learning powered by advanced AI. Our platform adapts to your unique learning style, 
-            helping you master concepts faster and retain knowledge longer.
+            Moxium combines <span className="font-semibold text-indigo-700">neural knowledge tracing</span> and <span className="font-semibold text-indigo-700">graph neural networks</span> to create learning experiences that adapt to your unique capabilities and learning pace, ensuring you master concepts completely rather than just collecting certifications.
           </motion.p>
-
-          <motion.div 
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, delay: 0.6 }}
-            className="flex flex-col sm:flex-row gap-4 justify-center"
-          >
-            <button className="inline-flex items-center justify-center px-6 py-3 rounded-lg text-white font-medium transition-all hover:scale-105 bg-black hover:bg-gray-800">
-              <BrainCircuit className="w-5 h-5 mr-2" />
-              Start Learning for Free
-            </button>
-            <button className="inline-flex items-center justify-center px-6 py-3 rounded-lg text-gray-900 font-medium border-2 border-gray-200 hover:border-gray-300 transition-colors bg-white">
-              Watch How It Works
-            </button>
-          </motion.div>
-
+  
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, delay: 0.8 }}
-            className="mt-20 grid grid-cols-3 gap-8 text-center max-w-3xl mx-auto"
+            className="flex flex-col sm:flex-row gap-4 justify-center px-4"
           >
-            {[
-              { value: "99%", label: "Success Rate" },
-              { value: "50K+", label: "Active Learners" },
-              { value: "4.9/5", label: "User Rating" },
-            ].map((stat) => (
-              <div key={stat.label}>
-                <div className="text-4xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-indigo-600 to-violet-600">
-                  {stat.value}
-                </div>
-                <div className="text-gray-400 mt-1">{stat.label}</div>
-              </div>
-            ))}
+            <button className="inline-flex items-center justify-center px-6 py-3.5 rounded-lg text-white font-medium transition-all duration-300 hover:scale-105 bg-indigo-600 hover:bg-indigo-700 shadow-lg shadow-indigo-200/50 text-sm sm:text-base">
+              <BrainCircuit className="w-5 h-5 mr-2" />
+              Discover Your Learning Path
+            </button>
+            <button className="inline-flex items-center justify-center px-6 py-3.5 rounded-lg text-gray-900 font-medium border-2 border-gray-200 hover:border-gray-300 transition-all duration-300 bg-white/80 backdrop-blur-sm hover:bg-white text-sm sm:text-base">
+              How Moxium Works
+            </button>
           </motion.div>
         </div>
       </div>

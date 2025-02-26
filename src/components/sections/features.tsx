@@ -1,138 +1,73 @@
 "use client";
 
-import { BrainCircuit, BookText, Network, LineChart, Users } from "lucide-react";
-import { GlowingEffect } from "@/components/ui/glowing-effect";
-import { cn } from "@/lib/utils";
+import React, { useState } from 'react';
+import { TechnologyTab } from './features/technology-tab';
+import { FeaturesTab } from './features/features-tab';
+import { WorkflowTab } from './features/workflow-tab';
 
-interface GridItemProps {
-  area: string;
-  icon: React.ReactNode;
-  title: string;
-  description: string;
-  code?: string;
-}
+export const FeaturesSection = () => {
+  const [activeTab, setActiveTab] = useState('technology');
 
-const GridItem = ({ area, icon, title, description, code }: GridItemProps) => {
   return (
-    <li className={cn("min-h-[14rem] list-none", area)}>
-      <div className="relative h-full rounded-2.5xl border border-gray-200 p-2 md:rounded-3xl md:p-3">
-        <GlowingEffect
-          spread={40}
-          glow={true}
-          disabled={false}
-          proximity={64}
-          inactiveZone={0.01}
-        />
-        <div className="relative flex h-full flex-col justify-between gap-6 overflow-hidden rounded-xl border-[0.5px] border-gray-200 p-6 dark:border-neutral-800">
-          <div className="relative flex flex-1 flex-col justify-between gap-3">
-            <div className="w-fit rounded-lg border border-gray-200 p-2 dark:border-neutral-800">
-              {icon}
-            </div>
-            <div className="space-y-3">
-              <h3 className="pt-0.5 text-xl/[1.375rem] font-semibold font-sans -tracking-4 md:text-2xl/[1.875rem] text-balance text-black dark:text-white">
-                {title}
-              </h3>
-              <p className="font-sans text-sm/[1.125rem] md:text-base/[1.375rem] text-gray-600 dark:text-neutral-400">
-                {description}
-              </p>
-              {code && (
-                <div className="mt-4 bg-gray-50 rounded-lg p-3 font-mono text-sm text-gray-600 overflow-x-auto">
-                  <pre className="whitespace-pre-wrap">{code}</pre>
-                </div>
-              )}
+    <div className="relative min-h-screen bg-white isolate">
+      {/* Background Effects */}
+      <div className="absolute inset-0 bg-gradient-to-b from-gray-50 to-white -z-20"></div>
+      <div className="absolute inset-0">
+        <div className="absolute inset-0 bg-grid-black/[0.02] -z-20"></div>
+        <div className="absolute inset-0 flex items-center justify-center">
+          <div className="w-full h-full bg-white bg-opacity-60 backdrop-blur-3xl -z-10"></div>
+        </div>
+      </div>
+      
+      {/* Content */}
+      <div className="relative">
+        {/* Navigation Tabs */}
+        <div className="relative bg-white/80 backdrop-blur-sm border-b border-gray-200 z-10">
+          <div className="container mx-auto px-4">
+            <div className="flex space-x-1 overflow-x-auto">
+              <button 
+                onClick={() => setActiveTab('technology')}
+                className={`px-4 py-3 font-medium text-sm whitespace-nowrap transition-all ${
+                  activeTab === 'technology' 
+                    ? 'text-indigo-600 border-b-2 border-indigo-600' 
+                    : 'text-gray-600 hover:text-gray-800'
+                }`}
+              >
+                Core Technology
+              </button>
+              <button 
+                onClick={() => setActiveTab('features')}
+                className={`px-4 py-3 font-medium text-sm whitespace-nowrap transition-all ${
+                  activeTab === 'features' 
+                    ? 'text-indigo-600 border-b-2 border-indigo-600' 
+                    : 'text-gray-600 hover:text-gray-800'
+                }`}
+              >
+                Key Features
+              </button>
+              <button 
+                onClick={() => setActiveTab('workflow')}
+                className={`px-4 py-3 font-medium text-sm whitespace-nowrap transition-all ${
+                  activeTab === 'workflow' 
+                    ? 'text-indigo-600 border-b-2 border-indigo-600' 
+                    : 'text-gray-600 hover:text-gray-800'
+                }`}
+              >
+                Workflow
+              </button>
             </div>
           </div>
         </div>
+
+        {/* Main Content */}
+        <main className="py-12">
+          <div className="container mx-auto px-4">
+            {activeTab === 'technology' && <TechnologyTab />}
+            {activeTab === 'features' && <FeaturesTab />}
+            {activeTab === 'workflow' && <WorkflowTab />}
+          </div>
+        </main>
       </div>
-    </li>
+    </div>
   );
 };
-
-export function FeaturesSection() {
-  return (
-    <section className="py-24 relative overflow-hidden">
-      <div className="absolute inset-0 bg-grid-small opacity-10"></div>
-      <div className="absolute right-0 top-1/4 w-1/2 h-1/2 bg-gradient-to-l from-indigo-500/10 to-transparent"></div>
-      <div className="absolute left-0 bottom-0 w-1/2 h-1/2 bg-gradient-to-r from-purple-500/10 to-transparent"></div>
-      
-      <div className="container relative mx-auto px-4">
-        <div className="max-w-3xl mx-auto text-center mb-20">
-          <h2 className="text-4xl font-bold mb-6 bg-clip-text text-transparent bg-gradient-to-r from-indigo-600 via-violet-500 to-purple-500">
-            AI-Powered Learning Platform
-          </h2>
-          <p className="text-xl text-gray-600 leading-relaxed">
-            Our platform combines advanced AI with proven learning methodologies to create 
-            a personalized and effective learning experience.
-          </p>
-        </div>
-
-        <ul className="grid grid-cols-1 grid-rows-none gap-4 md:grid-cols-12 md:grid-rows-3 lg:gap-6 xl:max-h-[34rem] xl:grid-rows-2">
-          <GridItem
-            area="md:[grid-area:1/1/2/7] xl:[grid-area:1/1/2/5]"
-            icon={<BrainCircuit className="h-4 w-4 text-black dark:text-neutral-400" />}
-            title="Adaptive Learning"
-            description="Dynamic content adjustment based on your performance and learning patterns."
-            code={`// Adaptive Difficulty Scaling
-const nextContent = await AI.adapt({
-  performance: user.metrics,
-  pattern: user.learningStyle,
-  target: user.goals
-});`}
-          />
-
-          <GridItem
-            area="md:[grid-area:1/7/2/13] xl:[grid-area:2/1/3/5]"
-            icon={<BookText className="h-4 w-4 text-black dark:text-neutral-400" />}
-            title="Smart Notes"
-            description="AI-powered note synthesis with automatic concept linking and spaced repetition."
-            code={`// Smart Note Generation
-const notes = await AI.synthesize({
-  content: lecture.transcript,
-  style: user.preferences,
-  level: user.proficiency
-});`}
-          />
-
-          <GridItem
-            area="md:[grid-area:2/1/3/7] xl:[grid-area:1/5/3/8]"
-            icon={<Network className="h-4 w-4 text-black dark:text-neutral-400" />}
-            title="Knowledge Graphs"
-            description="Visual concept mapping with dynamic prerequisite detection and learning paths."
-            code={`// Knowledge Graph Analysis
-const conceptMap = await Graph.build({
-  topics: course.modules,
-  relations: user.progress,
-  gaps: AI.detectGaps()
-});`}
-          />
-
-          <GridItem
-            area="md:[grid-area:2/7/3/13] xl:[grid-area:1/8/2/13]"
-            icon={<LineChart className="h-4 w-4 text-black dark:text-neutral-400" />}
-            title="Progress Analytics"
-            description="Advanced analytics with predictive scoring and personalized insights."
-            code={`// Learning Prediction
-const forecast = ML.predict({
-  history: user.progress,
-  trends: user.performance,
-  goals: user.targets
-});`}
-          />
-
-          <GridItem
-            area="md:[grid-area:3/1/4/13] xl:[grid-area:2/8/3/13]"
-            icon={<Users className="h-4 w-4 text-black dark:text-neutral-400" />}
-            title="Collaborative Learning"
-            description="Intelligent team formation and peer learning optimization."
-            code={`// Team Formation
-const group = await AI.formTeam({
-  skills: user.competencies,
-  goals: project.requirements,
-  synergy: ML.calculateFit()
-});`}
-          />
-        </ul>
-      </div>
-    </section>
-  );
-}

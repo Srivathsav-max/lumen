@@ -6,8 +6,71 @@ import { Braces } from 'lucide-react';
 import { FullDashboard } from './components/dashboard';
 
 export function PlatformPreviewSection() {
+  const [cursorPosition, setCursorPosition] = React.useState({ x: -100, y: -100 });
+  const [cursorColors, setCursorColors] = React.useState(['#FF3366', '#FF6B3D']);
+  const [cursorTooltip, setCursorTooltip] = React.useState('With this cursor you can interact with dashboard');
+
+  // Color pairs for random selection
+  const colorPairs = [
+    ['#FF3366', '#FF6B3D'], // Red-Orange
+    ['#7C3AED', '#3B82F6'], // Purple-Blue
+    ['#10B981', '#34D399'], // Green-Teal
+    ['#F59E0B', '#FBBF24'], // Yellow-Amber
+    ['#EC4899', '#F472B6'], // Pink-Rose
+    ['#6366F1', '#818CF8'], // Indigo-Purple
+  ];
+
+  const getElementTooltip = (element: HTMLElement): string => {
+    if (element.closest('button')) return 'Click this button';
+    if (element.closest('input')) return 'Type here';
+    if (element.closest('a')) return 'Click this link';
+    if (element.closest('[role="button"]')) return 'Interactive element';
+    return '';
+  };
+
+  React.useEffect(() => {
+    const handleMouseMove = (e: Event) => {
+      if (e instanceof MouseEvent) {
+        const targetElement = e.target as HTMLElement;
+        const isInteractive = targetElement.closest('button, input, a, [role="button"]');
+        
+        setCursorPosition({ 
+          x: e.clientX,
+          y: e.clientY
+        });
+
+        if (isInteractive) {
+          setCursorTooltip(getElementTooltip(targetElement));
+          const randomPair = colorPairs[Math.floor(Math.random() * colorPairs.length)];
+          document.documentElement.style.setProperty('--cursor-color-1', randomPair[0]);
+          document.documentElement.style.setProperty('--cursor-color-2', randomPair[1]);
+        } else {
+          setCursorTooltip('With this cursor you can interact with dashboard');
+        }
+      }
+    };
+
+    const handleMouseLeave = (e: Event) => {
+      setCursorPosition({ x: -100, y: -100 });
+      setCursorTooltip('With this cursor you can interact with dashboard');
+    };
+
+    const section = document.querySelector('.platform-preview-wrapper');
+    if (section) {
+      section.addEventListener('mousemove', handleMouseMove as EventListener);
+      section.addEventListener('mouseleave', handleMouseLeave as EventListener);
+    }
+
+    return () => {
+      if (section) {
+        section.removeEventListener('mousemove', handleMouseMove as EventListener);
+        section.removeEventListener('mouseleave', handleMouseLeave as EventListener);
+      }
+    };
+  }, []);
+
   return (
-    <section className="py-24 relative">
+    <section className="py-24 relative platform-preview-wrapper">
       <div className="container mx-auto px-4">
         <div className="max-w-3xl mx-auto text-center mb-16">
           <div className="inline-flex items-center justify-center rounded-full bg-indigo-50 px-3 py-1 text-sm text-indigo-600 ring-1 ring-inset ring-indigo-500/20 mb-6">
@@ -49,6 +112,14 @@ export function PlatformPreviewSection() {
           </div>
         </div>
       </div>
+      <div 
+        id="custom-cursor" 
+        style={{ 
+          transform: `translate(${cursorPosition.x}px, ${cursorPosition.y}px)`,
+          opacity: cursorPosition.x < 0 ? 0 : 1,
+          '--content': `'${cursorTooltip}'`
+        } as React.CSSProperties} 
+      />
     </section>
   );
 }

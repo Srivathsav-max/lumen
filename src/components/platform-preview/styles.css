@@ -1,28 +1,142 @@
 @keyframes float {
-  0% {
-    transform: translateY(0px);
-  }
-  50% {
-    transform: translateY(-10px);
-  }
-  100% {
-    transform: translateY(0px);
-  }
+  0% { transform: translateY(0px); }
+  50% { transform: translateY(-10px); }
+  100% { transform: translateY(0px); }
+}
+
+/* Custom cursor tracker */
+.platform-preview-wrapper {
+  cursor: none !important;
+  position: relative;
+}
+
+/* Cursor base */
+#custom-cursor {
+  width: 24px;
+  height: 32px;
+  position: fixed;
+  top: 0;
+  left: 0;
+  pointer-events: none;
+  z-index: 9999;
+  will-change: transform;
+  transition: transform 0.1s ease;
+}
+
+/* Windows-style cursor pointer */
+#custom-cursor::before {
+  content: '';
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  clip-path: polygon(
+    4px 0,    /* Top point */
+    19px 15px, /* Right edge */
+    14px 15px, /* Inner right */
+    19px 30px, /* Bottom right */
+    15px 30px, /* Inner bottom right */
+    12px 18px, /* Inner point */
+    4px 25px,  /* Bottom left */
+    4px 0      /* Back to top */
+  );
+  background: #000000;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  transform-origin: 4px 0;
+}
+
+/* Interactive state colors */
+.platform-preview-wrapper button:hover ~ #custom-cursor::before,
+.platform-preview-wrapper input:hover ~ #custom-cursor::before,
+.platform-preview-wrapper [role="button"]:hover ~ #custom-cursor::before,
+.platform-preview-wrapper a:hover ~ #custom-cursor::before {
+  background: linear-gradient(
+    135deg,
+    var(--cursor-color-1, #FF3366) 0%,
+    var(--cursor-color-2, #FF6B3D) 100%
+  );
+  filter: drop-shadow(0 0 8px var(--cursor-color-1, #FF3366));
+}
+
+/* Cursor tooltip */
+#custom-cursor::after {
+  content: var(--content, '');
+  position: absolute;
+  top: calc(100% + 12px);
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 6px 12px;
+  background: rgba(0, 0, 0, 0.75);
+  color: white;
+  font-size: 12px;
+  border-radius: 6px;
+  white-space: nowrap;
+  opacity: 1;
+  pointer-events: none;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  backdrop-filter: blur(4px);
+  min-width: max-content;
+  text-align: center;
+  line-height: 1.4;
+}
+
+/* Interactive elements */
+.platform-preview-wrapper button,
+.platform-preview-wrapper input,
+.platform-preview-wrapper [role="button"],
+.platform-preview-wrapper a {
+  cursor: none !important;
+  transition: transform 0.2s ease;
+}
+
+.platform-preview-wrapper button:hover,
+.platform-preview-wrapper input:hover,
+.platform-preview-wrapper [role="button"]:hover,
+.platform-preview-wrapper a:hover {
+  transform: translateY(-1px);
+}
+
+/* Note styles */
+.platform-preview-note {
+  position: absolute;
+  bottom: -40px;
+  left: 50%;
+  transform: translateX(-50%);
+  text-align: center;
+  font-size: 14px;
+  color: #6B7280;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(255, 255, 255, 0.9);
+  padding: 8px 16px;
+  border-radius: 999px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.cursor-indicator {
+  width: 20px;
+  height: 24px;
+  clip-path: polygon(
+    4px 0,
+    19px 15px,
+    14px 15px,
+    19px 30px,
+    15px 30px,
+    12px 18px,
+    4px 25px,
+    4px 0
+  );
+  background: #000000;
+  display: inline-block;
+  vertical-align: middle;
 }
 
 @keyframes blob {
-  0% {
-    transform: translate(0px, 0px) scale(1);
-  }
-  33% {
-    transform: translate(30px, -50px) scale(1.1);
-  }
-  66% {
-    transform: translate(-20px, 20px) scale(0.9);
-  }
-  100% {
-    transform: translate(0px, 0px) scale(1);
-  }
+  0% { transform: translate(0px, 0px) scale(1); }
+  33% { transform: translate(30px, -50px) scale(1.1); }
+  66% { transform: translate(-20px, 20px) scale(0.9); }
+  100% { transform: translate(0px, 0px) scale(1); }
 }
 
 .animate-float {

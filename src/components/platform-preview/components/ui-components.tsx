@@ -6,7 +6,7 @@ import { NavIconProps, StatCardProps, CourseCardProps, TaskItemProps } from './t
 
 export const NavIcon: React.FC<NavIconProps & { onClick?: () => void }> = ({ icon, active = false, onClick }) => (
   <button 
-    className={`h-10 w-10 mb-2 rounded-lg flex items-center justify-center transition-colors duration-200 ${
+    className={`h-10 w-10 mb-2 rounded-lg flex items-center justify-center transition-colors duration-200 custom-cursor ${
       active ? 'bg-indigo-50 text-indigo-600' : 'text-gray-500 hover:bg-gray-50 hover:text-gray-700'
     }`}
     onClick={onClick}
@@ -28,7 +28,7 @@ export const StatCard: React.FC<StatCardProps> = ({ icon, title, subtitle, color
 );
 
 export const CourseCard: React.FC<CourseCardProps> = ({ icon, title, progress, tag, completion, time }) => (
-  <div className="flex items-center p-4 border border-gray-100 rounded-lg hover:bg-gray-50 transition cursor-pointer">
+  <div className="flex items-center p-4 border border-gray-100 rounded-lg hover:bg-gray-50 transition cursor-pointer custom-cursor">
     <div className="bg-white rounded-lg p-3 shadow-sm border border-gray-100 mr-4">
       {icon}
     </div>
@@ -55,7 +55,7 @@ export const CourseCard: React.FC<CourseCardProps> = ({ icon, title, progress, t
 );
 
 export const TaskItem: React.FC<TaskItemProps> = ({ icon, title, dueDate, urgent = false }) => (
-  <div className="flex items-center p-3 border border-gray-100 rounded-lg hover:bg-gray-50 transition cursor-pointer">
+  <div className="flex items-center p-3 border border-gray-100 rounded-lg hover:bg-gray-50 transition cursor-pointer custom-cursor">
     {icon}
     <div className="ml-3 flex-1">
       <p className="text-sm font-medium text-gray-900">{title}</p>
