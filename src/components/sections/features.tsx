@@ -6,7 +6,7 @@ import { FeaturesTab } from './features/features-tab';
 import { WorkflowTab } from './features/workflow-tab';
 
 export const FeaturesSection = () => {
-  const [activeTab, setActiveTab] = useState('technology');
+  const [activeTab, setActiveTab] = useState('features');
 
   return (
     <div className="relative min-h-screen bg-white isolate">
@@ -62,9 +62,9 @@ export const FeaturesSection = () => {
         {/* Main Content */}
         <main className="py-12">
           <div className="container mx-auto px-4">
-            {activeTab === 'technology' && <TechnologyTab />}
             {activeTab === 'features' && <FeaturesTab />}
             {activeTab === 'workflow' && <WorkflowTab />}
+            {activeTab === 'technology' && <TechnologyTab />}
           </div>
         </main>
       </div>
