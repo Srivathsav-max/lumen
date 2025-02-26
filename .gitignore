@@ -34,3 +34,8 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+public/Moxium_Lumen.pdf
+public/implementation-roadmap.md
+public/moxium-lumen-overview.md
+public/operational-processes.md
+public/tech-stack.md
