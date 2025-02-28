@@ -12,7 +12,7 @@ export function HeroSection() {
     <section className="relative h-screen flex items-center justify-center overflow-hidden bg-gradient-to-b from-white to-gray-50" ref={ref}>
       <Navbar />
       <div className="absolute inset-0 bg-grid-small opacity-5"></div>
-      <div className="absolute inset-0 opacity-75">
+      <div className="absolute inset-0 w-screen h-full opacity-75 pointer-events-none overflow-hidden">
         <MoxiumLumenEffect />
       </div>
       

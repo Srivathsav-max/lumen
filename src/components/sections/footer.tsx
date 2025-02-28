@@ -5,30 +5,30 @@ import { motion } from "framer-motion";
 
 export function FooterSection() {
   const footerLinks = {
-    Product: [
-      { name: "Features", href: "#" },
-      { name: "Pricing", href: "#" },
-      { name: "Case Studies", href: "#" },
-      { name: "Documentation", href: "#" },
-    ],
-    Company: [
-      { name: "About", href: "#" },
-      { name: "Careers", href: "#" },
-      { name: "Blog", href: "#" },
-      { name: "Press Kit", href: "#" },
-    ],
-    Support: [
-      { name: "Help Center", href: "#" },
-      { name: "Terms of Service", href: "#" },
-      { name: "Privacy Policy", href: "#" },
-      { name: "Contact Us", href: "#" },
-    ],
+    // Product: [
+    //   { name: "Features", href: "#" },
+    //   { name: "Pricing", href: "#" },
+    //   { name: "Case Studies", href: "#" },
+    //   { name: "Documentation", href: "#" },
+    // ],
+    // Company: [
+    //   { name: "About", href: "#" },
+    //   { name: "Careers", href: "#" },
+    //   { name: "Blog", href: "#" },
+    //   { name: "Press Kit", href: "#" },
+    // ],
+    // Support: [
+    //   { name: "Help Center", href: "#" },
+    //   { name: "Terms of Service", href: "#" },
+    //   { name: "Privacy Policy", href: "#" },
+    //   { name: "Contact Us", href: "#" },
+    // ],
   };
 
   const socialLinks = [
-    { name: "Twitter", icon: Twitter, href: "#" },
-    { name: "GitHub", icon: Github, href: "#" },
-    { name: "LinkedIn", icon: Linkedin, href: "#" },
+    // { name: "Twitter", icon: Twitter, href: "#" },
+    // { name: "GitHub", icon: Github, href: "#" },
+    // { name: "LinkedIn", icon: Linkedin, href: "#" },
   ];
 
   return (
@@ -52,7 +52,7 @@ export function FooterSection() {
               Join thousands of learners achieving their goals faster.
             </p>
             <div className="flex gap-4">
-              {socialLinks.map((social) => (
+              {/* {socialLinks.map((social) => (
                 <a
                   key={social.name}
                   href={social.href}
@@ -61,12 +61,12 @@ export function FooterSection() {
                   <social.icon className="h-5 w-5" />
                   <span className="sr-only">{social.name}</span>
                 </a>
-              ))}
+              ))} */}
             </div>
           </div>
 
           {/* Links Columns */}
-          {Object.entries(footerLinks).map(([category, links]) => (
+          {/* {Object.entries(footerLinks).map(([category, links]) => (
             <div key={category}>
               <h3 className="font-semibold text-gray-900 dark:text-white mb-6">
                 {category}
@@ -84,7 +84,7 @@ export function FooterSection() {
                 ))}
               </ul>
             </div>
-          ))}
+          ))} */}
         </div>
 
         {/* Bottom Bar */}

@@ -29,11 +29,10 @@ const GoogleGeminiEffect = ({
   return (
     <div className={cn("w-full h-full", className)}>
       <motion.svg
-        width="1440"
-        height="890"
         viewBox="0 0 1440 890"
         xmlns="http://www.w3.org/2000/svg"
-        className="w-full"
+        className="w-full h-full absolute -translate-x-1/2"
+        preserveAspectRatio="xMidYMid slice"
         animate={{
           y: [0, -20, 0],
         }}
