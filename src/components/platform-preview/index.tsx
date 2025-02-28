@@ -45,14 +45,14 @@ export function PlatformPreviewSection() {
           document.documentElement.style.setProperty('--cursor-color-1', randomPair[0]);
           document.documentElement.style.setProperty('--cursor-color-2', randomPair[1]);
         } else {
-          setCursorTooltip('With this cursor you can interact with dashboard');
+          setCursorTooltip('Dashboard Cursor');
         }
       }
     };
 
     const handleMouseLeave = (e: Event) => {
       setCursorPosition({ x: -100, y: -100 });
-      setCursorTooltip('With this cursor you can interact with dashboard');
+      setCursorTooltip('Dashboard Cursor');
     };
 
     const section = document.querySelector('.platform-preview-wrapper');
