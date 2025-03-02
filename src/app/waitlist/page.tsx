@@ -1,5 +1,7 @@
 "use client";
 import React, { useEffect, useState } from "react";
+import { toast } from "sonner";
+import { joinWaitlist } from "@/lib/waitlist/api";
 import { BackgroundLines } from "@/components/ui/background-lines";
 import { Button as MovingBorderButton } from "@/components/ui/moving-border";
 import { FooterSection } from "@/components/sections/footer";
@@ -8,10 +10,31 @@ import { ScrollToTop } from "@/components/ui/scroll-to-top";
 
 export default function WaitlistPage() {
   const [isMounted, setIsMounted] = useState(false);
+  const [email, setEmail] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
     setIsMounted(true);
   }, []);
+
+  const handleSubmit = async () => {
+    if (!email) {
+      toast.error("Please enter your email");
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      await joinWaitlist(email);
+      toast.success("Successfully joined the waitlist!");
+      setEmail("");
+    } catch (error) {
+      toast.error("Failed to join waitlist. Please try again.");
+      console.error("Error:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   return (
     <main className="min-h-screen bg-gradient-to-b from-white to-gray-50">
@@ -29,15 +52,19 @@ export default function WaitlistPage() {
           <input
             type="email"
             placeholder="Enter your email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
             className="w-full px-6 py-4 rounded-2xl border border-gray-200/60 focus:ring-2 focus:ring-indigo-500 bg-white/90 backdrop-blur-sm text-gray-800 placeholder:text-gray-400 shadow-lg hover:shadow-xl transition-all text-lg mb-8"
           />
             <MovingBorderButton
-            borderRadius="1.25rem"
-            className="bg-slate-900/[0.8] text-white border-slate-800 w-full h-14 text-base font-medium hover:scale-[1.01] transition-all duration-300"
-            containerClassName="w-full"
-            borderClassName="h-32 w-32 opacity-[0.8] bg-[radial-gradient(var(--blue-500)_40%,transparent_60%)]"
+              borderRadius="1.25rem"
+              className="bg-slate-900/[0.8] text-white border-slate-800 w-full h-14 text-base font-medium hover:scale-[1.01] transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
+              containerClassName="w-full"
+              borderClassName="h-32 w-32 opacity-[0.8] bg-[radial-gradient(var(--blue-500)_40%,transparent_60%)]"
+              onClick={handleSubmit}
+              disabled={isLoading}
             >
-              Join Now
+              {isLoading ? "Joining..." : "Join Now"}
             </MovingBorderButton>
           </div>
         </div>
