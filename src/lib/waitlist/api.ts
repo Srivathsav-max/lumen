@@ -1,4 +1,4 @@
-const BASE_URL = process.env.API_BACKEND_URL;
+const BASE_URL = process.env.NEXT_PUBLIC_API_BACKEND_URL;
 
 export async function joinWaitlist(email: string) {
   try {
