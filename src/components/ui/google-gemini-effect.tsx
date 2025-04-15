@@ -31,7 +31,7 @@ const GoogleGeminiEffect = ({
       <motion.svg
         viewBox="0 0 1440 890"
         xmlns="http://www.w3.org/2000/svg"
-        className="w-full h-full absolute -translate-x-1/2"
+        className="w-full h-full absolute left-0"
         preserveAspectRatio="xMidYMid slice"
         animate={{
           y: [0, -20, 0],
