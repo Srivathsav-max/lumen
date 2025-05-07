@@ -14,6 +14,8 @@ func SetupRouter(handler *Handler, cfg *config.Config) *gin.Engine {
 
 	// Apply middleware
 	router.Use(CORSMiddleware())
+	// Apply CSRF middleware to all routes
+	router.Use(CSRFMiddleware())
 
 	// Health check endpoint
 	router.GET("/health", func(c *gin.Context) {
@@ -35,11 +37,17 @@ func SetupRouter(handler *Handler, cfg *config.Config) *gin.Engine {
 		
 		// Registration status endpoint (public)
 		public.GET("/registration/status", handler.GetRegistrationStatus)
+		
+		// Maintenance status endpoint (public)
+		public.GET("/maintenance/status", handler.GetMaintenanceStatus)
 	}
 	v1 := router.Group("/api/v1")
 	{
-		// Auth validation endpoint
+		// Auth endpoints
 		v1.GET("/auth/validate", handler.ValidateAuth)
+		v1.POST("/auth/logout", handler.EnhancedLogoutHandler)
+		v1.POST("/auth/refresh", handler.RefreshToken)
+		v1.POST("/auth/revoke", handler.RevokeToken)
 
 		// Protected routes
 		protected := v1.Group("/")

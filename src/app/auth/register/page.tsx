@@ -1,13 +1,15 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useAuth } from "@/components/providers/auth-provider";
+import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import Link from "next/link";
-import { toast } from "sonner";
+import { toast } from "@/providers/notification-provider";
 import { AlertTriangle } from "lucide-react";
 import "@/styles/sketchy-elements.css";
+import { useRouter } from "next/navigation";
+import * as registerApi from "./api";
 
 import SketchyInputDecorator from "@/components/ui/sketchy-input-decorator";
 
@@ -23,13 +25,14 @@ export default function RegisterPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [registrationEnabled, setRegistrationEnabled] = useState<boolean | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const { register, isRegistrationEnabled } = useAuth();
+  const { setUser } = useAuth();
+  const router = useRouter();
   
   // Check if registration is enabled when the page loads
   useEffect(() => {
     const checkRegistrationStatus = async () => {
       try {
-        const enabled = await isRegistrationEnabled();
+        const enabled = await registerApi.isRegistrationEnabled();
         setRegistrationEnabled(enabled);
       } catch (error) {
         console.error('Error checking registration status:', error);
@@ -40,8 +43,6 @@ export default function RegisterPage() {
     };
     
     checkRegistrationStatus();
-    // We intentionally omit isRegistrationEnabled from the dependency array
-    // because it's a stable function reference from the auth context
   }, []);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -81,16 +82,25 @@ export default function RegisterPage() {
     setIsSubmitting(true);
     
     try {
-      await register({
+      // Use the register API directly
+      const data = await registerApi.register({
         username: formData.username,
         email: formData.email,
         password: formData.password,
         first_name: formData.first_name,
         last_name: formData.last_name,
       });
-      // Redirect is handled in the auth provider
+      
+      // Update the auth context with the user data
+      setUser(data.user);
+      
+      // Show success message
+      toast.success("Registration successful");
+      
+      // Redirect to dashboard
+      router.push("/dashboard");
     } catch (error) {
-      // Error is handled in the auth provider
+      toast.error(error instanceof Error ? error.message : "Failed to register");
       setIsSubmitting(false);
     }
   };
@@ -109,7 +119,7 @@ export default function RegisterPage() {
           <p className="mt-2 text-center text-gray-300 font-mono text-lg">
             Already have an account?{" "}
             <Link
-              href="/login"
+              href="/auth/login"
               className="font-medium text-white hover:text-gray-300 transition-colors relative group"
             >
               Sign in
@@ -136,7 +146,7 @@ export default function RegisterPage() {
                   <Button
                     type="button"
                     className="w-full flex justify-center py-2 px-4 border-2 border-[#333] rounded-md shadow-[0_4px_0_0_#333] text-md font-medium font-mono text-[#333] bg-white hover:bg-[#fafafa] transition-all duration-200 transform hover:-translate-y-1 hover:shadow-[0_6px_0_0_#333]"
-                    onClick={() => window.location.href = '/login'}
+                    onClick={() => window.location.href = '/auth/login'}
                   >
                     Go to Login
                   </Button>

@@ -1,10 +1,9 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
-import { SmoothScrollProvider } from "@/components/providers/smooth-scroll";
-import { AuthProvider } from "@/components/providers/auth-provider";
-import { AuthRedirect } from "@/components/auth/auth-redirect";
-import { Toaster } from "sonner";
+import { SmoothScrollProvider } from "@/providers/smooth-scroll";
+import { AuthProvider } from "@/providers/auth-provider";
+import { NotificationProvider, ToastProvider } from "@/providers/notification-provider";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -22,12 +21,15 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={inter.className}>
-        <AuthProvider>
-          <AuthRedirect>
-            <SmoothScrollProvider>{children}</SmoothScrollProvider>
-            <Toaster position="top-center" richColors />
-          </AuthRedirect>
-        </AuthProvider>
+        <SmoothScrollProvider>
+          <NotificationProvider>
+            <ToastProvider>
+              <AuthProvider>
+                {children}
+              </AuthProvider>
+            </ToastProvider>
+          </NotificationProvider>
+        </SmoothScrollProvider>
       </body>
     </html>
   );

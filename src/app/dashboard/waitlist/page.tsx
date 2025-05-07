@@ -1,6 +1,6 @@
 "use client";
 
-import { WaitlistTable } from "@/components/dashboard/waitlist-table";
+import { WaitlistTable } from "./waitlist-table";
 
 export default function WaitlistPage() {
   return (
