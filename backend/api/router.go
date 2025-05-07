@@ -37,6 +37,9 @@ func SetupRouter(handler *Handler, cfg *config.Config) *gin.Engine {
 		
 		// Registration status endpoint (public)
 		public.GET("/registration/status", handler.GetRegistrationStatus)
+		
+		// Maintenance status endpoint (public)
+		public.GET("/maintenance/status", handler.GetMaintenanceStatus)
 	}
 	v1 := router.Group("/api/v1")
 	{

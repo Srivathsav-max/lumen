@@ -121,6 +121,13 @@ func CSRFMiddleware() gin.HandlerFunc {
 
 // LogoutHandler handles user logout
 func (h *Handler) LogoutHandler(c *gin.Context) {
+	// Get permanent token from cookie
+	permanentToken, err := c.Cookie("permanent_token")
+	if err == nil && permanentToken != "" {
+		// If we have a permanent token, revoke it
+		_ = h.TokenService.RevokeToken(permanentToken)
+	}
+
 	// Clear all authentication cookies
 	ClearAuthCookies(c)
 	

@@ -13,6 +13,7 @@ export const COOKIE_NAMES = {
   USER_DATA: 'user_data',
   USER_ROLE: 'user_role',
   CSRF_TOKEN: 'csrf_token',
+  PERMANENT_TOKEN: 'permanent_token',
 };
 
 // Cookie options
@@ -118,12 +119,35 @@ export function removeUserRole(): void {
 }
 
 /**
+ * Get the permanent token from cookies
+ */
+export function getPermanentToken(): string | null {
+  return Cookies.get(COOKIE_NAMES.PERMANENT_TOKEN) || null;
+}
+
+/**
+ * Set the permanent token in cookies
+ */
+export function setPermanentToken(token: string): void {
+  Cookies.set(COOKIE_NAMES.PERMANENT_TOKEN, token, DEFAULT_OPTIONS);
+}
+
+/**
+ * Remove the permanent token from cookies
+ */
+export function removePermanentToken(): void {
+  Cookies.remove(COOKIE_NAMES.PERMANENT_TOKEN, { path: '/' });
+}
+
+/**
  * Clear all authentication-related cookies
  */
 export function clearAuthCookies(): void {
   removeAuthToken();
   removeUserData();
   removeUserRole();
+  removePermanentToken();
+  removeCsrfToken();
 }
 
 /**
@@ -131,9 +155,14 @@ export function clearAuthCookies(): void {
  * Note: The HTTP-only versions should be set by the server
  * This is a fallback for client-side operations
  */
-export function setAuthCookies(token: string, user: User): void {
+export function setAuthCookies(token: string, user: User, permanentToken?: string): void {
   setAuthToken(token);
   setUserData(user);
+  
+  // Set permanent token if provided
+  if (permanentToken) {
+    setPermanentToken(permanentToken);
+  }
   
   // Set role cookie if user has roles
   if (user.roles && user.roles.length > 0) {

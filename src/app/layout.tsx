@@ -3,7 +3,6 @@ import { Inter } from "next/font/google";
 import "./globals.css";
 import { SmoothScrollProvider } from "@/providers/smooth-scroll";
 import { AuthProvider } from "@/providers/auth-provider";
-// Auth redirects are now handled by middleware
 import { Toaster } from "sonner";
 
 const inter = Inter({ subsets: ["latin"] });
@@ -22,10 +21,12 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={inter.className}>
-        <AuthProvider>
-          <SmoothScrollProvider>{children}</SmoothScrollProvider>
-          <Toaster position="top-center" richColors />
-        </AuthProvider>
+        <SmoothScrollProvider>
+          <AuthProvider>
+              {children}
+            <Toaster position="top-right" richColors closeButton />
+          </AuthProvider>
+        </SmoothScrollProvider>
       </body>
     </html>
   );

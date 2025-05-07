@@ -5,9 +5,9 @@ import { v4 as uuidv4 } from 'uuid';
 // Cookie names for consistency with client-side
 const COOKIE_NAMES = {
   AUTH_TOKEN: 'auth_token',
-  USER_DATA: 'user_data',
-  USER_ROLE: 'user_role',
+  REFRESH_TOKEN: 'refresh_token',
   CSRF_TOKEN: 'csrf_token',
+  USER_DATA: 'user_data',
   PERMANENT_TOKEN: 'permanent_token',
 };
 
@@ -18,6 +18,7 @@ const PUBLIC_ROUTES = [
   '/auth/forgot-password',
   '/auth/reset-password',
   '/waitlist',
+  '/maintenance',
 ];
 
 // Routes that should redirect to dashboard if already authenticated
@@ -97,7 +98,23 @@ export async function middleware(request: NextRequest) {
       // Check if user has admin role
       const isAdmin = user.is_admin === true;
       const roles = user.roles || [];
-      console.log('Middleware - User roles:', roles, 'isAdmin:', isAdmin);
+      const canBypassMaintenance = isAdmin || roles.includes('admin') || roles.includes('developer');
+      console.log('Middleware - User roles:', roles, 'isAdmin:', isAdmin, 'canBypassMaintenance:', canBypassMaintenance);
+      
+      // Check maintenance mode status
+      try {
+        // Make a server-side request to check maintenance status
+        const maintenanceResponse = await fetch(new URL('/api/maintenance/status', request.url).toString());
+        const maintenanceData = await maintenanceResponse.json();
+        
+        if (maintenanceData.maintenance_enabled && !canBypassMaintenance) {
+          console.log('Middleware - System in maintenance mode, redirecting non-admin user to maintenance page');
+          return NextResponse.redirect(new URL('/maintenance', request.url));
+        }
+      } catch (error) {
+        console.error('Middleware - Error checking maintenance status:', error);
+        // Continue if we can't check maintenance status
+      }
       
       // Handle different dashboard routes based on roles
       if (path === '/dashboard') {

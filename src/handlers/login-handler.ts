@@ -43,12 +43,30 @@ export async function handleLogin(
     setLastValidated(Date.now());
     toast.success('Login successful');
     
-    // Redirect based on user role
+    // Check maintenance status
+    const isMaintenanceActive = await loginApi.isInMaintenanceMode();
+    
+    // Determine if user can bypass maintenance mode
+    const canBypassMaintenance = 
+      data.user.is_admin === true || 
+      (data.user.roles && (
+        data.user.roles.includes('admin') || 
+        data.user.roles.includes('developer')
+      ));
+    
+    // Redirect based on user role and maintenance status
     setTimeout(() => {
-      if (data.user.is_admin) {
-        router.push('/dashboard');
+      // If maintenance is active and user cannot bypass, redirect to maintenance page
+      if (isMaintenanceActive && !canBypassMaintenance) {
+        router.push('/maintenance');
+        toast.info('System is currently in maintenance mode. Only administrators can access the dashboard.');
       } else {
-        router.push('/dashboard/user');
+        // Normal login flow - redirect based on user role
+        if (data.user.is_admin) {
+          router.push('/dashboard');
+        } else {
+          router.push('/dashboard/user');
+        }
       }
     }, 300);
   } catch (error) {

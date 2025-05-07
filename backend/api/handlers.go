@@ -85,7 +85,7 @@ func (h *Handler) Register(c *gin.Context) {
 	deviceInfo := &userAgent
 
 	// Generate token pair (permanent and temporary tokens)
-	tokenPair, err := h.TokenService.GenerateTokenPair(int(user.ID), deviceInfo)
+	tokenPair, err := h.TokenService.GetOrCreateTokenPair(int(user.ID), deviceInfo)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to generate tokens"})
 		return
@@ -189,7 +189,7 @@ func (h *Handler) Login(c *gin.Context) {
 	deviceInfo := &userAgent
 
 	// Generate token pair (permanent and temporary tokens)
-	tokenPair, err := h.TokenService.GenerateTokenPair(int(user.ID), deviceInfo)
+	tokenPair, err := h.TokenService.GetOrCreateTokenPair(int(user.ID), deviceInfo)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to generate tokens"})
 		return

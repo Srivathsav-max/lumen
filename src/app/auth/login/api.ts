@@ -15,7 +15,27 @@ const ENDPOINTS = {
   VALIDATE_TOKEN: '/auth/validate',
   REFRESH_TOKEN: '/auth/refresh',
   REVOKE_TOKEN: '/auth/revoke',
+  MAINTENANCE_STATUS: '/maintenance/status',
 };
+
+/**
+ * Login with email and password
+ */
+/**
+ * Check if the platform is in maintenance mode
+ * Public endpoint that doesn't require authentication
+ */
+export async function isInMaintenanceMode() {
+  const response = await api.get<{ maintenance_enabled: boolean }>(ENDPOINTS.MAINTENANCE_STATUS, {
+    requiresAuth: false
+  });
+  
+  if (response.error) {
+    throw new Error(response.error);
+  }
+  
+  return response.data.maintenance_enabled;
+}
 
 /**
  * Login with email and password

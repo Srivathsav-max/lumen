@@ -111,6 +111,50 @@ func (r *TokenRepository) GetActiveTokensByUserID(userID int) ([]UserToken, erro
 	return tokens, nil
 }
 
+// GetRecentTokensByUserID retrieves all tokens (both active and inactive) for a user
+// that were created within the specified duration
+func (r *TokenRepository) GetRecentTokensByUserID(userID int, duration time.Duration) ([]UserToken, error) {
+	// Calculate the cutoff time
+	cutoffTime := time.Now().Add(-duration)
+
+	query := `
+		SELECT id, user_id, permanent_token, created_at, last_used_at, device_info, is_active
+		FROM user_tokens
+		WHERE user_id = $1 AND created_at > $2
+		ORDER BY created_at DESC
+	`
+
+	rows, err := r.DB.Query(query, userID, cutoffTime)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var tokens []UserToken
+	for rows.Next() {
+		var token UserToken
+		err := rows.Scan(
+			&token.ID,
+			&token.UserID,
+			&token.PermanentToken,
+			&token.CreatedAt,
+			&token.LastUsedAt,
+			&token.DeviceInfo,
+			&token.IsActive,
+		)
+		if err != nil {
+			return nil, err
+		}
+		tokens = append(tokens, token)
+	}
+
+	if err = rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return tokens, nil
+}
+
 // UpdateLastUsed updates the last_used_at timestamp for a token
 func (r *TokenRepository) UpdateLastUsed(tokenID int) error {
 	query := `
@@ -132,6 +176,18 @@ func (r *TokenRepository) DeactivateToken(tokenID int) error {
 	`
 
 	_, err := r.DB.Exec(query, tokenID)
+	return err
+}
+
+// ReactivateToken reactivates an inactive token and updates its last_used_at timestamp
+func (r *TokenRepository) ReactivateToken(tokenID int) error {
+	query := `
+		UPDATE user_tokens
+		SET is_active = true, last_used_at = $1
+		WHERE id = $2
+	`
+
+	_, err := r.DB.Exec(query, time.Now(), tokenID)
 	return err
 }
 

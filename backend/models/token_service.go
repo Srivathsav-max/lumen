@@ -29,6 +29,91 @@ func NewTokenService(tokenRepo *TokenRepository, jwtSecret string) *TokenService
 	}
 }
 
+// GetOrCreateTokenPair gets an existing token or creates a new one if needed
+// First tries to use an active token, then tries to reactivate an inactive token,
+// and only generates a new permanent token if no suitable token exists within the expiry period
+func (s *TokenService) GetOrCreateTokenPair(userID int, deviceInfo *string) (*TokenPair, error) {
+	// Define the cutoff time for token validity (30 days ago)
+	thirtyDaysAgo := time.Now().Add(-s.PermanentTokenExpiry)
+
+	// Step 1: Check for existing active tokens for this user
+	existingActiveTokens, err := s.TokenRepository.GetActiveTokensByUserID(userID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to check existing active tokens: %w", err)
+	}
+
+	// Look for an active token that's less than 30 days old
+	var validToken *UserToken
+	for i, token := range existingActiveTokens {
+		// If the token is less than 30 days old, use it
+		if token.CreatedAt.After(thirtyDaysAgo) {
+			validToken = &existingActiveTokens[i]
+			break
+		}
+	}
+
+	// If we found a valid active token, use it
+	if validToken != nil {
+		// Update last used timestamp
+		err = s.TokenRepository.UpdateLastUsed(validToken.ID)
+		if err != nil {
+			return nil, fmt.Errorf("failed to update token last used: %w", err)
+		}
+
+		// Generate temporary JWT token using the existing permanent token
+		tempToken, expiresAt, err := s.generateTemporaryToken(userID, validToken.PermanentToken)
+		if err != nil {
+			return nil, fmt.Errorf("failed to generate temporary token: %w", err)
+		}
+
+		return &TokenPair{
+			PermanentToken: validToken.PermanentToken,
+			TemporaryToken: tempToken,
+			ExpiresAt:      expiresAt,
+		}, nil
+	}
+
+	// Step 2: No active token found, check for recent inactive tokens
+	recentTokens, err := s.TokenRepository.GetRecentTokensByUserID(userID, s.PermanentTokenExpiry)
+	if err != nil {
+		return nil, fmt.Errorf("failed to check recent tokens: %w", err)
+	}
+
+	// Look for an inactive token that's less than 30 days old
+	var recentInactiveToken *UserToken
+	for i, token := range recentTokens {
+		// If the token is inactive and less than 30 days old, use it
+		if !token.IsActive && token.CreatedAt.After(thirtyDaysAgo) {
+			recentInactiveToken = &recentTokens[i]
+			break
+		}
+	}
+
+	// If we found a recent inactive token, reactivate it and use it
+	if recentInactiveToken != nil {
+		// Reactivate the token
+		err = s.TokenRepository.ReactivateToken(recentInactiveToken.ID)
+		if err != nil {
+			return nil, fmt.Errorf("failed to reactivate token: %w", err)
+		}
+
+		// Generate temporary JWT token using the reactivated permanent token
+		tempToken, expiresAt, err := s.generateTemporaryToken(userID, recentInactiveToken.PermanentToken)
+		if err != nil {
+			return nil, fmt.Errorf("failed to generate temporary token: %w", err)
+		}
+
+		return &TokenPair{
+			PermanentToken: recentInactiveToken.PermanentToken,
+			TemporaryToken: tempToken,
+			ExpiresAt:      expiresAt,
+		}, nil
+	}
+
+	// Step 3: No suitable token found, generate a new one
+	return s.GenerateTokenPair(userID, deviceInfo)
+}
+
 // GenerateTokenPair generates a permanent and temporary token pair
 func (s *TokenService) GenerateTokenPair(userID int, deviceInfo *string) (*TokenPair, error) {
 	// Generate random permanent token
