@@ -74,7 +74,7 @@ export default function WaitlistPage() {
                   Thank You!
                 </h2>
                 <p className="text-gray-600 font-mono">
-                  You've been added to our waitlist. We'll notify you when we have updates.
+                  You&apos;ve been added to our waitlist. We&apos;ll notify you when we have updates.
                 </p>
               </div>
             </div>

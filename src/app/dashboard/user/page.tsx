@@ -29,7 +29,7 @@ export default function UserDashboardPage() {
               Welcome, {user?.first_name}!
             </h1>
             <p className="text-gray-600 font-mono">
-              We're cooking up something magical for you.
+              We&apos;re cooking up something magical for you.
             </p>
           </div>
           <div className="mt-4 md:mt-0">
@@ -49,8 +49,8 @@ export default function UserDashboardPage() {
             Something Magical is Coming Soon!
           </h2>
           <p className="text-gray-600 font-mono text-center max-w-2xl mb-6">
-            We're working hard to bring you an amazing experience. Our team is building something special just for you. 
-            Stay tuned for updates - we'll notify you as soon as it's ready!
+            We&apos;re working hard to bring you an amazing experience. Our team is building something special just for you. 
+            Stay tuned for updates - we&apos;ll notify you as soon as it&apos;s ready!
           </p>
           <div className="flex space-x-4">
             <Button className="border-2 border-[#333] shadow-[0_4px_0_0_#333] font-mono text-[#333] bg-white hover:bg-[#fafafa] transform hover:-translate-y-1 hover:shadow-[0_6px_0_0_#333] transition-all duration-200">
