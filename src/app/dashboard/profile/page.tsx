@@ -4,7 +4,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useState } from "react";
-import { User, Edit, Save, X, Mail, AtSign, Key, User as UserIcon } from "lucide-react";
+import { User, Edit, Save, X, Mail, AtSign, Key, User as UserIcon, Shield, Code, Star } from "lucide-react";
 import { toast } from "@/providers/notification-provider";
 import * as profileApi from "./api";
 
@@ -63,6 +63,43 @@ export default function ProfilePage() {
               <p className="text-gray-600 font-mono flex items-center">
                 <AtSign className="w-4 h-4 mr-1" /> {user?.username}
               </p>
+              {user?.roles && user.roles.length > 0 && (
+                <div className="flex flex-wrap gap-2 mt-2">
+                  {user.roles.map((role) => {
+                    // Define badge styles based on role
+                    let badgeStyle = "";
+                    let BadgeIcon = User;
+                    
+                    switch(role.toLowerCase()) {
+                      case "admin":
+                        badgeStyle = "bg-red-100 text-red-800 border-red-300";
+                        BadgeIcon = Shield;
+                        break;
+                      case "developer":
+                        badgeStyle = "bg-purple-100 text-purple-800 border-purple-300";
+                        BadgeIcon = Code;
+                        break;
+                      case "moderator":
+                        badgeStyle = "bg-blue-100 text-blue-800 border-blue-300";
+                        BadgeIcon = Star;
+                        break;
+                      default:
+                        badgeStyle = "bg-gray-100 text-gray-800 border-gray-300";
+                        BadgeIcon = User;
+                    }
+                    
+                    return (
+                      <div 
+                        key={role}
+                        className={`px-3 py-1 rounded-full border-2 font-mono text-sm font-medium flex items-center shadow-[0_2px_0_0_#333] ${badgeStyle}`}
+                      >
+                        <BadgeIcon className="w-3 h-3 mr-1" />
+                        {role.charAt(0).toUpperCase() + role.slice(1)}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
             </div>
           </div>
           <div className="mt-4 md:mt-0">

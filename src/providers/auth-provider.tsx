@@ -62,8 +62,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   // For debugging
   useEffect(() => {
-    console.log('AuthProvider - Current state:', { 
-      user: user ? 'exists' : 'null', 
+    console.log('AuthProvider - Current state:', {
+      user: user ? 'exists' : 'null',
       token: token ? 'exists' : 'null',
       isLoading,
       lastValidated
@@ -78,45 +78,53 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // Initialize auth state from cookies on component mount
   useEffect(() => {
     const initializeAuth = async () => {
+      console.log('Initializing auth state after page load/refresh');
+
+      // Try to load cached user data first
+      const userData = getUserData();
       const storedToken = getAuthToken();
+
+      // Update state with what we have from cookies
+      if (userData) {
+        console.log('Found cached user data');
+        setUser(userData);
+      }
+
       if (storedToken) {
+        console.log('Found auth token');
         setToken(storedToken);
+      }
+
+      // If we have either user data or a token, validate the session
+      if (userData || storedToken) {
+        console.log('Validating token after page refresh');
         try {
-          // Try to load cached user data first
-          const userData = getUserData();
-          if (userData) {
-            setUser(userData);
-          }
-          
-          // Only validate token if we don't have user data or it's been a while
-          const now = Date.now();
-          const shouldValidate = !user || (now - lastValidated > TOKEN_VALIDATION_CACHE_TIME);
-          
-          if (shouldValidate) {
-            await validateToken();
-          }
+          // Validate the token with the server
+          await validateToken();
         } catch (error) {
+          console.error('Token validation failed:', error);
           // If token validation fails, clear auth state
           clearAuthCookies();
           setToken(null);
           setUser(null);
         }
       }
+
       setIsLoading(false);
     };
-    
+
     initializeAuth();
   }, []);
 
   // Login function - uses login handler
   const handleLogin = async (email: string, password: string) => {
     return await authHandlers.handleLogin(
-      email, 
-      password, 
-      setUser, 
-      setToken, 
-      setLastValidated, 
-      setIsLoading, 
+      email,
+      password,
+      setUser,
+      setToken,
+      setLastValidated,
+      setIsLoading,
       router
     );
   };
@@ -124,9 +132,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // Logout function - uses logout handler
   const handleLogout = async () => {
     return await authHandlers.handleLogout(
-      setUser, 
-      setToken, 
-      setLastValidated, 
+      setUser,
+      setToken,
+      setLastValidated,
       router
     );
   };

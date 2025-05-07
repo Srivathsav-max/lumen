@@ -33,7 +33,7 @@ const HTTP_ONLY_OPTIONS = {
 
 /**
  * Get the authentication token from cookies
- * Note: With HTTP-only cookies, this function will return null
+ * Note: With HTTP-only cookies, this function will return a dummy token
  * The actual token is in the HTTP-only cookie that's automatically sent with requests
  */
 export function getAuthToken(): string | null {
@@ -43,10 +43,15 @@ export function getAuthToken(): string | null {
     console.log('Found auth token in client-side cookie');
     return cookieToken;
   }
-  
-  // We don't check localStorage or return dummy tokens for security reasons
-  // HTTP-only cookies are automatically sent with requests, so we don't need to access them here
-  
+
+  // Check if we have user data - if so, we likely have an HTTP-only cookie
+  // Return a dummy token to indicate we should try to use the HTTP-only cookie
+  const userData = getUserData();
+  if (userData) {
+    console.log('No client-side token, but found user data - returning dummy token for HTTP-only cookie');
+    return 'http-only-cookie';
+  }
+
   console.log('No client-side auth token found');
   return null;
 }
@@ -74,7 +79,7 @@ export function removeAuthToken(): void {
 export function getUserData(): User | null {
   const userData = Cookies.get(COOKIE_NAMES.USER_DATA);
   if (!userData) return null;
-  
+
   try {
     return JSON.parse(userData);
   } catch (e) {
@@ -158,24 +163,24 @@ export function clearAuthCookies(): void {
 export function setAuthCookies(token: string, user: User, permanentToken?: string): void {
   setAuthToken(token);
   setUserData(user);
-  
+
   // Set permanent token if provided
   if (permanentToken) {
     setPermanentToken(permanentToken);
   }
-  
+
   // Set role cookie if user has roles
   if (user.roles && user.roles.length > 0) {
     // Use the highest privilege role if multiple exist
-    const role = user.roles.includes('admin') 
-      ? 'admin' 
-      : user.roles.includes('developer') 
-        ? 'developer' 
+    const role = user.roles.includes('admin')
+      ? 'admin'
+      : user.roles.includes('developer')
+        ? 'developer'
         : user.roles[0];
-    
+
     setUserRole(role);
   }
-  
+
   // Generate and set CSRF token
   generateCsrfToken();
 }
