@@ -7,11 +7,7 @@ import {
   clearAuthCookies,
   getAuthToken,
   getUserData,
-  getUserRole,
-  setAuthCookies,
-  setUserData,
 } from '@/lib/cookies';
-import { api } from '@/lib/api-client';
 import * as authHandlers from '@/handlers';
 import { TOKEN_VALIDATION_CACHE_TIME } from '@/handlers/token-handler';
 
@@ -197,11 +193,4 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   );
 };
 
-// Custom hook to use auth context
-export const useAuth = () => {
-  const context = useContext(AuthContext);
-  if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider');
-  }
-  return context;
-};
+// useAuth hook is now imported from @/hooks/use-auth

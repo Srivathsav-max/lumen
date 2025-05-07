@@ -1,6 +1,6 @@
 "use client";
 
-import { useAuth } from "@/providers/auth-provider";
+import { useAuth } from "@/hooks/use-auth";
 import { usePathname } from "next/navigation";
 import { 
   Home, 

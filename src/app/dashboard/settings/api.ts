@@ -86,11 +86,14 @@ export async function isRegistrationEnabled() {
  * Admin/developer only endpoint
  */
 export async function toggleRegistration(enabled: boolean) {
-  const response = await api.put<{ enabled: boolean }>(ENDPOINTS.REGISTRATION_TOGGLE, { enabled });
+  // Backend expects a 'value' field with a string value
+  const response = await api.put<{ registration_enabled: boolean }>(ENDPOINTS.REGISTRATION_TOGGLE, { 
+    value: String(enabled) 
+  });
   
   if (response.error) {
     throw new Error(response.error);
   }
   
-  return response.data.enabled;
+  return response.data.registration_enabled;
 }

@@ -1,22 +1,15 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useAuth } from "@/providers/auth-provider";
+import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
 import { NotFound } from "@/components/ui/not-found";
 import { AlertCircle, Settings, Shield, Users, Wrench } from "lucide-react";
 import { toast } from "sonner";
+import * as settingsApi from "./api";
 
-// API base URL - must match the one in auth-provider.tsx
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/api/v1';
-
-interface SystemSetting {
-  key: string;
-  value: string;
-  description: string;
-  created_at: string;
-  updated_at: string;
-}
+// Import the SystemSetting interface from the API
+import { SystemSetting } from './api';
 
 export default function SettingsPage() {
   const { user } = useAuth();
@@ -24,15 +17,7 @@ export default function SettingsPage() {
   const [loading, setLoading] = useState(true);
   const [updating, setUpdating] = useState(false);
 
-  // Function to get token from cookies
-  const getTokenFromCookies = () => {
-    const cookies = document.cookie.split(';');
-    const tokenCookie = cookies.find(cookie => cookie.trim().startsWith('auth_token='));
-    if (tokenCookie) {
-      return tokenCookie.trim().substring('auth_token='.length);
-    }
-    return null;
-  };
+  // No longer need to get token from cookies as the API client handles this
 
   // Check if user is admin or developer
   const isAdminOrDeveloper = user?.is_admin || user?.roles?.includes('admin') || user?.roles?.includes('developer');
@@ -48,25 +33,10 @@ export default function SettingsPage() {
   const fetchSettings = async () => {
     try {
       setLoading(true);
-      const token = getTokenFromCookies();
       
-      if (!token) {
-        throw new Error('Authentication token not found');
-      }
-      
-      const response = await fetch(`${API_BASE_URL}/settings`, {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to fetch settings');
-      }
-
-      const data = await response.json();
-      setSettings(data.settings);
+      // Use the settings API module
+      const settings = await settingsApi.getAllSystemSettings();
+      setSettings(settings);
     } catch (error) {
       console.error('Error fetching settings:', error);
       toast.error(error instanceof Error ? error.message : 'Failed to load settings. Please try again later.');
@@ -78,26 +48,10 @@ export default function SettingsPage() {
   const updateSetting = async (key: string, value: string) => {
     try {
       setUpdating(true);
-      const token = getTokenFromCookies();
       
-      if (!token) {
-        throw new Error('Authentication token not found');
-      }
+      // Use the settings API module
+      await settingsApi.updateSystemSetting(key, value);
       
-      const response = await fetch(`${API_BASE_URL}/settings/${key}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({ value })
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to update setting');
-      }
-
       // Update local state
       setSettings(prev => 
         prev.map(setting => 
@@ -115,11 +69,27 @@ export default function SettingsPage() {
   };
 
   const toggleRegistration = async (enabled: boolean) => {
-    // Convert to string value to match the maintenance mode approach
-    await updateSetting('registration_enabled', String(enabled));
-    
-    // Show a specific toast message for registration toggle
-    toast.success(`User registration has been ${enabled ? 'enabled' : 'disabled'}.`);
+    try {
+      setUpdating(true);
+      
+      // Use the settings API module
+      await settingsApi.toggleRegistration(enabled);
+      
+      // Update local state
+      setSettings(prev => 
+        prev.map(setting => 
+          setting.key === 'registration_enabled' ? { ...setting, value: String(enabled) } : setting
+        )
+      );
+      
+      // Show a specific toast message for registration toggle
+      toast.success(`User registration has been ${enabled ? 'enabled' : 'disabled'}.`);
+    } catch (error) {
+      console.error('Error toggling registration:', error);
+      toast.error(error instanceof Error ? error.message : 'Failed to toggle registration. Please try again later.');
+    } finally {
+      setUpdating(false);
+    }
   };
 
   // If user is not admin or developer, show not found page

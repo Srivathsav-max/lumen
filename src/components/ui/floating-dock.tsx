@@ -6,7 +6,7 @@ import { Star, Home } from "lucide-react";
 import { HoverBorderGradient } from "./hover-border-gradient";
 import { usePathname } from 'next/navigation';
 import { AuthNav } from "./auth-nav";
-import { useAuth } from "../../providers/auth-provider";
+import { useAuth } from "@/hooks/use-auth";
 
 export const FloatingDock = ({
   className
