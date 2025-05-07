@@ -5,6 +5,8 @@ import Link from "next/link";
 import { Star, Home } from "lucide-react";
 import { HoverBorderGradient } from "./hover-border-gradient";
 import { usePathname } from 'next/navigation';
+import { AuthNav } from "./auth-nav";
+import { useAuth } from "../providers/auth-provider";
 
 export const FloatingDock = ({
   className
@@ -13,6 +15,7 @@ export const FloatingDock = ({
 }) => {
   const pathname = usePathname();
   const isWaitlist = pathname === '/waitlist';
+  const { isAuthenticated } = useAuth();
   return (
     <div
       className={cn(
@@ -38,21 +41,26 @@ export const FloatingDock = ({
           </Link>
         </div>
 
-        {/* Right: Waitlist Button */}
+        {/* Right: Auth Navigation or Waitlist Button */}
         <div className="flex items-center ml-auto">
           {isWaitlist ? (
             <div className="px-6 py-2 rounded-full bg-gray-100 text-gray-500 font-medium flex items-center gap-2">
               Coming Soon
             </div>
+          ) : isAuthenticated ? (
+            <AuthNav />
           ) : (
-            <Link href="/waitlist">
-              <HoverBorderGradient
-                containerClassName="rounded-full"
-                className="bg-black/90 text-white flex items-center gap-2 font-medium"
-              >
-                Join Waitlist
-              </HoverBorderGradient>
-            </Link>
+            <div className="flex items-center gap-4">
+              <AuthNav />
+              <Link href="/waitlist">
+                <HoverBorderGradient
+                  containerClassName="rounded-full"
+                  className="bg-black/90 text-white flex items-center gap-2 font-medium"
+                >
+                  Join Waitlist
+                </HoverBorderGradient>
+              </Link>
+            </div>
           )}
         </div>
       </div>

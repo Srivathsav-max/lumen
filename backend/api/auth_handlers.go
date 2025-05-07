@@ -8,6 +8,8 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+
+
 // ValidateAuth handles token validation and returns user information
 func (h *Handler) ValidateAuth(c *gin.Context) {
 	// Get the Authorization header
