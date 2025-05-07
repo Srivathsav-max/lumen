@@ -2,182 +2,207 @@
 
 import { useAuth } from "@/components/providers/auth-provider";
 import { Button } from "@/components/ui/button";
-import { useState } from "react";
 import Link from "next/link";
+import { 
+  BookOpen, 
+  BarChart2, 
+  Calendar, 
+  Users, 
+  Award, 
+  TrendingUp,
+  Clock,
+  CheckCircle,
+  AlertCircle
+} from "lucide-react";
 
 export default function DashboardPage() {
-  const { user, logout } = useAuth();
-  const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const { user } = useAuth();
 
-  const handleLogout = () => {
-    setIsLoggingOut(true);
-    logout();
-  };
+  // Mock data for dashboard
+  const stats = [
+    { label: "Courses Enrolled", value: 5, icon: <BookOpen className="w-5 h-5" />, color: "bg-blue-500" },
+    { label: "Completed Courses", value: 2, icon: <CheckCircle className="w-5 h-5" />, color: "bg-green-500" },
+    { label: "Upcoming Deadlines", value: 3, icon: <AlertCircle className="w-5 h-5" />, color: "bg-red-500" },
+    { label: "Hours Studied", value: 42, icon: <Clock className="w-5 h-5" />, color: "bg-purple-500" },
+  ];
+
+  const activities = [
+    { id: 1, title: "Calculus Quiz", type: "quiz", date: "Today", course: "Advanced Mathematics" },
+    { id: 2, title: "Physics Lab Report", type: "assignment", date: "Tomorrow", course: "Physics 101" },
+    { id: 3, title: "Literature Essay", type: "assignment", date: "May 10", course: "World Literature" },
+  ];
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <header className="bg-white shadow">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
-          <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
-          <div className="flex items-center space-x-4">
-            <span className="text-sm text-gray-600">
-              Welcome, {user?.first_name} {user?.last_name}
-            </span>
-            <Button
-              onClick={handleLogout}
-              disabled={isLoggingOut}
-              variant="outline"
-              className="text-sm"
-            >
-              {isLoggingOut ? "Logging out..." : "Logout"}
+    <div className="space-y-6">
+      {/* Welcome header */}
+      <div className="bg-white rounded-lg shadow-[0_8px_0_0_#333] border-2 border-[#333] p-6 relative transform hover:-translate-y-1 hover:shadow-[0_12px_0_0_#333] transition-all duration-200">
+        <div className="flex flex-col md:flex-row md:items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold font-mono text-[#333] mb-2">
+              Welcome back, {user?.first_name}!
+            </h1>
+            <p className="text-gray-600 font-mono">
+              Here's what's happening with your learning journey today.
+            </p>
+          </div>
+          <div className="mt-4 md:mt-0">
+            <Button className="border-2 border-[#333] shadow-[0_4px_0_0_#333] font-mono text-[#333] bg-white hover:bg-[#fafafa] transform hover:-translate-y-1 hover:shadow-[0_6px_0_0_#333] transition-all duration-200">
+              <TrendingUp className="mr-2 h-4 w-4" />
+              View Progress Report
             </Button>
           </div>
         </div>
-      </header>
+      </div>
 
-      {/* Main content */}
-      <main className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
-        <div className="px-4 py-6 sm:px-0">
-          <div className="bg-white shadow overflow-hidden sm:rounded-lg">
-            <div className="px-4 py-5 sm:px-6">
-              <h3 className="text-lg leading-6 font-medium text-gray-900">
-                User Information
-              </h3>
-              <p className="mt-1 max-w-2xl text-sm text-gray-500">
-                Personal details and account information.
-              </p>
-            </div>
-            <div className="border-t border-gray-200">
-              <dl>
-                <div className="bg-gray-50 px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
-                  <dt className="text-sm font-medium text-gray-500">Full name</dt>
-                  <dd className="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
-                    {user?.first_name} {user?.last_name}
-                  </dd>
-                </div>
-                <div className="bg-white px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
-                  <dt className="text-sm font-medium text-gray-500">Username</dt>
-                  <dd className="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
-                    {user?.username}
-                  </dd>
-                </div>
-                <div className="bg-gray-50 px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
-                  <dt className="text-sm font-medium text-gray-500">Email address</dt>
-                  <dd className="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
-                    {user?.email}
-                  </dd>
-                </div>
-                <div className="bg-white px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
-                  <dt className="text-sm font-medium text-gray-500">User ID</dt>
-                  <dd className="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
-                    {user?.id}
-                  </dd>
-                </div>
-              </dl>
-            </div>
-          </div>
-        </div>
-
-        {/* Dashboard cards */}
-        <div className="mt-8 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3 px-4 sm:px-0">
-          {/* Card 1 */}
-          <div className="bg-white overflow-hidden shadow rounded-lg">
-            <div className="p-5">
-              <div className="flex items-center">
-                <div className="flex-shrink-0 bg-indigo-500 rounded-md p-3">
-                  <svg className="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                  </svg>
-                </div>
-                <div className="ml-5 w-0 flex-1">
-                  <dl>
-                    <dt className="text-sm font-medium text-gray-500 truncate">
-                      New Projects
-                    </dt>
-                    <dd>
-                      <div className="text-lg font-medium text-gray-900">
-                        0
-                      </div>
-                    </dd>
-                  </dl>
-                </div>
+      {/* Stats grid */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        {stats.map((stat, index) => (
+          <div 
+            key={index} 
+            className="bg-white rounded-lg shadow-[0_4px_0_0_#333] border-2 border-[#333] p-4 relative transform hover:-translate-y-1 hover:shadow-[0_6px_0_0_#333] transition-all duration-200"
+          >
+            <div className="flex items-center">
+              <div className={`${stat.color} p-3 rounded-md text-white mr-4`}>
+                {stat.icon}
               </div>
-            </div>
-            <div className="bg-gray-50 px-5 py-3">
-              <div className="text-sm">
-                <Link href="#" className="font-medium text-indigo-600 hover:text-indigo-500">
-                  Create new project
-                </Link>
+              <div>
+                <p className="text-sm font-mono text-gray-600">{stat.label}</p>
+                <p className="text-2xl font-bold font-mono text-[#333]">{stat.value}</p>
               </div>
             </div>
           </div>
+        ))}
+      </div>
 
-          {/* Card 2 */}
-          <div className="bg-white overflow-hidden shadow rounded-lg">
-            <div className="p-5">
-              <div className="flex items-center">
-                <div className="flex-shrink-0 bg-green-500 rounded-md p-3">
-                  <svg className="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+      {/* Main content area */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Left column - Upcoming activities */}
+        <div className="lg:col-span-2">
+          <div className="bg-white rounded-lg shadow-[0_8px_0_0_#333] border-2 border-[#333] p-6 relative transform hover:-translate-y-1 hover:shadow-[0_12px_0_0_#333] transition-all duration-200">
+            <h2 className="text-xl font-bold font-mono text-[#333] mb-4 flex items-center">
+              <Calendar className="mr-2 h-5 w-5" />
+              Upcoming Activities
+            </h2>
+            <div className="space-y-4">
+              {activities.map((activity) => (
+                <div 
+                  key={activity.id} 
+                  className="border-2 border-[#333] rounded-md p-4 shadow-[0_4px_0_0_#333] hover:shadow-[0_6px_0_0_#333] hover:-translate-y-1 transition-all duration-200"
+                >
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <h3 className="font-mono font-medium text-lg text-[#333]">{activity.title}</h3>
+                      <p className="text-sm font-mono text-gray-600">{activity.course}</p>
+                    </div>
+                    <div className="bg-[#333] text-white text-xs font-mono px-2 py-1 rounded uppercase">
+                      {activity.date}
+                    </div>
+                  </div>
+                  <div className="mt-2 flex justify-between items-center">
+                    <span className="inline-block bg-gray-100 text-[#333] text-xs font-mono px-2 py-1 rounded uppercase">
+                      {activity.type}
+                    </span>
+                    <Link 
+                      href="#" 
+                      className="text-[#333] font-mono text-sm hover:underline"
+                    >
+                      View details
+                    </Link>
+                  </div>
+                </div>
+              ))}
+              <div className="text-center mt-4">
+                <Link 
+                  href="#" 
+                  className="text-[#333] font-mono text-sm hover:underline inline-flex items-center"
+                >
+                  View all activities
+                  <svg className="ml-1 w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                   </svg>
-                </div>
-                <div className="ml-5 w-0 flex-1">
-                  <dl>
-                    <dt className="text-sm font-medium text-gray-500 truncate">
-                      Active Tasks
-                    </dt>
-                    <dd>
-                      <div className="text-lg font-medium text-gray-900">
-                        0
-                      </div>
-                    </dd>
-                  </dl>
-                </div>
-              </div>
-            </div>
-            <div className="bg-gray-50 px-5 py-3">
-              <div className="text-sm">
-                <Link href="#" className="font-medium text-green-600 hover:text-green-500">
-                  View all tasks
-                </Link>
-              </div>
-            </div>
-          </div>
-
-          {/* Card 3 */}
-          <div className="bg-white overflow-hidden shadow rounded-lg">
-            <div className="p-5">
-              <div className="flex items-center">
-                <div className="flex-shrink-0 bg-blue-500 rounded-md p-3">
-                  <svg className="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-                  </svg>
-                </div>
-                <div className="ml-5 w-0 flex-1">
-                  <dl>
-                    <dt className="text-sm font-medium text-gray-500 truncate">
-                      Team Members
-                    </dt>
-                    <dd>
-                      <div className="text-lg font-medium text-gray-900">
-                        1
-                      </div>
-                    </dd>
-                  </dl>
-                </div>
-              </div>
-            </div>
-            <div className="bg-gray-50 px-5 py-3">
-              <div className="text-sm">
-                <Link href="#" className="font-medium text-blue-600 hover:text-blue-500">
-                  Invite team members
                 </Link>
               </div>
             </div>
           </div>
         </div>
-      </main>
+
+        {/* Right column - Quick stats and achievements */}
+        <div className="space-y-6">
+          {/* Course progress */}
+          <div className="bg-white rounded-lg shadow-[0_8px_0_0_#333] border-2 border-[#333] p-6 relative transform hover:-translate-y-1 hover:shadow-[0_12px_0_0_#333] transition-all duration-200">
+            <h2 className="text-xl font-bold font-mono text-[#333] mb-4 flex items-center">
+              <BarChart2 className="mr-2 h-5 w-5" />
+              Course Progress
+            </h2>
+            <div className="space-y-4">
+              <div>
+                <div className="flex justify-between items-center mb-1">
+                  <span className="text-sm font-mono text-gray-600">Physics 101</span>
+                  <span className="text-sm font-mono text-gray-600">75%</span>
+                </div>
+                <div className="w-full bg-gray-200 rounded-full h-2.5 dark:bg-gray-700">
+                  <div className="bg-blue-500 h-2.5 rounded-full" style={{ width: '75%' }}></div>
+                </div>
+              </div>
+              <div>
+                <div className="flex justify-between items-center mb-1">
+                  <span className="text-sm font-mono text-gray-600">Advanced Mathematics</span>
+                  <span className="text-sm font-mono text-gray-600">45%</span>
+                </div>
+                <div className="w-full bg-gray-200 rounded-full h-2.5 dark:bg-gray-700">
+                  <div className="bg-blue-500 h-2.5 rounded-full" style={{ width: '45%' }}></div>
+                </div>
+              </div>
+              <div>
+                <div className="flex justify-between items-center mb-1">
+                  <span className="text-sm font-mono text-gray-600">World Literature</span>
+                  <span className="text-sm font-mono text-gray-600">90%</span>
+                </div>
+                <div className="w-full bg-gray-200 rounded-full h-2.5 dark:bg-gray-700">
+                  <div className="bg-blue-500 h-2.5 rounded-full" style={{ width: '90%' }}></div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Recent achievements */}
+          <div className="bg-white rounded-lg shadow-[0_8px_0_0_#333] border-2 border-[#333] p-6 relative transform hover:-translate-y-1 hover:shadow-[0_12px_0_0_#333] transition-all duration-200">
+            <h2 className="text-xl font-bold font-mono text-[#333] mb-4 flex items-center">
+              <Award className="mr-2 h-5 w-5" />
+              Recent Achievements
+            </h2>
+            <div className="space-y-3">
+              <div className="flex items-center">
+                <div className="bg-yellow-100 p-2 rounded-full mr-3">
+                  <Award className="h-5 w-5 text-yellow-500" />
+                </div>
+                <div>
+                  <p className="font-mono text-sm font-medium text-[#333]">Perfect Score</p>
+                  <p className="text-xs font-mono text-gray-500">Physics Quiz #3</p>
+                </div>
+              </div>
+              <div className="flex items-center">
+                <div className="bg-blue-100 p-2 rounded-full mr-3">
+                  <Clock className="h-5 w-5 text-blue-500" />
+                </div>
+                <div>
+                  <p className="font-mono text-sm font-medium text-[#333]">Early Submission</p>
+                  <p className="text-xs font-mono text-gray-500">Literature Essay</p>
+                </div>
+              </div>
+              <div className="flex items-center">
+                <div className="bg-green-100 p-2 rounded-full mr-3">
+                  <CheckCircle className="h-5 w-5 text-green-500" />
+                </div>
+                <div>
+                  <p className="font-mono text-sm font-medium text-[#333]">Course Completed</p>
+                  <p className="text-xs font-mono text-gray-500">Intro to Programming</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

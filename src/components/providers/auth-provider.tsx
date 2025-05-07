@@ -23,6 +23,7 @@ interface AuthContextType {
   register: (userData: RegisterData) => Promise<void>;
   logout: () => void;
   validateToken: () => Promise<boolean>;
+  updateProfile: (userData: Partial<User>) => Promise<void>;
 }
 
 // Define register data type
@@ -231,6 +232,44 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   }, [token, user, lastValidated]);
 
+    // Update profile function
+  const updateProfile = async (userData: Partial<User>) => {
+    if (!token || !user) {
+      toast.error('You must be logged in to update your profile');
+      return;
+    }
+
+    try {
+      setIsLoading(true);
+      const response = await fetch(`${API_BASE_URL}/profile`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify(userData),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to update profile');
+      }
+
+      // Update user data in state and localStorage
+      const updatedUser = { ...user, ...userData };
+      setUser(updatedUser);
+      localStorage.setItem('auth_user', JSON.stringify(updatedUser));
+      setLastValidated(Date.now());
+      return data;
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Failed to update profile');
+      throw error;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const value = {
     user,
     token,
@@ -240,6 +279,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     register,
     logout,
     validateToken,
+    updateProfile,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
