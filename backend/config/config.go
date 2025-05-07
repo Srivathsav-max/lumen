@@ -63,9 +63,9 @@ func LoadConfig() (*Config, error) {
 	// Check for Heroku DATABASE_URL
 	databaseURL := os.Getenv("DATABASE_URL")
 	if databaseURL != "" {
-		// Parse the DATABASE_URL
+		// For Heroku, we'll use the DATABASE_URL directly
 		// Format: postgres://username:password@host:port/database_name?sslmode=require
-		// We'll use simple parsing here, but in production you might want to use a URL parser
+		log.Println("Using DATABASE_URL from environment")
 		dbConfig = DatabaseConfig{
 			// These values will be ignored when using DATABASE_URL
 			Host:     "from_url",

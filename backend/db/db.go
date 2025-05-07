@@ -16,7 +16,16 @@ type DB struct {
 
 // New creates a new database connection
 func New(cfg *config.DatabaseConfig) (*DB, error) {
-	db, err := sql.Open("postgres", cfg.GetDSN())
+	dsn := cfg.GetDSN()
+	
+	// For security, don't log the full DSN with credentials
+	if cfg.URL != "" {
+		log.Println("Using database connection string from DATABASE_URL environment variable")
+	} else {
+		log.Printf("Connecting to database at %s:%d/%s", cfg.Host, cfg.Port, cfg.DBName)
+	}
+	
+	db, err := sql.Open("postgres", dsn)
 	if err != nil {
 		return nil, fmt.Errorf("error opening database connection: %w", err)
 	}
