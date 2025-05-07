@@ -3,7 +3,7 @@
  * Contains the logic for handling user profile updates
  */
 
-import { toast } from 'sonner';
+import { toast } from '@/providers/notification-provider';
 import { User } from '@/providers/auth-provider';
 import * as profileApi from '@/app/dashboard/profile/api';
 import { setUserData } from '@/lib/cookies';

@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useState } from "react";
 import { User, Edit, Save, X, Mail, AtSign, Key, User as UserIcon } from "lucide-react";
-import { toast } from "sonner";
+import { toast } from "@/providers/notification-provider";
 import * as profileApi from "./api";
 
 export default function ProfilePage() {

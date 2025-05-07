@@ -5,7 +5,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import Link from "next/link";
-import { toast } from "sonner";
+import { toast } from "@/providers/notification-provider";
 import "@/styles/sketchy-elements.css";
 import { useRouter } from "next/navigation";
 import * as loginApi from "./api";
@@ -58,7 +58,7 @@ export default function LoginPage() {
           <p className="mt-2 text-center text-gray-300 font-mono text-lg">
             Or{" "}
             <Link
-              href="/register"
+              href="/auth/register"
               className="font-medium text-white hover:text-gray-300 transition-colors relative group"
             >
               create a new account

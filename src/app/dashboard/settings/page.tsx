@@ -5,7 +5,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
 import { NotFound } from "@/components/ui/not-found";
 import { AlertCircle, Settings, Shield, Users, Wrench } from "lucide-react";
-import { toast } from "sonner";
+import { toast } from "@/providers/notification-provider";
 import * as settingsApi from "./api";
 
 // Import the SystemSetting interface from the API

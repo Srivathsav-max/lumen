@@ -2,7 +2,7 @@
 
 import React, { createContext, useContext, useEffect, useState, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { toast } from 'sonner';
+import { toast } from '@/providers/notification-provider';
 import {
   clearAuthCookies,
   getAuthToken,

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { toast } from "sonner";
+import { toast } from "@/providers/notification-provider";
 import {
   Table,
   TableBody,

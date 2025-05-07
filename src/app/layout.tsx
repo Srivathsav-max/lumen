@@ -3,7 +3,7 @@ import { Inter } from "next/font/google";
 import "./globals.css";
 import { SmoothScrollProvider } from "@/providers/smooth-scroll";
 import { AuthProvider } from "@/providers/auth-provider";
-import { Toaster } from "sonner";
+import { NotificationProvider, ToastProvider } from "@/providers/notification-provider";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -22,10 +22,13 @@ export default function RootLayout({
     <html lang="en">
       <body className={inter.className}>
         <SmoothScrollProvider>
-          <AuthProvider>
-              {children}
-            <Toaster position="top-right" richColors closeButton />
-          </AuthProvider>
+          <NotificationProvider>
+            <ToastProvider>
+              <AuthProvider>
+                {children}
+              </AuthProvider>
+            </ToastProvider>
+          </NotificationProvider>
         </SmoothScrollProvider>
       </body>
     </html>

@@ -7,7 +7,7 @@
 // Import types
 import { User } from '@/providers/auth-provider';
 import * as loginApi from '@/app/auth/login/api';
-import { toast } from 'sonner';
+import { toast } from '@/providers/notification-provider';
 
 /**
  * Handle user login

@@ -3,7 +3,7 @@
  * Contains the logic for handling user registration
  */
 
-import { toast } from 'sonner';
+import { toast } from '@/providers/notification-provider';
 import { User, RegisterData } from '@/providers/auth-provider';
 import * as registerApi from '@/app/auth/register/api';
 // Using any type for router to avoid type issues

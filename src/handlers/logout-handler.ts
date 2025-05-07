@@ -3,7 +3,7 @@
  * Contains the logic for handling user logout
  */
 
-import { toast } from 'sonner';
+import { toast } from '@/providers/notification-provider';
 import { api } from '@/lib/api-client';
 import { clearAuthCookies } from '@/lib/cookies';
 // Using any type for router to avoid type issues

@@ -55,7 +55,7 @@ export async function register(userData: RegisterData) {
  * Check if registration is enabled
  */
 export async function isRegistrationEnabled() {
-  const response = await api.get<{ enabled: boolean }>(
+  const response = await api.get<{ registration_enabled: boolean }>(
     ENDPOINTS.REGISTRATION_STATUS,
     { requiresAuth: false }
   );
@@ -64,7 +64,7 @@ export async function isRegistrationEnabled() {
     throw new Error(response.error);
   }
   
-  return response.data.enabled;
+  return response.data.registration_enabled;
 }
 
 /**

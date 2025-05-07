@@ -5,7 +5,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import Link from "next/link";
-import { toast } from "sonner";
+import { toast } from "@/providers/notification-provider";
 import { AlertTriangle } from "lucide-react";
 import "@/styles/sketchy-elements.css";
 import { useRouter } from "next/navigation";

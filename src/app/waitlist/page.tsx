@@ -6,7 +6,7 @@ import { Navbar } from "@/components/ui/navbar";
 import { ScrollToTop } from "@/components/ui/scroll-to-top";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { toast } from "sonner";
+import { toast } from "@/providers/notification-provider";
 import { Sparkles } from "lucide-react";
 import * as waitlistApi from "./api";
 
