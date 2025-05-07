@@ -3,6 +3,7 @@
 import { useAuth } from "@/components/providers/auth-provider";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { getAuthToken, getUserData } from "@/lib/cookies";
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -19,27 +20,29 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
     // or when authentication state changes significantly
     if (!authChecked && !isLoading && !isRedirecting) {
       const checkAuth = async () => {
-        // Check if we have a token in localStorage but no user yet
-        // This handles the case right after login before state is fully updated
-        const storedToken = localStorage.getItem('auth_token');
+        console.log('ProtectedRoute - Checking auth');
+        // With HTTP-only cookies, we need to check both client-side state and user data
+        const userData = getUserData();
         
-        if (!storedToken) {
-          // No token in localStorage, definitely not authenticated
-          setIsRedirecting(true);
-          router.push("/login");
-          return;
-        }
+        console.log('ProtectedRoute - isAuthenticated:', isAuthenticated);
+        console.log('ProtectedRoute - User data:', userData ? 'exists' : 'missing');
         
-        if (!isAuthenticated) {
-          // We have a token but no user yet, validate the token
+        // If we're not authenticated in context and have no user data, we need to validate
+        if (!isAuthenticated && !userData) {
+          console.log('ProtectedRoute - Not authenticated, validating with server');
+          // Validate with the server - this will use HTTP-only cookies automatically
           const isValid = await validateToken();
+          console.log('ProtectedRoute - Server validation result:', isValid);
+          
           if (!isValid) {
+            console.log('ProtectedRoute - Invalid session, redirecting to login');
             setIsRedirecting(true);
             router.push("/login");
             return;
           }
         }
         
+        console.log('ProtectedRoute - Auth check passed');
         setAuthChecked(true);
       };
 
@@ -55,14 +58,26 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
     );
   }
   
-  // Check if we have a token in localStorage even if isAuthenticated is false
+  // Check if we have a token in cookies even if isAuthenticated is false
   // This handles the case right after login before state is fully updated
-  const hasToken = !!localStorage.getItem('auth_token');
+  const hasToken = !!getAuthToken();
+  const hasUserData = !!getUserData();
   
-  if (!isAuthenticated && !hasToken) {
+  console.log('ProtectedRoute - Render check - isAuthenticated:', isAuthenticated, 'hasToken:', hasToken, 'hasUserData:', hasUserData);
+  
+  // Consider authenticated if any of these conditions are true:
+  // 1. isAuthenticated from context
+  // 2. Has a token in cookies/localStorage
+  // 3. Has user data in cookies (HTTP-only cookie case)
+  const isEffectivelyAuthenticated = isAuthenticated || hasToken || hasUserData;
+  
+  if (!isEffectivelyAuthenticated) {
     // Only block rendering if we're definitely not authenticated
+    console.log('ProtectedRoute - Not authenticated, blocking render');
     return null;
   }
+  
+  console.log('ProtectedRoute - Authentication passed, rendering children');
 
   return <>{children}</>;
 };

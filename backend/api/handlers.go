@@ -8,6 +8,7 @@ import (
 	"github.com/Srivathsav-max/lumen/backend/models"
 	"github.com/Srivathsav-max/lumen/backend/utils"
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 )
 
 // Handler contains all the dependencies needed for the API handlers
@@ -32,6 +33,18 @@ func NewHandler(userService models.UserService, roleService models.RoleService, 
 
 // Register handles user registration
 func (h *Handler) Register(c *gin.Context) {
+	// Check if registration is enabled
+	registrationEnabled, err := h.SystemSettingsService.IsRegistrationEnabled()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to check registration status"})
+		return
+	}
+
+	if !registrationEnabled {
+		c.JSON(http.StatusForbidden, gin.H{"error": "Registration is currently disabled"})
+		return
+	}
+
 	var input struct {
 		Username  string `json:"username" binding:"required"`
 		Email     string `json:"email" binding:"required,email"`
@@ -72,16 +85,55 @@ func (h *Handler) Register(c *gin.Context) {
 		return
 	}
 
+	// Get user roles
+	userRoles, err := h.RoleService.GetUserRoles(user.ID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve user roles"})
+		return
+	}
+	
+	// Extract role names for response
+	roleNames := make([]string, len(userRoles))
+	for i, role := range userRoles {
+		roleNames[i] = role.Name
+	}
+	
+	// Check if user is admin
+	isAdmin, err := h.RoleService.IsAdmin(user.ID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to check admin status"})
+		return
+	}
+
+	// Prepare user data for cookie
+	userData := gin.H{
+		"id":         user.ID,
+		"username":   user.Username,
+		"email":      user.Email,
+		"first_name": user.FirstName,
+		"last_name":  user.LastName,
+		"roles":      roleNames,
+		"is_admin":   isAdmin,
+	}
+
+	// Determine user role for role cookie
+	userRole := "user"
+	if isAdmin {
+		userRole = "admin"
+	}
+
+	// Set cookies with the token and user data
+	SetAuthCookies(c, token, userData, userRole)
+
+	// Generate a new CSRF token for the response
+	csrfToken := uuid.New().String()
+	c.Header(CSRFTokenHeader, csrfToken)
+
 	c.JSON(http.StatusCreated, gin.H{
 		"message": "User registered successfully",
-		"token":   token,
-		"user": gin.H{
-			"id":         user.ID,
-			"username":   user.Username,
-			"email":      user.Email,
-			"first_name": user.FirstName,
-			"last_name":  user.LastName,
-		},
+		"token":   token, // Still include token in response for backward compatibility
+		"user":    userData,
+		"csrf_token": csrfToken,
 	})
 }
 
@@ -130,18 +182,35 @@ func (h *Handler) Login(c *gin.Context) {
 		return
 	}
 
+	// Prepare user data for cookie
+	userData := gin.H{
+		"id":         user.ID,
+		"username":   user.Username,
+		"email":      user.Email,
+		"first_name": user.FirstName,
+		"last_name":  user.LastName,
+		"roles":      roleNames,
+		"is_admin":   isAdmin,
+	}
+
+	// Determine user role for role cookie
+	userRole := "user"
+	if isAdmin {
+		userRole = "admin"
+	}
+
+	// Set cookies with the token and user data
+	SetAuthCookies(c, token, userData, userRole)
+
+	// Generate a new CSRF token for the response
+	csrfToken := uuid.New().String()
+	c.Header(CSRFTokenHeader, csrfToken)
+
 	c.JSON(http.StatusOK, gin.H{
 		"message": "Login successful",
-		"token":   token,
-		"user": gin.H{
-			"id":         user.ID,
-			"username":   user.Username,
-			"email":      user.Email,
-			"first_name": user.FirstName,
-			"last_name":  user.LastName,
-			"roles":      roleNames,
-			"is_admin":   isAdmin,
-		},
+		"token":   token, // Still include token in response for backward compatibility
+		"user":    userData,
+		"csrf_token": csrfToken,
 	})
 }
 

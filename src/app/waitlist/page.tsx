@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { Sparkles } from "lucide-react";
+import * as waitlistApi from "./api";
 
 export default function WaitlistPage() {
   const [email, setEmail] = useState("");
@@ -26,19 +27,8 @@ export default function WaitlistPage() {
     setIsSubmitting(true);
     
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/api/v1'}/waitlist`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ email, name }),
-      });
-      
-      const data = await response.json();
-      
-      if (!response.ok) {
-        throw new Error(data.error || 'Failed to join waitlist');
-      }
+      // Use the centralized waitlist API module
+      await waitlistApi.joinWaitlist({ email, name });
       
       toast.success("You've been added to the waitlist!");
       setEmail("");

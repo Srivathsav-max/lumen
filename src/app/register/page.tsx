@@ -8,6 +8,8 @@ import Link from "next/link";
 import { toast } from "sonner";
 import { AlertTriangle } from "lucide-react";
 import "@/styles/sketchy-elements.css";
+import { useRouter } from "next/navigation";
+import * as registerApi from "./api";
 
 import SketchyInputDecorator from "@/components/ui/sketchy-input-decorator";
 
@@ -23,13 +25,14 @@ export default function RegisterPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [registrationEnabled, setRegistrationEnabled] = useState<boolean | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const { register, isRegistrationEnabled } = useAuth();
+  const { setUser } = useAuth();
+  const router = useRouter();
   
   // Check if registration is enabled when the page loads
   useEffect(() => {
     const checkRegistrationStatus = async () => {
       try {
-        const enabled = await isRegistrationEnabled();
+        const enabled = await registerApi.isRegistrationEnabled();
         setRegistrationEnabled(enabled);
       } catch (error) {
         console.error('Error checking registration status:', error);
@@ -40,8 +43,6 @@ export default function RegisterPage() {
     };
     
     checkRegistrationStatus();
-    // We intentionally omit isRegistrationEnabled from the dependency array
-    // because it's a stable function reference from the auth context
   }, []);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -81,16 +82,25 @@ export default function RegisterPage() {
     setIsSubmitting(true);
     
     try {
-      await register({
+      // Use the register API directly
+      const data = await registerApi.register({
         username: formData.username,
         email: formData.email,
         password: formData.password,
         first_name: formData.first_name,
         last_name: formData.last_name,
       });
-      // Redirect is handled in the auth provider
+      
+      // Update the auth context with the user data
+      setUser(data.user);
+      
+      // Show success message
+      toast.success("Registration successful");
+      
+      // Redirect to dashboard
+      router.push("/dashboard");
     } catch (error) {
-      // Error is handled in the auth provider
+      toast.error(error instanceof Error ? error.message : "Failed to register");
       setIsSubmitting(false);
     }
   };

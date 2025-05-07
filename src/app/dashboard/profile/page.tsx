@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { useState } from "react";
 import { User, Edit, Save, X, Mail, AtSign, Key, User as UserIcon } from "lucide-react";
 import { toast } from "sonner";
+import * as profileApi from "./api";
 
 export default function ProfilePage() {
   const { user, updateProfile } = useAuth();
@@ -31,12 +32,14 @@ export default function ProfilePage() {
     setIsSubmitting(true);
     
     try {
-      // Use the updateProfile function from auth context
-      await updateProfile(formData);
+      // Use the centralized profile API instead of auth context
+      await profileApi.updateUserProfile(formData);
+      // Update the user in auth context
+      updateProfile(formData);
       toast.success("Profile updated successfully");
       setIsEditing(false);
     } catch (error) {
-      toast.error("Failed to update profile");
+      toast.error(error instanceof Error ? error.message : "Failed to update profile");
     } finally {
       setIsSubmitting(false);
     }

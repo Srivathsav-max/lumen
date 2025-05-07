@@ -3,6 +3,18 @@
 import React, { createContext, useContext, useEffect, useState, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
+import {
+  clearAuthCookies,
+  getAuthToken,
+  getUserData,
+  getUserRole,
+  setAuthCookies,
+  setUserData,
+} from '@/lib/cookies';
+import { api } from '@/lib/api-client';
+import * as loginApi from '@/app/login/api';
+import * as registerApi from '@/app/register/api';
+import * as profileApi from '@/app/dashboard/profile/api';
 
 // Define user type
 export interface User {
@@ -21,11 +33,12 @@ interface AuthContextType {
   token: string | null;
   isAuthenticated: boolean;
   isLoading: boolean;
+  setUser: (user: User | null) => void;
   login: (email: string, password: string) => Promise<void>;
   register: (userData: RegisterData) => Promise<void>;
   logout: () => void;
   validateToken: () => Promise<boolean>;
-  updateProfile: (userData: Partial<User>) => Promise<void>;
+  updateProfile: (userData: Partial<User>) => Promise<User | undefined>;
   isRegistrationEnabled: () => Promise<boolean>;
 }
 
@@ -41,9 +54,6 @@ export interface RegisterData {
 // Create the auth context
 export const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// API base URL
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/api/v1';
-
 // Cache validation for 5 minutes (300000 ms)
 const TOKEN_VALIDATION_CACHE_TIME = 300000;
 
@@ -54,23 +64,28 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [lastValidated, setLastValidated] = useState<number>(0);
   const validationInProgress = useRef<boolean>(false);
   const router = useRouter();
+  
+  // For debugging
+  useEffect(() => {
+    console.log('AuthProvider - Current state:', { 
+      user: user ? 'exists' : 'null', 
+      token: token ? 'exists' : 'null',
+      isLoading,
+      lastValidated
+    });
+  }, [user, token, isLoading, lastValidated]);
 
-  // Initialize auth state from localStorage on component mount
+  // Initialize auth state from cookies on component mount
   useEffect(() => {
     const initializeAuth = async () => {
-      const storedToken = localStorage.getItem('auth_token');
+      const storedToken = getAuthToken();
       if (storedToken) {
         setToken(storedToken);
         try {
           // Try to load cached user data first
-          const cachedUserData = localStorage.getItem('auth_user');
-          if (cachedUserData) {
-            try {
-              const userData = JSON.parse(cachedUserData);
-              setUser(userData);
-            } catch (e) {
-              // Invalid cached user data, will validate token instead
-            }
+          const userData = getUserData();
+          if (userData) {
+            setUser(userData);
           }
           
           // Only validate token if we don't have user data or it's been a while
@@ -82,8 +97,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           }
         } catch (error) {
           // If token validation fails, clear auth state
-          localStorage.removeItem('auth_token');
-          localStorage.removeItem('auth_user');
+          clearAuthCookies();
           setToken(null);
           setUser(null);
         }
@@ -94,31 +108,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     initializeAuth();
   }, []);
 
-  // Login function
+  // Login function - uses login API module
   const login = async (email: string, password: string) => {
     try {
       setIsLoading(true);
-      const response = await fetch(`${API_BASE_URL}/login`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ email, password }),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || 'Login failed');
-      }
-
-      // Store token and user data in localStorage for immediate access
-      localStorage.setItem('auth_token', data.token);
-      localStorage.setItem('auth_user', JSON.stringify(data.user));
       
-      // Store in cookies for server-side access
-      document.cookie = `auth_token=${data.token}; path=/; max-age=${60*60*24*7}`; // 7 days
-      document.cookie = `auth_user=${JSON.stringify(data.user)}; path=/; max-age=${60*60*24*7}`;
+      // Use login API module
+      const data = await loginApi.login(email, password);
+      
+      // Log the data for debugging
+      console.log('Auth provider login data:', data);
       
       // Update state
       setToken(data.token);
@@ -127,14 +126,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       toast.success('Login successful');
       
       // Redirect based on user role
+      // Use router instead of window.location for better Next.js integration
+      console.log('Auth provider - Setting timeout for redirect');
       setTimeout(() => {
-        if (data.user.is_admin) {
-          window.location.href = '/dashboard'; // Admin dashboard
+        // Check if user data and is_admin property exist
+        if (data.user && data.user.is_admin) {
+          console.log('Auth provider - Redirecting to admin dashboard');
+          router.push('/dashboard'); // Admin dashboard
         } else {
-          window.location.href = '/dashboard/user'; // User dashboard
+          console.log('Auth provider - Redirecting to user dashboard');
+          router.push('/dashboard/user'); // User dashboard
         }
-      }, 300);
+      }, 500); // Increased timeout for more reliability
     } catch (error) {
+      console.error('Login error:', error);
       toast.error(error instanceof Error ? error.message : 'Login failed');
       throw error;
     } finally {
@@ -142,57 +147,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  // Check if registration is enabled
+  // Check if registration is enabled - uses register API module
   const isRegistrationEnabled = async (): Promise<boolean> => {
     try {
-      const response = await fetch(`${API_BASE_URL}/registration/status`);
-      
-      if (!response.ok) {
-        // If the endpoint fails, default to disabled for safety
-        return false;
-      }
-      
-      const data = await response.json();
-      return data.registration_enabled === true;
+      return await registerApi.isRegistrationEnabled();
     } catch (error) {
       console.error('Error checking registration status:', error);
-      // Default to disabled if there's an error
-      return false;
+      return false; // Default to disabled on error
     }
   };
 
-  // Register function
+  // Register function - uses register API module
   const register = async (userData: RegisterData) => {
     try {
       setIsLoading(true);
       
-      // Check if registration is enabled
-      const registrationEnabled = await isRegistrationEnabled();
-      if (!registrationEnabled) {
-        throw new Error('Registration is currently disabled. Please try again later or contact support.');
-      }
-      
-      const response = await fetch(`${API_BASE_URL}/register`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(userData),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || 'Registration failed');
-      }
-
-      // Store token and user data in localStorage for immediate access
-      localStorage.setItem('auth_token', data.token);
-      localStorage.setItem('auth_user', JSON.stringify(data.user));
-      
-      // Store in cookies for server-side access
-      document.cookie = `auth_token=${data.token}; path=/; max-age=${60*60*24*7}`; // 7 days
-      document.cookie = `auth_user=${JSON.stringify(data.user)}; path=/; max-age=${60*60*24*7}`;
+      // Use register API module
+      const data = await registerApi.register(userData);
       
       // Update state
       setToken(data.token);
@@ -213,86 +184,91 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   // Logout function
-  const logout = () => {
-    // Clear localStorage
-    localStorage.removeItem('auth_token');
-    localStorage.removeItem('auth_user');
-    
-    // Clear cookies
-    document.cookie = 'auth_token=; path=/; max-age=0';
-    document.cookie = 'auth_user=; path=/; max-age=0';
-    
-    // Update state
-    setToken(null);
-    setUser(null);
-    setLastValidated(0);
-    toast.success('Logged out successfully');
-    
-    // Use window.location for a full page navigation
-    window.location.href = '/login';
+  const logout = async () => {
+    try {
+      // Call server-side logout endpoint to clear HTTP-only cookies
+      await api.post('/auth/logout', {});
+      
+      // Clear client-side cookies
+      clearAuthCookies();
+      
+      // Update state
+      setToken(null);
+      setUser(null);
+      setLastValidated(0);
+      toast.success('Logged out successfully');
+      
+      // Use router instead of window.location for better Next.js integration
+      router.push('/login');
+    } catch (error) {
+      console.error('Error during logout:', error);
+      
+      // Still clear client-side cookies and state on error
+      clearAuthCookies();
+      setToken(null);
+      setUser(null);
+      setLastValidated(0);
+      
+      toast.error('Error during logout. Please try again.');
+      
+      // Redirect anyway
+      router.push('/login');
+    }
   };
 
   // Validate token function with debouncing and caching
   const validateToken = useCallback(async (): Promise<boolean> => {
-    if (!token) return false;
+    console.log('AuthProvider - validateToken called');
     
     // Check if validation is already in progress
     if (validationInProgress.current) {
+      console.log('AuthProvider - Validation already in progress, returning current state');
       return !!user; // Return current authentication state
     }
     
     // Check if token was validated recently
     const now = Date.now();
     if (user && (now - lastValidated < TOKEN_VALIDATION_CACHE_TIME)) {
+      console.log('AuthProvider - Using cached validation result');
       return true; // Use cached validation result
     }
     
     // Set validation in progress flag
     validationInProgress.current = true;
+    console.log('AuthProvider - Starting server validation');
     
     try {
-      const response = await fetch(`${API_BASE_URL}/auth/validate`, {
-        method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
-      });
-
-      const data = await response.json();
-
-      if (!response.ok || !data.valid) {
-        throw new Error(data.error || 'Invalid token');
+      // With HTTP-only cookies, we don't need to pass a token
+      // The cookies are automatically sent with the request
+      const isValid = await loginApi.validateToken();
+      console.log('AuthProvider - Server validation result:', isValid);
+      
+      if (!isValid) {
+        console.log('AuthProvider - Server validation failed');
+        throw new Error('Invalid session');
       }
 
       // Get user profile to ensure we have the latest role information
-      const profileResponse = await fetch(`${API_BASE_URL}/profile`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
-      });
-
-      if (!profileResponse.ok) {
-        throw new Error('Failed to get user profile');
-      }
-
-      const profileData = await profileResponse.json();
+      console.log('AuthProvider - Getting user profile');
+      const userData = await profileApi.getUserProfile();
+      console.log('AuthProvider - User profile:', userData);
       
       // Update user data and cache it
-      setUser(profileData.user);
+      setUser(userData);
       setLastValidated(now);
       
-      // Update both localStorage and cookies
-      const userData = JSON.stringify(profileData.user);
-      localStorage.setItem('auth_user', userData);
-      document.cookie = `auth_user=${userData}; path=/; max-age=${60*60*24*7}`; // 7 days
+      // Update user data in cookies
+      setUserData(userData);
       
+      // Update token state for client-side checks
+      // This is just a flag to indicate we're authenticated
+      setToken('authenticated');
+      
+      console.log('AuthProvider - Server validation successful');
       return true;
     } catch (error) {
-      // Clear both localStorage and cookies
-      localStorage.removeItem('auth_token');
-      localStorage.removeItem('auth_user');
-      document.cookie = 'auth_token=; path=/; max-age=0';
-      document.cookie = 'auth_user=; path=/; max-age=0';
+      // Clear all auth cookies
+      clearAuthCookies();
       
       setToken(null);
       setUser(null);
@@ -303,7 +279,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   }, [token, user, lastValidated]);
 
-    // Update profile function
+    // Update profile function - uses profile API module
   const updateProfile = async (userData: Partial<User>) => {
     if (!token || !user) {
       toast.error('You must be logged in to update your profile');
@@ -312,27 +288,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     try {
       setIsLoading(true);
-      const response = await fetch(`${API_BASE_URL}/profile`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
-        },
-        body: JSON.stringify(userData),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || 'Failed to update profile');
-      }
-
-      // Update user data in state and localStorage
-      const updatedUser = { ...user, ...userData };
+      
+      // Use profile API module
+      const updatedUser = await profileApi.updateUserProfile(userData);
+      
+      // Update user data in state
       setUser(updatedUser);
-      localStorage.setItem('auth_user', JSON.stringify(updatedUser));
       setLastValidated(Date.now());
-      return data;
+      return updatedUser;
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Failed to update profile');
       throw error;
@@ -346,6 +309,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     token,
     isAuthenticated: !!token,
     isLoading,
+    setUser,
     login,
     register,
     logout,
