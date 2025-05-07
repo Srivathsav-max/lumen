@@ -4,15 +4,14 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/Srivathsav-max/lumen/backend/utils"
 	"github.com/gin-gonic/gin"
 )
 
 
 // ValidateAuth handles token validation and returns user information
 func (h *Handler) ValidateAuth(c *gin.Context) {
-	// First try to get token from HTTP-only cookie
-	tokenString, err := c.Cookie(AuthTokenCookie)
+	// First try to get temporary token from HTTP-only cookie
+	tempTokenString, err := c.Cookie(AuthTokenCookie)
 	
 	// If cookie not found, fall back to Authorization header
 	if err != nil {
@@ -37,11 +36,11 @@ func (h *Handler) ValidateAuth(c *gin.Context) {
 		}
 
 		// Extract the token
-		tokenString = parts[1]
+		tempTokenString = parts[1]
 	}
 
-	// Validate the token
-	claims, err := utils.ValidateToken(tokenString, h.Config.JWT.Secret)
+	// Validate the temporary token using our token service
+	userID, err := h.TokenService.ValidateTemporaryToken(tempTokenString)
 	if err != nil {
 		// Clear any invalid cookies
 		ClearAuthCookies(c)
@@ -54,7 +53,7 @@ func (h *Handler) ValidateAuth(c *gin.Context) {
 	}
 
 	// Get user information
-	user, err := h.UserService.GetByID(claims.UserID)
+	user, err := h.UserService.GetByID(int64(userID))
 	if err != nil || user == nil {
 		// Clear any invalid cookies
 		ClearAuthCookies(c)
@@ -110,7 +109,7 @@ func (h *Handler) ValidateAuth(c *gin.Context) {
 	}
 	
 	// Set cookies with the token and user data
-	SetAuthCookies(c, tokenString, userData, userRole)
+	SetAuthCookies(c, tempTokenString, userData, userRole)
 
 	// Return successful validation with user data
 	c.JSON(http.StatusOK, gin.H{

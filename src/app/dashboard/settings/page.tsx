@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useAuth } from "@/components/providers/auth-provider";
+import { useAuth } from "@/providers/auth-provider";
 import { Button } from "@/components/ui/button";
 import { NotFound } from "@/components/ui/not-found";
 import { AlertCircle, Settings, Shield, Users, Wrench } from "lucide-react";

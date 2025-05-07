@@ -47,9 +47,12 @@ func main() {
 	waitlistService := models.NewWaitlistService(waitlistRepo)
 	// Initialize system settings service
 	systemSettingsService := models.NewSystemSettingsService(systemSettingsRepo)
+	// Initialize token repository and service
+	tokenRepo := models.NewTokenRepository(database.DB)
+	tokenService := models.NewTokenService(tokenRepo, cfg.JWT.Secret)
 
 	// Initialize handlers
-	handler := api.NewHandler(userService, roleService, waitlistService, systemSettingsService, cfg)
+	handler := api.NewHandler(userService, roleService, waitlistService, systemSettingsService, tokenService, cfg)
 
 	// Setup router
 	router := api.SetupRouter(handler, cfg)

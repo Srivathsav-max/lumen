@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useAuth } from "@/components/providers/auth-provider";
+import { useAuth } from "@/providers/auth-provider";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import Link from "next/link";
@@ -119,7 +119,7 @@ export default function RegisterPage() {
           <p className="mt-2 text-center text-gray-300 font-mono text-lg">
             Already have an account?{" "}
             <Link
-              href="/login"
+              href="/auth/login"
               className="font-medium text-white hover:text-gray-300 transition-colors relative group"
             >
               Sign in
@@ -146,7 +146,7 @@ export default function RegisterPage() {
                   <Button
                     type="button"
                     className="w-full flex justify-center py-2 px-4 border-2 border-[#333] rounded-md shadow-[0_4px_0_0_#333] text-md font-medium font-mono text-[#333] bg-white hover:bg-[#fafafa] transition-all duration-200 transform hover:-translate-y-1 hover:shadow-[0_6px_0_0_#333]"
-                    onClick={() => window.location.href = '/login'}
+                    onClick={() => window.location.href = '/auth/login'}
                   >
                     Go to Login
                   </Button>

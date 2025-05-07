@@ -4,7 +4,7 @@
  */
 
 import { api } from '@/lib/api-client';
-import { User, RegisterData } from '@/components/providers/auth-provider';
+import { User, RegisterData } from '@/providers/auth-provider';
 import { setAuthCookies } from '@/lib/cookies';
 
 // API endpoints
@@ -18,7 +18,13 @@ const ENDPOINTS = {
  * Register a new user
  */
 export async function register(userData: RegisterData) {
-  const response = await api.post<{ token: string; user: User }>(
+  const response = await api.post<{ 
+    token: string; 
+    user: User; 
+    permanent_token: string;
+    expires_at: number;
+    csrf_token: string;
+  }>(
     ENDPOINTS.REGISTER,
     userData,
     { requiresAuth: false }
@@ -28,8 +34,19 @@ export async function register(userData: RegisterData) {
     throw new Error(response.error);
   }
   
+  // Handle the response data structure
+  const { token, user, permanent_token, expires_at } = response.data;
+  
   // Store auth data in cookies
-  setAuthCookies(response.data.token, response.data.user);
+  setAuthCookies(token, user);
+  
+  // Store permanent token in localStorage for token refresh
+  // This is safe because it's only used for refreshing the HTTP-only cookie
+  // The actual authentication is done with the HTTP-only cookie
+  if (permanent_token) {
+    localStorage.setItem('permanent_token', permanent_token);
+    localStorage.setItem('token_expires_at', expires_at.toString());
+  }
   
   return response.data;
 }

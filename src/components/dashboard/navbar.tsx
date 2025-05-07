@@ -1,6 +1,6 @@
 "use client";
 
-import { useAuth } from "@/components/providers/auth-provider";
+import { useAuth } from "@/providers/auth-provider";
 import { Bell, Search, MessageSquare } from "lucide-react";
 import { useState } from "react";
 import Link from "next/link";

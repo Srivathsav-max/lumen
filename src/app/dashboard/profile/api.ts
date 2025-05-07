@@ -4,7 +4,7 @@
  */
 
 import { api } from '@/lib/api-client';
-import { User } from '@/components/providers/auth-provider';
+import { User } from '@/providers/auth-provider';
 import { getUserData, setUserData } from '@/lib/cookies';
 
 // API endpoints

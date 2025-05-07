@@ -17,16 +17,18 @@ type Handler struct {
 	RoleService           models.RoleService
 	WaitlistService       models.WaitlistService
 	SystemSettingsService models.SystemSettingsService
+	TokenService          *models.TokenService
 	Config                *config.Config
 }
 
 // NewHandler creates a new Handler
-func NewHandler(userService models.UserService, roleService models.RoleService, waitlistService models.WaitlistService, systemSettingsService models.SystemSettingsService, cfg *config.Config) *Handler {
+func NewHandler(userService models.UserService, roleService models.RoleService, waitlistService models.WaitlistService, systemSettingsService models.SystemSettingsService, tokenService *models.TokenService, cfg *config.Config) *Handler {
 	return &Handler{
 		UserService:           userService,
 		RoleService:           roleService,
 		WaitlistService:       waitlistService,
 		SystemSettingsService: systemSettingsService,
+		TokenService:          tokenService,
 		Config:                cfg,
 	}
 }
@@ -78,10 +80,14 @@ func (h *Handler) Register(c *gin.Context) {
 		return
 	}
 
-	// Generate JWT token
-	token, err := utils.GenerateToken(user.ID, h.Config.JWT.Secret, 24) // 24 hours expiration
+	// Get device info from user agent
+	userAgent := c.GetHeader("User-Agent")
+	deviceInfo := &userAgent
+
+	// Generate token pair (permanent and temporary tokens)
+	tokenPair, err := h.TokenService.GenerateTokenPair(int(user.ID), deviceInfo)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to generate token"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to generate tokens"})
 		return
 	}
 
@@ -123,7 +129,18 @@ func (h *Handler) Register(c *gin.Context) {
 	}
 
 	// Set cookies with the token and user data
-	SetAuthCookies(c, token, userData, userRole)
+	SetAuthCookies(c, tokenPair.TemporaryToken, userData, userRole)
+
+	// Store permanent token reference in a cookie (not HTTP-only)
+	c.SetCookie(
+		"permanent_token",
+		tokenPair.PermanentToken,
+		int(h.TokenService.PermanentTokenExpiry.Seconds()),
+		"/",
+		"",
+		h.Config.JWT.Secret != "", // Use production cookies if JWT secret is set
+		false, // Not HTTP-only so frontend can use it for token refresh
+	)
 
 	// Generate a new CSRF token for the response
 	csrfToken := uuid.New().String()
@@ -131,9 +148,11 @@ func (h *Handler) Register(c *gin.Context) {
 
 	c.JSON(http.StatusCreated, gin.H{
 		"message": "User registered successfully",
-		"token":   token, // Still include token in response for backward compatibility
+		"token":   tokenPair.TemporaryToken, // Still include token in response for backward compatibility
 		"user":    userData,
 		"csrf_token": csrfToken,
+		"permanent_token": tokenPair.PermanentToken,
+		"expires_at": tokenPair.ExpiresAt,
 	})
 }
 
@@ -149,16 +168,30 @@ func (h *Handler) Login(c *gin.Context) {
 		return
 	}
 
-	token, err := h.UserService.Login(input.Email, input.Password)
-	if err != nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid credentials"})
-		return
-	}
-	
-	// Get user by email to include in response
 	user, err := h.UserService.GetByEmail(input.Email)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve user information"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve user"})
+		return
+	}
+
+	if user == nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid email or password"})
+		return
+	}
+
+	if !utils.CheckPassword(input.Password, user.Password) {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid email or password"})
+		return
+	}
+
+	// Get device info from user agent
+	userAgent := c.GetHeader("User-Agent")
+	deviceInfo := &userAgent
+
+	// Generate token pair (permanent and temporary tokens)
+	tokenPair, err := h.TokenService.GenerateTokenPair(int(user.ID), deviceInfo)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to generate tokens"})
 		return
 	}
 	
@@ -200,7 +233,18 @@ func (h *Handler) Login(c *gin.Context) {
 	}
 
 	// Set cookies with the token and user data
-	SetAuthCookies(c, token, userData, userRole)
+	SetAuthCookies(c, tokenPair.TemporaryToken, userData, userRole)
+
+	// Store permanent token reference in a cookie (not HTTP-only)
+	c.SetCookie(
+		"permanent_token",
+		tokenPair.PermanentToken,
+		int(h.TokenService.PermanentTokenExpiry.Seconds()),
+		"/",
+		"",
+		h.Config.JWT.Secret != "", // Use production cookies if JWT secret is set
+		false, // Not HTTP-only so frontend can use it for token refresh
+	)
 
 	// Generate a new CSRF token for the response
 	csrfToken := uuid.New().String()
@@ -208,9 +252,11 @@ func (h *Handler) Login(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{
 		"message": "Login successful",
-		"token":   token, // Still include token in response for backward compatibility
+		"token":   tokenPair.TemporaryToken, // Still include token in response for backward compatibility
 		"user":    userData,
 		"csrf_token": csrfToken,
+		"permanent_token": tokenPair.PermanentToken,
+		"expires_at": tokenPair.ExpiresAt,
 	})
 }
 

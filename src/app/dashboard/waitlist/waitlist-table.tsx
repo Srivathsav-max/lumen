@@ -28,16 +28,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Loader2, Trash2, Search } from "lucide-react";
-
-interface WaitlistEntry {
-  id: number;
-  email: string;
-  name: string;
-  status: string;
-  notes: string;
-  created_at: string;
-  updated_at: string;
-}
+import { WaitlistEntry, getWaitlistEntries, updateWaitlistEntry, deleteWaitlistEntry } from "./api";
 
 export function WaitlistTable() {
   const [entries, setEntries] = useState<WaitlistEntry[]>([]);
@@ -55,24 +46,13 @@ export function WaitlistTable() {
   const fetchWaitlistEntries = async () => {
     setLoading(true);
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8989/api/v1'}/waitlist`, {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('auth_token')}`,
-        },
-      });
-      
-      if (!response.ok) {
-        throw new Error('Failed to fetch waitlist entries');
-      }
-      
-      const data = await response.json();
+      // Use the API module function
+      const data = await getWaitlistEntries();
       console.log('Waitlist API response:', data);
       
-      // Ensure entries is always an array
+      // Set entries from API response
       if (Array.isArray(data)) {
         setEntries(data);
-      } else if (data.entries && Array.isArray(data.entries)) {
-        setEntries(data.entries);
       } else {
         console.error('Unexpected API response format:', data);
         setEntries([]);
@@ -117,32 +97,19 @@ export function WaitlistTable() {
     
     setIsUpdating(true);
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8989/api/v1'}/waitlist/${currentEntry.id}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('auth_token')}`,
-        },
-        body: JSON.stringify({
-          status: editStatus,
-          notes: editNotes,
-        }),
+      // Use the API module function
+      await updateWaitlistEntry(currentEntry.id, {
+        status: editStatus,
+        notes: editNotes,
       });
-      
-      if (!response.ok) {
-        throw new Error('Failed to update waitlist entry');
-      }
       
       toast.success('Waitlist entry updated successfully');
       setIsEditDialogOpen(false);
       
-      // Update the entry in the local state
-      setEntries(entries.map(entry => 
-        entry.id === currentEntry.id 
-          ? { ...entry, status: editStatus, notes: editNotes, updated_at: new Date().toISOString() } 
-          : entry
-      ));
+      // Refresh the waitlist entries
+      fetchWaitlistEntries();
     } catch (error) {
+      console.error('Error updating waitlist entry:', error);
       toast.error(error instanceof Error ? error.message : 'Failed to update waitlist entry');
     } finally {
       setIsUpdating(false);
@@ -150,26 +117,19 @@ export function WaitlistTable() {
   };
 
   const handleDelete = async (id: number) => {
-    setDeleteId(id);
     setIsDeleting(true);
+    setDeleteId(id);
     
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8989/api/v1'}/waitlist/${id}`, {
-        method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('auth_token')}`,
-        },
-      });
-      
-      if (!response.ok) {
-        throw new Error('Failed to delete waitlist entry');
-      }
+      // Use the API module function
+      await deleteWaitlistEntry(id);
       
       toast.success('Waitlist entry deleted successfully');
       
-      // Remove the entry from the local state
-      setEntries(entries.filter(entry => entry.id !== id));
+      // Refresh the waitlist entries
+      fetchWaitlistEntries();
     } catch (error) {
+      console.error('Error deleting waitlist entry:', error);
       toast.error(error instanceof Error ? error.message : 'Failed to delete waitlist entry');
     } finally {
       setIsDeleting(false);
@@ -178,36 +138,45 @@ export function WaitlistTable() {
   };
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
+    if (!dateString) return 'N/A';
+    
+    try {
+      const date = new Date(dateString);
+      return date.toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+      });
+    } catch (error) {
+      return dateString;
+    }
   };
 
   return (
     <div className="space-y-4">
-      <div className="flex justify-between items-center">
-        <div className="relative w-64">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+      <div className="flex items-center space-x-2">
+        <div className="relative flex-1">
+          <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
           <Input
-            type="text"
-            placeholder="Search entries..."
+            placeholder="Search by email, name, or status..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-10 border-2 border-[#333] shadow-[0_4px_0_0_#333] focus:shadow-[0_6px_0_0_#333] focus:border-[#333] transition-all duration-200 font-mono"
+            className="pl-8 border-2 border-[#333] shadow-[0_4px_0_0_#333] focus:shadow-[0_6px_0_0_#333] focus:border-[#333] transition-all duration-200 font-mono"
           />
         </div>
-        <Button 
-          onClick={() => fetchWaitlistEntries()} 
-          variant="outline"
+        <Button
+          onClick={fetchWaitlistEntries}
           disabled={loading}
-          className="border-2 border-[#333] shadow-[0_4px_0_0_#333] hover:shadow-[0_6px_0_0_#333] hover:-translate-y-1 transition-all duration-200 font-mono"
+          className="bg-white text-[#333] border-2 border-[#333] shadow-[0_4px_0_0_#333] hover:shadow-[0_6px_0_0_#333] hover:-translate-y-1 transition-all duration-200 font-mono"
         >
-          {loading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
-          Refresh
+          {loading ? (
+            <>
+              <Loader2 className="h-4 w-4 animate-spin mr-2" />
+              Loading...
+            </>
+          ) : (
+            "Refresh"
+          )}
         </Button>
       </div>
       
@@ -216,49 +185,47 @@ export function WaitlistTable() {
           <Loader2 className="h-8 w-8 animate-spin text-[#333]" />
         </div>
       ) : filteredEntries.length === 0 ? (
-        <div className="text-center p-8 border-2 border-[#333] rounded-lg bg-white shadow-[0_4px_0_0_#333]">
-          <p className="text-[#333] font-mono">
-            {searchQuery ? "No matching entries found." : "No waitlist entries found."}
-          </p>
+        <div className="text-center py-8 border-2 border-[#333] rounded-lg">
+          <p className="text-lg font-mono text-[#333]">No waitlist entries found</p>
         </div>
       ) : (
         <div className="border-2 border-[#333] rounded-lg overflow-hidden shadow-[0_4px_0_0_#333]">
           <Table>
-            <TableHeader>
-              <TableRow className="bg-[#f5f5f5] border-b border-gray-200">
-                <TableHead className="font-mono text-[#333] border-r border-gray-200">Email</TableHead>
-                <TableHead className="font-mono text-[#333] border-r border-gray-200">Name</TableHead>
-                <TableHead className="font-mono text-[#333] border-r border-gray-200">Status</TableHead>
-                <TableHead className="font-mono text-[#333] border-r border-gray-200">Joined</TableHead>
-                <TableHead className="font-mono text-[#333] border-r border-gray-200">Last Updated</TableHead>
-                <TableHead className="text-right font-mono text-[#333]">Actions</TableHead>
+            <TableHeader className="bg-[#f5f5f5]">
+              <TableRow className="border-b-2 border-[#333]">
+                <TableHead className="font-mono font-bold text-[#333]">Email</TableHead>
+                <TableHead className="font-mono font-bold text-[#333]">Name</TableHead>
+                <TableHead className="font-mono font-bold text-[#333]">Status</TableHead>
+                <TableHead className="font-mono font-bold text-[#333]">Created</TableHead>
+                <TableHead className="font-mono font-bold text-[#333]">Notes</TableHead>
+                <TableHead className="font-mono font-bold text-[#333]">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredEntries.map((entry, index) => (
-                <TableRow 
-                  key={entry.id} 
-                  className={`hover:bg-[#fafafa] border-b border-gray-200 ${index === filteredEntries.length - 1 ? 'border-b-0' : ''}`}
-                >
-                  <TableCell className="font-mono border-r border-gray-200">{entry.email}</TableCell>
-                  <TableCell className="font-mono border-r border-gray-200">{entry.name || "-"}</TableCell>
-                  <TableCell className="border-r border-gray-200">
-                    <span className={`px-2 py-1 rounded-full text-xs font-mono font-medium ${
-                      entry.status === 'pending' ? 'bg-yellow-100 text-yellow-800 border border-yellow-200' :
-                      entry.status === 'approved' ? 'bg-green-100 text-green-800 border border-green-200' :
-                      entry.status === 'rejected' ? 'bg-red-100 text-red-800 border border-red-200' :
-                      'bg-gray-100 text-gray-800 border border-gray-200'
+              {filteredEntries.map((entry) => (
+                <TableRow key={entry.id} className="border-b border-[#333] last:border-b-0">
+                  <TableCell className="font-mono">{entry.email}</TableCell>
+                  <TableCell className="font-mono">{entry.name || 'N/A'}</TableCell>
+                  <TableCell className="font-mono">
+                    <span className={`inline-block px-2 py-1 rounded-full text-xs font-bold ${
+                      entry.status === 'approved' 
+                        ? 'bg-green-100 text-green-800' 
+                        : entry.status === 'rejected'
+                        ? 'bg-red-100 text-red-800'
+                        : 'bg-yellow-100 text-yellow-800'
                     }`}>
-                      {entry.status}
+                      {entry.status.charAt(0).toUpperCase() + entry.status.slice(1)}
                     </span>
                   </TableCell>
-                  <TableCell className="font-mono border-r border-gray-200">{formatDate(entry.created_at)}</TableCell>
-                  <TableCell className="font-mono border-r border-gray-200">{formatDate(entry.updated_at)}</TableCell>
-                  <TableCell className="text-right">
-                    <div className="flex justify-end gap-2">
+                  <TableCell className="font-mono">{formatDate(entry.created_at)}</TableCell>
+                  <TableCell className="font-mono max-w-[200px] truncate">
+                    {entry.notes || 'N/A'}
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex space-x-2">
                       <Button 
                         variant="outline" 
-                        size="sm" 
+                        size="sm"
                         onClick={() => handleEdit(entry)}
                         className="border-2 border-[#333] shadow-[0_2px_0_0_#333] hover:shadow-[0_4px_0_0_#333] hover:-translate-y-1 transition-all duration-200 font-mono"
                       >

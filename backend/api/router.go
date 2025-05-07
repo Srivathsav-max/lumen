@@ -42,7 +42,9 @@ func SetupRouter(handler *Handler, cfg *config.Config) *gin.Engine {
 	{
 		// Auth endpoints
 		v1.GET("/auth/validate", handler.ValidateAuth)
-		v1.POST("/auth/logout", handler.LogoutHandler)
+		v1.POST("/auth/logout", handler.EnhancedLogoutHandler)
+		v1.POST("/auth/refresh", handler.RefreshToken)
+		v1.POST("/auth/revoke", handler.RevokeToken)
 
 		// Protected routes
 		protected := v1.Group("/")

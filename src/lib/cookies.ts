@@ -3,7 +3,7 @@
  * Includes support for HTTP-only cookies and CSRF protection
  */
 
-import { User } from '@/components/providers/auth-provider';
+import { User } from '@/providers/auth-provider';
 import Cookies from 'js-cookie';
 import { v4 as uuidv4 } from 'uuid';
 
