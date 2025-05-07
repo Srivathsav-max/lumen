@@ -185,7 +185,7 @@ export function setAuthCookies(token: string, user: User, permanentToken?: strin
  */
 export function generateCsrfToken(): string {
   const token = uuidv4();
-  Cookies.set(COOKIE_NAMES.CSRF_TOKEN, token, DEFAULT_OPTIONS);
+  Cookies.set(COOKIE_NAMES.CSRF_TOKEN, token, HTTP_ONLY_OPTIONS);
   return token;
 }
 

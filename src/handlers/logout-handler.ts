@@ -28,9 +28,9 @@ export async function handleLogout(
     // Clear client-side cookies
     clearAuthCookies();
     
-    // Clear permanent token from localStorage
-    localStorage.removeItem('permanent_token');
-    localStorage.removeItem('token_expires_at');
+    // Clear permanent token from sessionStorage
+    sessionStorage.removeItem('permanent_token');
+    sessionStorage.removeItem('token_expires_at');
     
     // Update state
     setToken(null);
@@ -45,8 +45,8 @@ export async function handleLogout(
     
     // Still clear client-side cookies and state on error
     clearAuthCookies();
-    localStorage.removeItem('permanent_token');
-    localStorage.removeItem('token_expires_at');
+    sessionStorage.removeItem('permanent_token');
+    sessionStorage.removeItem('token_expires_at');
     setToken(null);
     setUser(null);
     setLastValidated(0);

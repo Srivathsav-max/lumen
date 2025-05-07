@@ -67,12 +67,12 @@ export async function login(email: string, password: string) {
   // Store auth data in cookies
   setAuthCookies(token, user);
   
-  // Store permanent token in localStorage for token refresh
+  // Store permanent token in sessionStorage for token refresh
   // This is safe because it's only used for refreshing the HTTP-only cookie
   // The actual authentication is done with the HTTP-only cookie
   if (permanent_token) {
-    localStorage.setItem('permanent_token', permanent_token);
-    localStorage.setItem('token_expires_at', expires_at.toString());
+    sessionStorage.setItem('permanent_token', permanent_token);
+    sessionStorage.setItem('token_expires_at', expires_at.toString());
   }
   
   return { token, user, permanent_token, expires_at };
@@ -116,8 +116,8 @@ export async function resetPassword(token: string, newPassword: string) {
  * Refresh the temporary token using the permanent token
  */
 export async function refreshToken(): Promise<{ token: string; expires_at: number } | null> {
-  // Get permanent token from localStorage
-  const permanentToken = localStorage.getItem('permanent_token');
+  // Get permanent token from sessionStorage
+  const permanentToken = sessionStorage.getItem('permanent_token');
   if (!permanentToken) {
     console.log('No permanent token found for refresh');
     return null;
@@ -135,9 +135,9 @@ export async function refreshToken(): Promise<{ token: string; expires_at: numbe
       return null;
     }
 
-    // Update expiration time in localStorage
+    // Update expiration time in sessionStorage
     if (response.data.expires_at) {
-      localStorage.setItem('token_expires_at', response.data.expires_at.toString());
+      sessionStorage.setItem('token_expires_at', response.data.expires_at.toString());
     }
 
     return {

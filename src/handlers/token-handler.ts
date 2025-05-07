@@ -18,8 +18,8 @@ const TOKEN_REFRESH_THRESHOLD = 5 * 60 * 1000; // 5 minutes before expiry
  */
 export async function checkAndRefreshToken(): Promise<boolean> {
   try {
-    // Get token expiration time from localStorage
-    const expiresAtStr = localStorage.getItem('token_expires_at');
+    // Get token expiration time from sessionStorage
+    const expiresAtStr = sessionStorage.getItem('token_expires_at');
     if (!expiresAtStr) return false;
     
     const expiresAt = parseInt(expiresAtStr, 10);

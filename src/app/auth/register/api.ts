@@ -40,12 +40,12 @@ export async function register(userData: RegisterData) {
   // Store auth data in cookies
   setAuthCookies(token, user);
   
-  // Store permanent token in localStorage for token refresh
+  // Store permanent token in sessionStorage for token refresh
   // This is safe because it's only used for refreshing the HTTP-only cookie
   // The actual authentication is done with the HTTP-only cookie
   if (permanent_token) {
-    localStorage.setItem('permanent_token', permanent_token);
-    localStorage.setItem('token_expires_at', expires_at.toString());
+    sessionStorage.setItem('permanent_token', permanent_token);
+    sessionStorage.setItem('token_expires_at', expires_at.toString());
   }
   
   return response.data;
