@@ -1,11 +1,56 @@
 "use client";
-import React from "react";
+import React, { useState } from "react";
 import { BackgroundLines } from "@/components/ui/background-lines";
 import { FooterSection } from "@/components/sections/footer";
 import { Navbar } from "@/components/ui/navbar";
 import { ScrollToTop } from "@/components/ui/scroll-to-top";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { toast } from "sonner";
+import { Sparkles } from "lucide-react";
 
 export default function WaitlistPage() {
+  const [email, setEmail] = useState("");
+  const [name, setName] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isSuccess, setIsSuccess] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!email) {
+      toast.error("Please enter your email address");
+      return;
+    }
+    
+    setIsSubmitting(true);
+    
+    try {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/api/v1'}/waitlist`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email, name }),
+      });
+      
+      const data = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to join waitlist');
+      }
+      
+      toast.success("You've been added to the waitlist!");
+      setEmail("");
+      setName("");
+      setIsSuccess(true);
+      
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Failed to join waitlist');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
   return (
     <main className="min-h-screen bg-gradient-to-b from-white to-gray-50">
       <ScrollToTop/>
@@ -13,11 +58,68 @@ export default function WaitlistPage() {
         <Navbar />
         <div className="max-w-2xl mx-auto p-4 relative z-10 mt-24">
           <h1 className="text-4xl md:text-6xl lg:text-7xl bg-clip-text text-transparent bg-gradient-to-r from-indigo-600 via-blue-600 to-cyan-600 text-center font-sans font-bold mb-4">
-            Waitlist Temporarily Closed
+            Join Our Waitlist
           </h1>
           <p className="text-gray-600 max-w-lg mx-auto my-6 text-lg md:text-xl text-center leading-relaxed">
-            Thank you for your interest in Moxium. Our waitlist is currently closed while we prepare for the next phase of our launch. Please check back later.
+            Be the first to know when we launch new features and get early access to our platform.
           </p>
+          
+          {isSuccess ? (
+            <div className="bg-white rounded-lg shadow-[0_8px_0_0_#333] border-2 border-[#333] p-6 relative transform hover:-translate-y-1 hover:shadow-[0_12px_0_0_#333] transition-all duration-200 max-w-md mx-auto">
+              <div className="flex flex-col items-center text-center">
+                <div className="bg-green-100 p-3 rounded-full mb-4">
+                  <Sparkles className="h-8 w-8 text-green-500" />
+                </div>
+                <h2 className="text-2xl font-bold font-mono text-[#333] mb-2">
+                  Thank You!
+                </h2>
+                <p className="text-gray-600 font-mono">
+                  You've been added to our waitlist. We'll notify you when we have updates.
+                </p>
+              </div>
+            </div>
+          ) : (
+            <div className="bg-white rounded-lg shadow-[0_8px_0_0_#333] border-2 border-[#333] p-6 relative transform hover:-translate-y-1 hover:shadow-[0_12px_0_0_#333] transition-all duration-200 max-w-md mx-auto">
+              <form onSubmit={handleSubmit} className="space-y-4">
+                <div>
+                  <label htmlFor="email" className="block text-sm font-medium font-mono text-gray-700 mb-1">
+                    Email Address <span className="text-red-500">*</span>
+                  </label>
+                  <Input
+                    id="email"
+                    type="email"
+                    placeholder="your.email@example.com"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    required
+                    className="w-full border-2 border-[#333] shadow-[0_2px_0_0_#333] font-mono"
+                  />
+                </div>
+                
+                <div>
+                  <label htmlFor="name" className="block text-sm font-medium font-mono text-gray-700 mb-1">
+                    Name (Optional)
+                  </label>
+                  <Input
+                    id="name"
+                    type="text"
+                    placeholder="Your Name"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    className="w-full border-2 border-[#333] shadow-[0_2px_0_0_#333] font-mono"
+                  />
+                </div>
+                
+                <Button 
+                  type="submit" 
+                  disabled={isSubmitting} 
+                  className="w-full border-2 border-[#333] shadow-[0_4px_0_0_#333] font-mono text-white bg-purple-500 hover:bg-purple-600 transform hover:-translate-y-1 hover:shadow-[0_6px_0_0_#333] transition-all duration-200"
+                >
+                  {isSubmitting ? "Joining..." : "Join Waitlist"}
+                </Button>
+              </form>
+            </div>
+          )}
         </div>
       </BackgroundLines>
       <FooterSection />

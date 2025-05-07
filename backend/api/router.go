@@ -1,6 +1,8 @@
 package api
 
 import (
+	"net/http"
+	
 	"github.com/Srivathsav-max/lumen/backend/config"
 	"github.com/gin-gonic/gin"
 )
@@ -21,22 +23,41 @@ func SetupRouter(handler *Handler, cfg *config.Config) *gin.Engine {
 	})
 
 	// API v1 routes
-	v1 := router.Group("/api/v1")
+	public := router.Group("/api/v1")
 	{
 		// Public routes
-		v1.POST("/register", handler.Register)
-		v1.POST("/login", handler.Login)
-		v1.GET("/users/:id", handler.GetUserByID)
+		public.POST("/register", handler.Register)
+		public.POST("/login", handler.Login)
+		public.POST("/waitlist", handler.JoinWaitlist)
+		public.GET("/health", func(c *gin.Context) {
+			c.JSON(http.StatusOK, gin.H{"status": "ok"})
+		})
 		
+		// Registration status endpoint (public)
+		public.GET("/registration/status", handler.GetRegistrationStatus)
+	}
+	v1 := router.Group("/api/v1")
+	{
 		// Auth validation endpoint
 		v1.GET("/auth/validate", handler.ValidateAuth)
 
 		// Protected routes
-		auth := v1.Group("/")
-		auth.Use(AuthMiddleware(cfg))
+		protected := v1.Group("/")
+		protected.Use(AuthMiddleware(handler, cfg))
 		{
-			auth.GET("/profile", handler.GetProfile)
-			auth.PUT("/profile", handler.UpdateProfile)
+			protected.GET("/profile", handler.GetProfile)
+			protected.PUT("/profile", handler.UpdateProfile)
+			protected.GET("/users/:id", handler.GetUserByID)
+			
+			// Waitlist management (admin only)
+			protected.GET("/waitlist", handler.GetAllWaitlistEntries)
+			protected.PUT("/waitlist/:id", handler.UpdateWaitlistStatus)
+			protected.DELETE("/waitlist/:id", handler.DeleteWaitlistEntry)
+			
+			// System settings management (admin only)
+			protected.GET("/settings", handler.GetAllSystemSettings)
+			protected.PUT("/settings/:key", handler.UpdateSystemSetting)
+			protected.PUT("/registration/toggle", handler.ToggleRegistrationStatus)
 		}
 	}
 

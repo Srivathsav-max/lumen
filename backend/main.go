@@ -32,12 +32,24 @@ func main() {
 
 	// Initialize repositories
 	userRepo := models.NewPostgresUserRepository(database)
+	// Initialize role repository
+	roleRepo := models.NewRoleRepository(database)
+	// Initialize waitlist repository
+	waitlistRepo := models.NewWaitlistRepository(database)
+	// Initialize system settings repository
+	systemSettingsRepo := models.NewPostgresSystemSettingsRepository(database.DB)
 
 	// Initialize services
-	userService := models.NewUserService(userRepo, cfg)
+	userService := models.NewUserService(userRepo, roleRepo, cfg)
+	// Initialize role service
+	roleService := models.NewRoleService(roleRepo)
+	// Initialize waitlist service
+	waitlistService := models.NewWaitlistService(waitlistRepo)
+	// Initialize system settings service
+	systemSettingsService := models.NewSystemSettingsService(systemSettingsRepo)
 
 	// Initialize handlers
-	handler := api.NewHandler(userService, cfg)
+	handler := api.NewHandler(userService, roleService, waitlistService, systemSettingsService, cfg)
 
 	// Setup router
 	router := api.SetupRouter(handler, cfg)

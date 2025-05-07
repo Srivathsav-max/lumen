@@ -1,11 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "@/components/providers/auth-provider";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import Link from "next/link";
 import { toast } from "sonner";
+import { AlertTriangle } from "lucide-react";
 import "@/styles/sketchy-elements.css";
 
 import SketchyInputDecorator from "@/components/ui/sketchy-input-decorator";
@@ -20,7 +21,28 @@ export default function RegisterPage() {
     last_name: "",
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const { register } = useAuth();
+  const [registrationEnabled, setRegistrationEnabled] = useState<boolean | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const { register, isRegistrationEnabled } = useAuth();
+  
+  // Check if registration is enabled when the page loads
+  useEffect(() => {
+    const checkRegistrationStatus = async () => {
+      try {
+        const enabled = await isRegistrationEnabled();
+        setRegistrationEnabled(enabled);
+      } catch (error) {
+        console.error('Error checking registration status:', error);
+        setRegistrationEnabled(false); // Default to disabled on error
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    checkRegistrationStatus();
+    // We intentionally omit isRegistrationEnabled from the dependency array
+    // because it's a stable function reference from the auth context
+  }, []);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -78,8 +100,6 @@ export default function RegisterPage() {
       {/* Background grid */}
       <div className="sketchy-grid" />
       
-
-
       <div className="w-full max-w-md space-y-6 relative">
         <div className="text-center">
           <h2 className="mt-4 text-4xl font-mono font-medium text-white relative">
@@ -98,8 +118,41 @@ export default function RegisterPage() {
           </p>
         </div>
         
-        <div className="mt-6 bg-white rounded-lg shadow-[0_8px_0_0_#333] border-2 border-[#333] p-6 relative transform hover:-translate-y-1 hover:shadow-[0_12px_0_0_#333] transition-all duration-200 overflow-y-auto max-h-[70vh]">
-          <form className="space-y-6" onSubmit={handleSubmit}>
+        {/* Registration disabled message */}
+        {!isLoading && registrationEnabled === false && (
+          <div className="bg-yellow-100 border-2 border-[#333] rounded-lg p-4 shadow-[0_8px_0_0_#333] mb-4">
+            <div className="flex items-start">
+              <div className="flex-shrink-0">
+                <AlertTriangle className="h-6 w-6 text-yellow-600" />
+              </div>
+              <div className="ml-3">
+                <h3 className="text-lg font-bold font-mono text-[#333]">Registration Disabled</h3>
+                <div className="mt-2 text-sm font-mono text-[#333]">
+                  <p>
+                    New user registration is currently disabled. Please check back later or contact support for assistance.
+                  </p>
+                </div>
+                <div className="mt-4">
+                  <Button
+                    type="button"
+                    className="w-full flex justify-center py-2 px-4 border-2 border-[#333] rounded-md shadow-[0_4px_0_0_#333] text-md font-medium font-mono text-[#333] bg-white hover:bg-[#fafafa] transition-all duration-200 transform hover:-translate-y-1 hover:shadow-[0_6px_0_0_#333]"
+                    onClick={() => window.location.href = '/login'}
+                  >
+                    Go to Login
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+        
+        {isLoading ? (
+          <div className="mt-6 bg-white rounded-lg shadow-[0_8px_0_0_#333] border-2 border-[#333] p-6 flex justify-center items-center h-40">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#333]"></div>
+          </div>
+        ) : registrationEnabled ? (
+          <div className="mt-6 bg-white rounded-lg shadow-[0_8px_0_0_#333] border-2 border-[#333] p-6 relative transform hover:-translate-y-1 hover:shadow-[0_12px_0_0_#333] transition-all duration-200 overflow-y-auto max-h-[70vh]">
+            <form className="space-y-6" onSubmit={handleSubmit}>
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label
@@ -256,6 +309,7 @@ export default function RegisterPage() {
             </div>
           </form>
         </div>
+        ) : null}
       </div>
     </div>
   );

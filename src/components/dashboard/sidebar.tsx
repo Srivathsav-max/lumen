@@ -1,7 +1,6 @@
 "use client";
 
 import { useAuth } from "@/components/providers/auth-provider";
-import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { 
   Home, 
@@ -12,11 +11,19 @@ import {
   Calendar, 
   LogOut,
   Menu,
-  X
+  X,
+  Bell,
+  UserPlus
 } from "lucide-react";
 import { useState } from "react";
+import { DashboardFeature } from "./feature-router";
+import Link from "next/link";
 
-export default function Sidebar() {
+interface SidebarProps {
+  onNavigate?: (feature: DashboardFeature) => void;
+}
+
+export default function Sidebar({ onNavigate }: SidebarProps) {
   const { user, logout } = useAuth();
   const pathname = usePathname();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -25,51 +32,85 @@ export default function Sidebar() {
     setIsMobileMenuOpen(!isMobileMenuOpen);
   };
 
-  const navItems = [
+  // Check if user is admin or developer
+  const isAdminOrDeveloper = user?.is_admin || user?.roles?.includes('admin') || user?.roles?.includes('developer');
+
+  // Base navigation items (shown to all users)
+  const baseNavItems = [
     { 
       name: "Dashboard", 
+      feature: "home" as DashboardFeature, 
       href: "/dashboard", 
       icon: <Home className="w-5 h-5" /> 
     },
     { 
       name: "Profile", 
+      feature: "profile" as DashboardFeature, 
       href: "/dashboard/profile", 
       icon: <User className="w-5 h-5" /> 
+    }
+  ];
+
+  // Admin/Developer navigation items
+  const adminNavItems = [
+    { 
+      name: "Waitlist", 
+      feature: "waitlist" as DashboardFeature, 
+      href: "/dashboard/waitlist", 
+      icon: <UserPlus className="w-5 h-5" /> 
     },
     { 
       name: "Analytics", 
+      feature: "analytics" as DashboardFeature, 
       href: "/dashboard/analytics", 
       icon: <BarChart2 className="w-5 h-5" /> 
     },
     { 
       name: "Calendar", 
+      feature: "calendar" as DashboardFeature, 
       href: "/dashboard/calendar", 
       icon: <Calendar className="w-5 h-5" /> 
     },
     { 
       name: "Courses", 
+      feature: "courses" as DashboardFeature, 
       href: "/dashboard/courses", 
       icon: <BookOpen className="w-5 h-5" /> 
     },
     { 
       name: "Settings", 
+      feature: "settings" as DashboardFeature, 
       href: "/dashboard/settings", 
       icon: <Settings className="w-5 h-5" /> 
     },
+    { 
+      name: "Notifications", 
+      feature: "notifications" as DashboardFeature, 
+      href: "/dashboard/notifications", 
+      icon: <Bell className="w-5 h-5" /> 
+    }
   ];
+
+  // Combine navigation items based on user role
+  const navItems = isAdminOrDeveloper ? [...baseNavItems, ...adminNavItems] : baseNavItems;
 
   const NavItem = ({ item }: { item: typeof navItems[0] }) => {
     const isActive = pathname === item.href;
     
+    const handleClick = (e: React.MouseEvent) => {
+      // Close mobile menu
+      setIsMobileMenuOpen(false);
+    };
+    
     return (
       <Link
         href={item.href}
-        className={`flex items-center px-4 py-3 my-1 rounded-md transition-all duration-200 group ${
+        className={`flex items-center px-4 py-3 my-1 rounded-md transition-all duration-200 group cursor-pointer ${
           isActive 
             ? "bg-white text-[#333] border-2 border-[#333] shadow-[0_4px_0_0_#333]" 
             : "text-gray-300 hover:bg-white/10"
         }`}
-        onClick={() => setIsMobileMenuOpen(false)}
+        onClick={handleClick}
       >
         <div className={`mr-3 ${isActive ? "text-[#333]" : "text-gray-300"}`}>
           {item.icon}

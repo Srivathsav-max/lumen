@@ -10,7 +10,7 @@ import (
 )
 
 // AuthMiddleware creates a middleware for JWT authentication
-func AuthMiddleware(cfg *config.Config) gin.HandlerFunc {
+func AuthMiddleware(handler *Handler, cfg *config.Config) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		// Get the Authorization header
 		authHeader := c.GetHeader("Authorization")
@@ -41,6 +41,20 @@ func AuthMiddleware(cfg *config.Config) gin.HandlerFunc {
 
 		// Set the user ID in the context for use in handlers
 		c.Set("userID", claims.UserID)
+
+		// Set the handler in the context
+		c.Set("handler", handler)
+
+		// Get user roles and set them in context
+		roles, err := handler.RoleService.GetUserRoles(claims.UserID)
+		if err == nil {
+			roleNames := make([]string, len(roles))
+			for i, role := range roles {
+				roleNames[i] = role.Name
+			}
+			c.Set("userRoles", roleNames)
+		}
+
 		c.Next()
 	}
 }

@@ -11,6 +11,8 @@ export interface User {
   email: string;
   first_name: string;
   last_name: string;
+  roles?: string[];
+  is_admin?: boolean;
 }
 
 // Define auth context type
@@ -24,6 +26,7 @@ interface AuthContextType {
   logout: () => void;
   validateToken: () => Promise<boolean>;
   updateProfile: (userData: Partial<User>) => Promise<void>;
+  isRegistrationEnabled: () => Promise<boolean>;
 }
 
 // Define register data type
@@ -36,7 +39,7 @@ export interface RegisterData {
 }
 
 // Create the auth context
-const AuthContext = createContext<AuthContextType | undefined>(undefined);
+export const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 // API base URL
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/api/v1';
@@ -113,15 +116,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       localStorage.setItem('auth_token', data.token);
       localStorage.setItem('auth_user', JSON.stringify(data.user));
       
+      // Store in cookies for server-side access
+      document.cookie = `auth_token=${data.token}; path=/; max-age=${60*60*24*7}`; // 7 days
+      document.cookie = `auth_user=${JSON.stringify(data.user)}; path=/; max-age=${60*60*24*7}`;
+      
       // Update state
       setToken(data.token);
       setUser(data.user);
       setLastValidated(Date.now());
       toast.success('Login successful');
       
-      // Use window.location for a full page navigation to ensure proper state initialization
+      // Redirect based on user role
       setTimeout(() => {
-        window.location.href = '/dashboard';
+        if (data.user.is_admin) {
+          window.location.href = '/dashboard'; // Admin dashboard
+        } else {
+          window.location.href = '/dashboard/user'; // User dashboard
+        }
       }, 300);
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Login failed');
@@ -131,10 +142,36 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  // Check if registration is enabled
+  const isRegistrationEnabled = async (): Promise<boolean> => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/registration/status`);
+      
+      if (!response.ok) {
+        // If the endpoint fails, default to disabled for safety
+        return false;
+      }
+      
+      const data = await response.json();
+      return data.registration_enabled === true;
+    } catch (error) {
+      console.error('Error checking registration status:', error);
+      // Default to disabled if there's an error
+      return false;
+    }
+  };
+
   // Register function
   const register = async (userData: RegisterData) => {
     try {
       setIsLoading(true);
+      
+      // Check if registration is enabled
+      const registrationEnabled = await isRegistrationEnabled();
+      if (!registrationEnabled) {
+        throw new Error('Registration is currently disabled. Please try again later or contact support.');
+      }
+      
       const response = await fetch(`${API_BASE_URL}/register`, {
         method: 'POST',
         headers: {
@@ -153,15 +190,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       localStorage.setItem('auth_token', data.token);
       localStorage.setItem('auth_user', JSON.stringify(data.user));
       
+      // Store in cookies for server-side access
+      document.cookie = `auth_token=${data.token}; path=/; max-age=${60*60*24*7}`; // 7 days
+      document.cookie = `auth_user=${JSON.stringify(data.user)}; path=/; max-age=${60*60*24*7}`;
+      
       // Update state
       setToken(data.token);
       setUser(data.user);
       setLastValidated(Date.now());
       toast.success('Registration successful');
       
-      // Use window.location for a full page navigation to ensure proper state initialization
+      // Redirect to user dashboard as new users will have free role
       setTimeout(() => {
-        window.location.href = '/dashboard';
+        window.location.href = '/dashboard/user';
       }, 300);
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Registration failed');
@@ -173,12 +214,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   // Logout function
   const logout = () => {
+    // Clear localStorage
     localStorage.removeItem('auth_token');
     localStorage.removeItem('auth_user');
+    
+    // Clear cookies
+    document.cookie = 'auth_token=; path=/; max-age=0';
+    document.cookie = 'auth_user=; path=/; max-age=0';
+    
+    // Update state
     setToken(null);
     setUser(null);
     setLastValidated(0);
     toast.success('Logged out successfully');
+    
     // Use window.location for a full page navigation
     window.location.href = '/login';
   };
@@ -215,14 +264,36 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         throw new Error(data.error || 'Invalid token');
       }
 
+      // Get user profile to ensure we have the latest role information
+      const profileResponse = await fetch(`${API_BASE_URL}/profile`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+
+      if (!profileResponse.ok) {
+        throw new Error('Failed to get user profile');
+      }
+
+      const profileData = await profileResponse.json();
+      
       // Update user data and cache it
-      setUser(data.user);
+      setUser(profileData.user);
       setLastValidated(now);
-      localStorage.setItem('auth_user', JSON.stringify(data.user));
+      
+      // Update both localStorage and cookies
+      const userData = JSON.stringify(profileData.user);
+      localStorage.setItem('auth_user', userData);
+      document.cookie = `auth_user=${userData}; path=/; max-age=${60*60*24*7}`; // 7 days
+      
       return true;
     } catch (error) {
+      // Clear both localStorage and cookies
       localStorage.removeItem('auth_token');
       localStorage.removeItem('auth_user');
+      document.cookie = 'auth_token=; path=/; max-age=0';
+      document.cookie = 'auth_user=; path=/; max-age=0';
+      
       setToken(null);
       setUser(null);
       return false;
@@ -273,16 +344,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const value = {
     user,
     token,
-    isAuthenticated: !!user,
+    isAuthenticated: !!token,
     isLoading,
     login,
     register,
     logout,
     validateToken,
     updateProfile,
+    isRegistrationEnabled,
   };
 
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+  return (
+    <AuthContext.Provider value={value}>
+      {children}
+    </AuthContext.Provider>
+  );
 };
 
 // Custom hook to use auth context

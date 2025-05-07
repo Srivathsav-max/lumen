@@ -29,6 +29,7 @@ type UserRepository interface {
 // UserService defines the interface for user business logic
 type UserService interface {
 	GetByID(id int64) (*User, error)
+	GetByEmail(email string) (*User, error)
 	Register(user *User) error
 	Login(email, password string) (string, error) // Returns JWT token
 	UpdateProfile(user *User) error
