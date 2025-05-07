@@ -42,7 +42,7 @@ export default function DashboardPage() {
               Welcome back, {user?.first_name}!
             </h1>
             <p className="text-gray-600 font-mono">
-              Here's what's happening with your learning journey today.
+              Here&apos;s what&apos;s happening with your learning journey today.
             </p>
           </div>
           <div className="mt-4 md:mt-0">

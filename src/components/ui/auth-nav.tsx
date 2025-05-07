@@ -20,12 +20,12 @@ export function AuthNav() {
         </>
       ) : (
         <>
-          <Button asChild variant="outline" size="sm">
+          {/* <Button asChild variant="outline" size="sm">
             <Link href="/login">Login</Link>
           </Button>
           <Button asChild variant="default" size="sm">
             <Link href="/register">Register</Link>
-          </Button>
+          </Button> */}
         </>
       )}
     </div>
