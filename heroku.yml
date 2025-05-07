@@ -1,0 +1,7 @@
+build:
+  languages:
+    go: 1.21
+  config:
+    GO_INSTALL_PACKAGE_SPEC: ./backend
+run:
+  web: backend

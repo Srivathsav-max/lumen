@@ -24,6 +24,7 @@ type DatabaseConfig struct {
 	Password string
 	DBName   string
 	SSLMode  string
+	URL      string // For Heroku DATABASE_URL
 }
 
 // ServerConfig holds server configuration
@@ -45,30 +46,59 @@ func LoadConfig() (*Config, error) {
 		log.Println("Warning: .env file not found, using environment variables")
 	}
 
+	// Server config - Check for Heroku PORT first, then SERVER_PORT
+	var serverPort int
+	portStr := os.Getenv("PORT") // Heroku sets this
+	if portStr == "" {
+		portStr = getEnv("SERVER_PORT", "8080")
+	}
+	serverPort, err = strconv.Atoi(portStr)
+	if err != nil {
+		return nil, fmt.Errorf("invalid PORT/SERVER_PORT: %w", err)
+	}
+
 	// Database config
-	dbPort, err := strconv.Atoi(getEnv("DB_PORT", "5432"))
-	if err != nil {
-		return nil, fmt.Errorf("invalid DB_PORT: %w", err)
-	}
+	var dbConfig DatabaseConfig
 
-	// Server config
-	serverPort, err := strconv.Atoi(getEnv("SERVER_PORT", "8080"))
-	if err != nil {
-		return nil, fmt.Errorf("invalid SERVER_PORT: %w", err)
-	}
+	// Check for Heroku DATABASE_URL
+	databaseURL := os.Getenv("DATABASE_URL")
+	if databaseURL != "" {
+		// Parse the DATABASE_URL
+		// Format: postgres://username:password@host:port/database_name?sslmode=require
+		// We'll use simple parsing here, but in production you might want to use a URL parser
+		dbConfig = DatabaseConfig{
+			// These values will be ignored when using DATABASE_URL
+			Host:     "from_url",
+			Port:     5432,
+			User:     "from_url",
+			Password: "from_url",
+			DBName:   "from_url",
+			SSLMode:  "require",   // Heroku requires SSL
+			URL:      databaseURL, // Store the full URL
+		}
+	} else {
+		// Use individual environment variables
+		dbPort, err := strconv.Atoi(getEnv("DB_PORT", "5432"))
+		if err != nil {
+			return nil, fmt.Errorf("invalid DB_PORT: %w", err)
+		}
 
-	config := &Config{
-		Database: DatabaseConfig{
+		dbConfig = DatabaseConfig{
 			Host:     getEnv("DB_HOST", "localhost"),
 			Port:     dbPort,
 			User:     getEnv("DB_USER", "postgres"),
 			Password: getEnv("DB_PASSWORD", "postgres"),
 			DBName:   getEnv("DB_NAME", "lumen_db"),
 			SSLMode:  getEnv("DB_SSL_MODE", "disable"),
-		},
+			URL:      "", // No URL in this case
+		}
+	}
+
+	config := &Config{
+		Database: dbConfig,
 		Server: ServerConfig{
 			Port: serverPort,
-			Env:  getEnv("ENV", "development"),
+			Env:  getEnv("ENV", "development"), // Default to development for local environment
 		},
 		JWT: JWTConfig{
 			Secret: getEnv("JWT_SECRET", "default_jwt_secret"),
@@ -80,6 +110,12 @@ func LoadConfig() (*Config, error) {
 
 // GetDSN returns the PostgreSQL connection string
 func (c *DatabaseConfig) GetDSN() string {
+	// If we have a URL (from Heroku), use it directly
+	if c.URL != "" {
+		return c.URL
+	}
+
+	// Otherwise build the connection string from individual parts
 	return fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=%s",
 		c.Host, c.Port, c.User, c.Password, c.DBName, c.SSLMode)
 }
