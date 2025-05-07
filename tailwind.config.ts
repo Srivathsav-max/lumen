@@ -21,6 +21,9 @@ const config: Config = {
       },
     },
     extend: {
+      fontFamily: {
+        handwriting: ['Caveat', 'Indie Flower', 'cursive'],
+      },
       borderRadius: {
         "2.5xl": "1.25rem",
       },
