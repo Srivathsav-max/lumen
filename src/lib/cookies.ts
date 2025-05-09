@@ -187,10 +187,12 @@ export function setAuthCookies(token: string, user: User, permanentToken?: strin
 
 /**
  * Generate and set a CSRF token
+ * Note: CSRF token must NOT be HTTP-only so JavaScript can read it
+ * and include it in request headers
  */
 export function generateCsrfToken(): string {
   const token = uuidv4();
-  Cookies.set(COOKIE_NAMES.CSRF_TOKEN, token, HTTP_ONLY_OPTIONS);
+  Cookies.set(COOKIE_NAMES.CSRF_TOKEN, token, DEFAULT_OPTIONS);
   return token;
 }
 
