@@ -19,7 +19,7 @@ export const COOKIE_NAMES = {
 // Cookie options
 const DEFAULT_OPTIONS = {
   path: '/',
-  expires: 7, // 7 days
+  expires: 10, // 10 days
   secure: process.env.NODE_ENV === 'production',
   sameSite: 'strict' as const,
 };

@@ -18,8 +18,8 @@ const (
 
 // Cookie options
 var (
-	// 7 days in seconds
-	maxAge = 60 * 60 * 24 * 7
+	// 10 days in seconds
+	maxAge = 60 * 60 * 24 * 10
 )
 
 // SetAuthCookies sets authentication cookies

@@ -10,6 +10,7 @@ import {
 } from '@/lib/cookies';
 import * as authHandlers from '@/handlers';
 import { TOKEN_VALIDATION_CACHE_TIME } from '@/handlers/token-handler';
+import { initTokenRefreshService, scheduleTokenRefresh, refreshToken as refreshAuthToken, cleanupTokenRefreshService } from '@/lib/token-refresh-service';
 
 // Define user type
 export interface User {
@@ -29,7 +30,7 @@ interface AuthContextType {
   isAuthenticated: boolean;
   isLoading: boolean;
   setUser: (user: User | null) => void;
-  login: (email: string, password: string) => Promise<void>;
+  login: (email: string, password: string) => Promise<boolean>;
   register: (userData: RegisterData) => Promise<void>;
   logout: () => void;
   validateToken: () => Promise<boolean>;
@@ -70,9 +71,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     });
   }, [user, token, isLoading, lastValidated]);
 
-  // Check if token needs to be refreshed - uses token handler
+  // Check if token needs to be refreshed - uses our enhanced token refresh service
   const checkAndRefreshToken = useCallback(async () => {
-    return await authHandlers.checkAndRefreshToken();
+    // Use our new token refresh service for better persistence
+    const refreshResult = await refreshAuthToken();
+    
+    // If refresh fails, fall back to the original handler as backup
+    if (!refreshResult) {
+      return await authHandlers.checkAndRefreshToken();
+    }
+    
+    return refreshResult;
   }, []);
 
   // Initialize auth state from cookies on component mount
@@ -101,6 +110,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         try {
           // Validate the token with the server
           await validateToken();
+          
+          // Initialize the token refresh service
+          initTokenRefreshService();
+          
+          // Schedule the first token refresh
+          scheduleTokenRefresh();
         } catch (error) {
           console.error('Token validation failed:', error);
           // If token validation fails, clear auth state
@@ -114,23 +129,42 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
 
     initializeAuth();
+    
+    // Cleanup function to ensure token refresh service is properly stopped
+    return () => {
+      cleanupTokenRefreshService();
+    };
   }, []);
 
   // Login function - uses login handler
   const handleLogin = async (email: string, password: string) => {
-    return await authHandlers.handleLogin(
-      email,
-      password,
-      setUser,
-      setToken,
-      setLastValidated,
-      setIsLoading,
-      router
-    );
+    try {
+      await authHandlers.handleLogin(
+        email,
+        password,
+        setUser,
+        setToken,
+        setLastValidated,
+        setIsLoading,
+        router
+      );
+      
+      // If login was successful (no exception thrown), initialize token refresh service
+      initTokenRefreshService();
+      scheduleTokenRefresh();
+      
+      return true;
+    } catch (error) {
+      console.error('Login failed:', error);
+      return false;
+    }
   };
 
   // Logout function - uses logout handler
   const handleLogout = async () => {
+    // Clean up the token refresh service before logout
+    cleanupTokenRefreshService();
+    
     return await authHandlers.handleLogout(
       setUser,
       setToken,
