@@ -21,7 +21,16 @@ const DEFAULT_OPTIONS = {
   path: '/',
   expires: 10, // 10 days
   secure: process.env.NODE_ENV === 'production',
-  sameSite: 'strict' as const,
+  sameSite: 'lax' as const, // Changed from 'strict' to 'lax' for better compatibility
+};
+
+// Specific options for CSRF token cookies
+// Using 'lax' for SameSite to ensure it works across different environments
+const CSRF_OPTIONS = {
+  path: '/',
+  expires: 10, // 10 days
+  secure: process.env.NODE_ENV === 'production',
+  sameSite: 'lax' as const,
 };
 
 // HTTP-only cookie options (for server-side cookies)
@@ -192,7 +201,8 @@ export function setAuthCookies(token: string, user: User, permanentToken?: strin
  */
 export function generateCsrfToken(): string {
   const token = uuidv4();
-  Cookies.set(COOKIE_NAMES.CSRF_TOKEN, token, DEFAULT_OPTIONS);
+  // Use CSRF-specific cookie options to ensure it works in production
+  Cookies.set(COOKIE_NAMES.CSRF_TOKEN, token, CSRF_OPTIONS);
   return token;
 }
 
