@@ -34,10 +34,6 @@ function OtpInput({ value, onChange, length = 6 }: { value: string; onChange: (v
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>, index: number) => {
     const val = e.target.value;
     
-    // Only allow numeric input
-    if (val && !/^\d+$/.test(val)) {
-      return;
-    }
     
     if (val.length > 1) {
       // If pasting multiple digits, distribute them across inputs
