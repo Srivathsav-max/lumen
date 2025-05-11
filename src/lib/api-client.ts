@@ -164,9 +164,18 @@ export async function apiRequest<T = any>(
   
   // Add CSRF token for state-changing requests
   if (requiresCsrf) {
-    const csrfToken = getCsrfToken();
+    // Ensure we have a CSRF token - generate one if it doesn't exist
+    let csrfToken = getCsrfToken();
+    if (!csrfToken) {
+      console.log('No CSRF token found, generating a new one');
+      csrfToken = generateCsrfToken();
+    }
+    
+    // Add the token to headers
     if (csrfToken) {
       requestHeaders['X-CSRF-Token'] = csrfToken;
+    } else {
+      console.error('Failed to generate CSRF token');
     }
   }
 
