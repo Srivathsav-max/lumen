@@ -4,6 +4,7 @@
  */
 
 import { api } from '@/lib/api-client';
+import { generateCsrfToken } from '@/lib/cookies';
 
 // API endpoints
 const ENDPOINTS = {
@@ -16,8 +17,12 @@ const ENDPOINTS = {
  * Requires authentication
  */
 export async function requestPasswordChangeOTP() {
+  // Ensure we have a fresh CSRF token
+  generateCsrfToken();
+  
   const response = await api.post<{ message: string }>(ENDPOINTS.REQUEST_OTP, {}, {
-    requiresAuth: true
+    requiresAuth: true,
+    requiresCsrf: true
   });
   
   if (response.error) {
@@ -32,12 +37,16 @@ export async function requestPasswordChangeOTP() {
  * Requires authentication
  */
 export async function changePassword(currentPassword: string, newPassword: string, otp: string) {
+  // Ensure we have a fresh CSRF token
+  generateCsrfToken();
+  
   const response = await api.post<{ message: string }>(ENDPOINTS.CHANGE_PASSWORD, { 
     current_password: currentPassword,
     new_password: newPassword,
     otp: otp
   }, {
-    requiresAuth: true
+    requiresAuth: true,
+    requiresCsrf: true
   });
   
   if (response.error) {

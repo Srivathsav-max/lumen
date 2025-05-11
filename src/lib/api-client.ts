@@ -174,6 +174,10 @@ export async function apiRequest<T = any>(
     // Add the token to headers
     if (csrfToken) {
       requestHeaders['X-CSRF-Token'] = csrfToken;
+      // Also set the token in a cookie for cross-domain requests
+      if (process.env.NODE_ENV === 'production') {
+        document.cookie = `csrf_token=${csrfToken}; path=/; domain=.moxium.tech; secure; samesite=lax`;
+      }
     } else {
       console.error('Failed to generate CSRF token');
     }
