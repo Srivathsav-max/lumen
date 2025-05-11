@@ -6,14 +6,15 @@ import (
 
 // User represents a user in the system
 type User struct {
-	ID        int64     `json:"id"`
-	Username  string    `json:"username"`
-	Email     string    `json:"email"`
-	Password  string    `json:"-"` // Never expose password in JSON responses
-	FirstName string    `json:"first_name"`
-	LastName  string    `json:"last_name"`
-	CreatedAt time.Time `json:"created_at"`
-	UpdatedAt time.Time `json:"updated_at"`
+	ID            int64     `json:"id"`
+	Username      string    `json:"username"`
+	Email         string    `json:"email"`
+	Password      string    `json:"-"` // Never expose password in JSON responses
+	FirstName     string    `json:"first_name"`
+	LastName      string    `json:"last_name"`
+	EmailVerified bool      `json:"email_verified"`
+	CreatedAt     time.Time `json:"created_at"`
+	UpdatedAt     time.Time `json:"updated_at"`
 }
 
 // UserRepository defines the interface for user data operations

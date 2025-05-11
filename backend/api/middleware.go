@@ -123,9 +123,23 @@ func CSRFMiddleware() gin.HandlerFunc {
 
 		// Exempt authentication endpoints from CSRF protection
 		// These are entry points that don't have a CSRF token yet
-		if path == "/api/v1/login" || path == "/api/v1/register" || path == "/api/v1/waitlist" {
-			c.Next()
-			return
+		// Define exempt paths
+		exemptPaths := []string{
+			"/api/v1/login",
+			"/api/v1/register",
+			"/api/v1/waitlist",
+			"/api/v1/auth/forgot-password",
+			"/api/v1/auth/reset-password",
+			"/api/v1/auth/request-verification",
+			"/api/v1/auth/verify-email",
+		}
+
+		// Check if current path is exempt
+		for _, exemptPath := range exemptPaths {
+			if path == exemptPath {
+				c.Next()
+				return
+			}
 		}
 
 		// Skip CSRF check for GET, HEAD, OPTIONS, TRACE requests as they should be safe

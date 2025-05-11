@@ -3,6 +3,7 @@ package utils
 import (
 	"errors"
 	"fmt"
+	"math/rand"
 	"time"
 
 	"github.com/golang-jwt/jwt/v4"
@@ -78,4 +79,23 @@ func ValidateToken(tokenString, secret string) (*Claims, error) {
 	}
 	
 	return nil, errors.New("invalid token")
+}
+
+// GenerateOTP generates a random OTP of specified length
+func GenerateOTP(length int) string {
+	// Initialize random number generator with current time as seed
+	rand.Seed(time.Now().UnixNano())
+	
+	// Define the characters to use for OTP
+	const digits = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
+	
+	// Create a byte slice to hold the OTP
+	otp := make([]byte, length)
+	
+	// Fill the OTP with random digits
+	for i := 0; i < length; i++ {
+		otp[i] = digits[rand.Intn(len(digits))]
+	}
+	
+	return string(otp)
 }

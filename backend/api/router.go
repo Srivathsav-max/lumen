@@ -35,6 +35,12 @@ func SetupRouter(handler *Handler, cfg *config.Config) *gin.Engine {
 			c.JSON(http.StatusOK, gin.H{"status": "ok"})
 		})
 		
+		// Email verification and password reset routes
+		public.POST("/auth/request-verification", handler.RequestEmailVerificationHandler)
+		public.POST("/auth/verify-email", handler.VerifyEmailHandler)
+		public.POST("/auth/forgot-password", handler.RequestPasswordResetHandler)
+		public.POST("/auth/reset-password", handler.ResetPasswordHandler)
+		
 		// Registration status endpoint (public)
 		public.GET("/registration/status", handler.GetRegistrationStatus)
 		
@@ -55,6 +61,8 @@ func SetupRouter(handler *Handler, cfg *config.Config) *gin.Engine {
 		{
 			protected.GET("/profile", handler.GetProfile)
 			protected.PUT("/profile", handler.UpdateProfile)
+			protected.POST("/profile/request-password-change-otp", handler.RequestPasswordChangeOTP)
+			protected.POST("/profile/change-password", handler.ChangePassword)
 			protected.GET("/users/:id", handler.GetUserByID)
 			
 			// Waitlist management (admin only)
@@ -66,6 +74,9 @@ func SetupRouter(handler *Handler, cfg *config.Config) *gin.Engine {
 			protected.GET("/settings", handler.GetAllSystemSettings)
 			protected.PUT("/settings/:key", handler.UpdateSystemSetting)
 			protected.PUT("/registration/toggle", handler.ToggleRegistrationStatus)
+			
+			// Email testing endpoint (admin only)
+			protected.POST("/email/test", TestEmailHandler(handler.EmailService))
 		}
 	}
 

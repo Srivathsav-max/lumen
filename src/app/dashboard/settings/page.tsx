@@ -1,12 +1,14 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
 import { NotFound } from "@/components/ui/not-found";
-import { AlertCircle, Settings, Shield, Users, Wrench } from "lucide-react";
+import { AlertCircle, Lock, Mail, Settings, Shield, Users, Wrench } from "lucide-react";
 import { toast } from "@/providers/notification-provider";
 import * as settingsApi from "./api";
+import { Input } from "@/components/ui/input";
 
 // Import the SystemSetting interface from the API
 import { SystemSetting } from './api';
@@ -16,6 +18,14 @@ export default function SettingsPage() {
   const [settings, setSettings] = useState<SystemSetting[]>([]);
   const [loading, setLoading] = useState(true);
   const [updating, setUpdating] = useState(false);
+  const [sendingEmail, setSendingEmail] = useState(false);
+  const [changingPassword, setChangingPassword] = useState(false);
+  const [testEmail, setTestEmail] = useState({
+    to: '',
+    subject: 'Test Email from Lumen',
+    message: 'This is a test email to verify the email service is working correctly.'
+  });
+  // Password functionality moved to dedicated change-password page
 
   // No longer need to get token from cookies as the API client handles this
 
@@ -91,6 +101,48 @@ export default function SettingsPage() {
       setUpdating(false);
     }
   };
+
+  const handleTestEmailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setTestEmail(prev => ({
+      ...prev,
+      [name]: value
+    }));
+  };
+
+  // Password change functionality moved to dedicated change-password page
+
+  const sendTestEmail = async (): Promise<void> => {
+    // Validate email
+    if (!testEmail.to || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(testEmail.to)) {
+      toast.error('Please enter a valid email address');
+      return;
+    }
+
+    // Validate subject and message
+    if (!testEmail.subject.trim()) {
+      toast.error('Please enter a subject');
+      return;
+    }
+
+    if (!testEmail.message.trim()) {
+      toast.error('Please enter a message');
+      return;
+    }
+
+    try {
+      setSendingEmail(true);
+      const message = await settingsApi.sendTestEmail(testEmail);
+      toast.success(message || 'Test email sent successfully');
+    } catch (error) {
+      console.error('Error sending test email:', error);
+      toast.error(error instanceof Error ? error.message : 'Failed to send test email. Please try again later.');
+    } finally {
+      setSendingEmail(false);
+    }
+  };
+
+  // Password change functionality moved to dedicated change-password page
 
   // If user is not admin or developer, show not found page
   if (!isAdminOrDeveloper) {
@@ -219,6 +271,74 @@ export default function SettingsPage() {
             <div className="flex items-center text-sm text-amber-600 font-mono">
               <Shield className="h-4 w-4 mr-2" />
               <span>Only admins and developers can access in maintenance mode</span>
+            </div>
+          </div>
+        </div>
+        
+
+        
+        {/* Email Testing */}
+        <div className="bg-white rounded-lg shadow-[0_8px_0_0_#333] border-2 border-[#333] p-6 relative transform hover:-translate-y-1 hover:shadow-[0_12px_0_0_#333] transition-all duration-200">
+          <div className="flex items-center mb-4">
+            <div className="bg-purple-100 p-3 rounded-md mr-4">
+              <Mail className="h-6 w-6 text-purple-600" />
+            </div>
+            <div>
+              <h2 className="text-xl font-bold font-mono text-[#333]">Email Testing</h2>
+              <p className="text-gray-600 font-mono text-sm">Verify email functionality</p>
+            </div>
+          </div>
+          
+          <div className="space-y-4">
+            <div>
+              <p className="font-medium font-mono mb-2">Send Test Email</p>
+              <div className="space-y-3">
+                <div>
+                  <p className="text-sm text-gray-500 font-mono mb-1">Recipient Email</p>
+                  <Input
+                    type="email"
+                    name="to"
+                    value={testEmail.to}
+                    onChange={handleTestEmailChange}
+                    placeholder="recipient@example.com"
+                    className="w-full border-2 border-[#333] rounded-md p-2 font-mono focus:outline-none focus:ring-2 focus:ring-purple-300 focus:border-purple-500"
+                  />
+                </div>
+                <div>
+                  <p className="text-sm text-gray-500 font-mono mb-1">Subject</p>
+                  <Input
+                    type="text"
+                    name="subject"
+                    value={testEmail.subject}
+                    onChange={handleTestEmailChange}
+                    placeholder="Test Email Subject"
+                    className="w-full border-2 border-[#333] rounded-md p-2 font-mono focus:outline-none focus:ring-2 focus:ring-purple-300 focus:border-purple-500"
+                  />
+                </div>
+                <div>
+                  <p className="text-sm text-gray-500 font-mono mb-1">Message</p>
+                  <Input
+                    type="text"
+                    name="message"
+                    value={testEmail.message}
+                    onChange={handleTestEmailChange}
+                    placeholder="Test email message"
+                    className="w-full border-2 border-[#333] rounded-md p-2 font-mono focus:outline-none focus:ring-2 focus:ring-purple-300 focus:border-purple-500"
+                  />
+                </div>
+                <Button
+                  onClick={sendTestEmail}
+                  disabled={sendingEmail}
+                  className="w-full font-mono border-2 border-[#333] shadow-[0_4px_0_0_#333] bg-purple-500 hover:bg-purple-600 text-white transform hover:-translate-y-1 hover:shadow-[0_6px_0_0_#333] transition-all duration-200"
+                >
+                  {sendingEmail ? 'Sending...' : 'Send Test Email'}
+                </Button>
+              </div>
+            </div>
+            
+            <div className="flex items-center text-sm text-amber-600 font-mono">
+              <AlertCircle className="h-4 w-4 mr-2" />
+              <span>This will send a real email to the specified address</span>
             </div>
           </div>
         </div>

@@ -9,6 +9,7 @@ import (
 	"github.com/Srivathsav-max/lumen/backend/db"
 	"github.com/Srivathsav-max/lumen/backend/graphql"
 	"github.com/Srivathsav-max/lumen/backend/models"
+	"github.com/Srivathsav-max/lumen/backend/services/email"
 )
 
 func main() {
@@ -51,8 +52,24 @@ func main() {
 	tokenRepo := models.NewTokenRepository(database.DB)
 	tokenService := models.NewTokenService(tokenRepo, cfg.JWT.Secret)
 
+	// Initialize verification token repository and service
+	verificationTokenRepo := models.NewVerificationTokenRepository(database.DB)
+	verificationTokenService := models.NewVerificationTokenService(verificationTokenRepo)
+
+	// Initialize email service
+	emailConfig := email.EmailConfig{
+		Host:      cfg.Email.Host,
+		Port:      cfg.Email.Port,
+		Username:  cfg.Email.Username,
+		Password:  cfg.Email.Password,
+		FromEmail: cfg.Email.FromEmail,
+		FromName:  cfg.Email.FromName,
+		TemplatesDir: "./services/email/templates",
+	}
+	emailService := email.NewEmailService(emailConfig)
+
 	// Initialize handlers
-	handler := api.NewHandler(userService, roleService, waitlistService, systemSettingsService, tokenService, cfg)
+	handler := api.NewHandler(userService, roleService, waitlistService, systemSettingsService, tokenService, verificationTokenService, emailService, cfg)
 
 	// Setup router
 	router := api.SetupRouter(handler, cfg)

@@ -132,13 +132,13 @@ export default function LoginPage() {
               </div>
 
               <div className="text-sm">
-                <a
-                  href="#"
+                <Link
+                  href="/auth/forgot-password"
                   className="font-mono text-lg font-medium text-[#333] hover:text-[#666] transition-colors relative group"
                 >
                   Forgot password?
                   <span className="absolute bottom-0 left-0 w-full h-0.5 bg-[#333] transform scale-x-0 group-hover:scale-x-100 transition-transform origin-left" />
-                </a>
+                </Link>
               </div>
             </div>
 

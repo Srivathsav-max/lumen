@@ -4,12 +4,14 @@ import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { User, Edit, Save, X, Mail, AtSign, Key, User as UserIcon, Shield, Code, Star } from "lucide-react";
 import { toast } from "@/providers/notification-provider";
 import * as profileApi from "./api";
 
 export default function ProfilePage() {
   const { user, updateProfile } = useAuth();
+  const router = useRouter();
   const [isEditing, setIsEditing] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formData, setFormData] = useState({
@@ -262,7 +264,11 @@ export default function ProfilePage() {
               <h3 className="font-mono text-lg font-medium text-[#333]">Change Password</h3>
               <p className="text-sm font-mono text-gray-600">Update your password to keep your account secure</p>
             </div>
-            <Button className="border-2 border-[#333] shadow-[0_4px_0_0_#333] font-mono text-[#333] bg-white hover:bg-[#fafafa] transform hover:-translate-y-1 hover:shadow-[0_6px_0_0_#333] transition-all duration-200">
+            <Button 
+              onClick={() => router.push('/dashboard/change-password')}
+              className="border-2 border-[#333] shadow-[0_4px_0_0_#333] font-mono text-[#333] bg-white hover:bg-[#fafafa] transform hover:-translate-y-1 hover:shadow-[0_6px_0_0_#333] transition-all duration-200"
+            >
+              <Key className="mr-2 h-4 w-4" />
               Change
             </Button>
           </div>

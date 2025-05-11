@@ -12,6 +12,8 @@ const ENDPOINTS = {
   SYSTEM_SETTING: '/settings/:key',
   REGISTRATION_STATUS: '/registration/status',
   REGISTRATION_TOGGLE: '/registration/toggle',
+  TEST_EMAIL: '/email/test',
+  CHANGE_PASSWORD: '/auth/change-password',
 };
 
 // Types
@@ -96,4 +98,49 @@ export async function toggleRegistration(enabled: boolean) {
   }
   
   return response.data.registration_enabled;
+}
+
+/**
+ * Test email interface
+ */
+export interface TestEmailRequest {
+  to: string;
+  subject: string;
+  message: string;
+}
+
+/**
+ * Send a test email
+ * Admin/developer only endpoint
+ */
+export async function sendTestEmail(request: TestEmailRequest) {
+  const response = await api.post<{ message: string }>(ENDPOINTS.TEST_EMAIL, request);
+  
+  if (response.error) {
+    throw new Error(response.error);
+  }
+  
+  return response.data.message;
+}
+
+/**
+ * Change password interface
+ */
+export interface ChangePasswordRequest {
+  currentPassword: string;
+  newPassword: string;
+}
+
+/**
+ * Change user password
+ * Authenticated user endpoint
+ */
+export async function changePassword(request: ChangePasswordRequest) {
+  const response = await api.post<{ message: string }>(ENDPOINTS.CHANGE_PASSWORD, request);
+  
+  if (response.error) {
+    throw new Error(response.error);
+  }
+  
+  return response.data.message;
 }

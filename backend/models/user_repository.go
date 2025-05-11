@@ -138,8 +138,8 @@ func (r *PostgresUserRepository) Create(user *User) error {
 func (r *PostgresUserRepository) Update(user *User) error {
 	query := `
 		UPDATE users
-		SET username = $1, email = $2, first_name = $3, last_name = $4, updated_at = $5
-		WHERE id = $6
+		SET username = $1, email = $2, first_name = $3, last_name = $4, password = $5, updated_at = $6
+		WHERE id = $7
 	`
 	
 	user.UpdatedAt = time.Now()
@@ -150,6 +150,7 @@ func (r *PostgresUserRepository) Update(user *User) error {
 		user.Email,
 		user.FirstName,
 		user.LastName,
+		user.Password,
 		user.UpdatedAt,
 		user.ID,
 	)

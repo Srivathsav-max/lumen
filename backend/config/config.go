@@ -14,6 +14,7 @@ type Config struct {
 	Database DatabaseConfig
 	Server   ServerConfig
 	JWT      JWTConfig
+	Email    EmailConfig
 }
 
 // DatabaseConfig holds database configuration
@@ -36,6 +37,16 @@ type ServerConfig struct {
 // JWTConfig holds JWT configuration
 type JWTConfig struct {
 	Secret string
+}
+
+// EmailConfig holds email service configuration
+type EmailConfig struct {
+	Host      string
+	Port      string
+	Username  string
+	Password  string
+	FromEmail string
+	FromName  string
 }
 
 // LoadConfig loads the configuration from environment variables
@@ -102,6 +113,14 @@ func LoadConfig() (*Config, error) {
 		},
 		JWT: JWTConfig{
 			Secret: getEnv("JWT_SECRET", "default_jwt_secret"),
+		},
+		Email: EmailConfig{
+			Host:      getEnv("EMAIL_HOST", "smtp.gmail.com"),
+			Port:      getEnv("EMAIL_PORT", "587"),
+			Username:  getEnv("EMAIL_USERNAME", ""),
+			Password:  getEnv("EMAIL_PASSWORD", ""),
+			FromEmail: getEnv("EMAIL_FROM", ""),
+			FromName:  getEnv("EMAIL_FROM_NAME", "Lumen App"),
 		},
 	}
 
