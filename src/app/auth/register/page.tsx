@@ -13,6 +13,7 @@ import "@/styles/sketchy-elements.css";
 import { useRouter } from "next/navigation";
 import * as registerApi from "./api";
 import { registerSchema, type RegisterFormData } from "@/lib/validation-schemas";
+import { Spinner } from "@/components/ui/ios-spinner";
 
 import SketchyInputDecorator from "@/components/ui/sketchy-input-decorator";
 
@@ -124,7 +125,7 @@ const RegisterPage = memo(function RegisterPage() {
         
         {isLoading ? (
           <div className="mt-6 bg-white rounded-lg shadow-[0_8px_0_0_#333] border-2 border-[#333] p-6 flex justify-center items-center h-40">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#333]"></div>
+            <Spinner size="lg" />
           </div>
         ) : registrationEnabled ? (
           <div className="mt-6 bg-white rounded-lg shadow-[0_8px_0_0_#333] border-2 border-[#333] p-6 relative transform hover:-translate-y-1 hover:shadow-[0_12px_0_0_#333] transition-all duration-200 overflow-y-auto max-h-[70vh]">
@@ -287,7 +288,7 @@ const RegisterPage = memo(function RegisterPage() {
               >
                 {isSubmitting ? (
                   <div className="flex items-center">
-                    <div className="animate-spin mr-2 h-5 w-5 border-2 border-[#333] border-t-transparent rounded-full"></div>
+                    <Spinner size="sm" className="mr-2" />
                     Creating account...
                   </div>
                 ) : (

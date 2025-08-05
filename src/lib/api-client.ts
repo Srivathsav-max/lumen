@@ -1,10 +1,11 @@
 /**
  * Centralized API client for making authenticated requests
- * This handles token management, CSRF protection, token refresh, authentication redirection,
- * and common request patterns
+ * This handles comprehensive security including CSRF, XSS protection, JWT authentication,
+ * and secure request patterns following OWASP guidelines
  */
 
-import { getAuthToken, getCsrfToken, generateCsrfToken, clearAuthCookies } from './cookies';
+import { clearAuthCookies } from './cookies';
+import securityService from './security/security-service';
 
 // API base URL
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/api/v1';
@@ -33,7 +34,6 @@ interface RequestOptions {
   body?: any;
   headers?: Record<string, string>;
   requiresAuth?: boolean;
-  requiresCsrf?: boolean;
   credentials?: RequestCredentials;
   skipTokenRefresh?: boolean; // Skip token refresh for certain requests (like refresh itself)
   skipAuthRedirect?: boolean; // Skip redirection to login page on auth failure
@@ -110,10 +110,7 @@ async function refreshToken(): Promise<boolean> {
     // Check if refresh was successful
     const success = response.ok;
     
-    // Generate a new CSRF token
-    if (success) {
-      generateCsrfToken();
-    }
+    // HTTP-only cookies are updated automatically by backend
 
     // Process the queue with the result
     processRefreshQueue(success);
@@ -139,7 +136,7 @@ export async function apiRequest<T = any>(
     body,
     headers = {},
     requiresAuth = true,
-    requiresCsrf = isStateChangingMethod(method),
+    // CSRF removed for simplified authentication
     credentials = 'include',
   } = options;
 
@@ -154,49 +151,36 @@ export async function apiRequest<T = any>(
     ...headers,
   };
 
-  // Add auth token if required and available (for backward compatibility)
-  if (requiresAuth) {
-    const token = getAuthToken();
-    if (token) {
-      requestHeaders['Authorization'] = `Bearer ${token}`;
-    }
-    // Note: We don't return an error if token is missing because we're using HTTP-only cookies now
+  // Add comprehensive security headers
+  const secureHeaders = securityService.addCSRFToHeaders(requestHeaders as Record<string, string>);
+  
+  // Add browser fingerprint for enhanced security
+  const fingerprint = securityService.getFingerprint();
+  if (fingerprint) {
+    secureHeaders['X-Browser-Fingerprint'] = fingerprint;
   }
   
-  // Add CSRF token for state-changing requests
-  if (requiresCsrf) {
-    // Ensure we have a CSRF token - generate one if it doesn't exist
-    let csrfToken = getCsrfToken();
-    if (!csrfToken) {
-      console.log('No CSRF token found, generating a new one');
-      csrfToken = generateCsrfToken();
-    }
-    
-    // Add the token to headers
-    if (csrfToken) {
-      requestHeaders['X-CSRF-Token'] = csrfToken;
-      // Also set the token in a cookie for cross-domain requests
-      if (process.env.NODE_ENV === 'production') {
-        document.cookie = `csrf_token=${csrfToken}; path=/; domain=.moxium.tech; secure; samesite=lax`;
-      }
-    } else {
-      console.error('Failed to generate CSRF token');
-    }
-  }
+  // Update request headers with security headers
+  Object.assign(requestHeaders, secureHeaders);
 
   try {
-    console.log('=== API REQUEST ===');
+    console.log('=== SECURE API REQUEST ===');
     console.log('URL:', url);
     console.log('Method:', method);
-    console.log('Headers:', requestHeaders);
-    console.log('Body:', body);
+    console.log('Headers:', Object.keys(requestHeaders)); // Don't log sensitive values
+    console.log('Body Length:', body ? JSON.stringify(body).length : 0);
     console.log('Credentials:', credentials);
+    console.log('Security Features:', {
+      csrf: !!securityService.getCSRFToken(),
+      fingerprint: !!securityService.getFingerprint(),
+      xss_protection: true
+    });
     
-    // Make the request
+    // Make the request with sanitized body
     let response = await fetch(url, {
       method,
       headers: requestHeaders,
-      body: body ? JSON.stringify(body) : undefined,
+      body: body ? JSON.stringify(securityService.sanitizeJSON(body)) : undefined,
       credentials, // Include cookies in the request
     });
     
@@ -231,13 +215,7 @@ export async function apiRequest<T = any>(
         
         if (refreshSuccess) {
           // Retry the original request with refreshed token
-          // Get a fresh CSRF token
-          if (requiresCsrf) {
-            const newCsrfToken = getCsrfToken();
-            if (newCsrfToken) {
-              requestHeaders['X-CSRF-Token'] = newCsrfToken;
-            }
-          }
+          // HTTP-only cookies are updated automatically
           
           // Retry the request
           const retryResponse = await fetch(url, {
@@ -271,8 +249,9 @@ export async function apiRequest<T = any>(
               status: retryResponse.status,
             };
           }
-        } else if (!options.skipAuthRedirect) {
+        } else if (!options.skipAuthRedirect && !endpoint.includes('/profile')) {
           // Token refresh failed, redirect to login page
+          // But skip redirect for profile endpoints to prevent logout on profile update errors
           redirectToLogin();
         }
       } else if (response.status === 403 && requiresAuth && !options.skipAuthRedirect) {
@@ -300,13 +279,11 @@ export async function apiRequest<T = any>(
     console.error('API request failed:', error);
     
     // Check if it's likely an authentication issue
-    if (requiresAuth && !options.skipAuthRedirect) {
-      // For network errors on authenticated endpoints, we might want to check auth status
-      // This is optional and depends on your error handling strategy
-      const authToken = getAuthToken();
-      if (!authToken) {
-        redirectToLogin();
-      }
+    if (requiresAuth && !options.skipAuthRedirect && !endpoint.includes('/profile')) {
+      // For network errors on authenticated endpoints, redirect to login
+      // But skip redirect for profile endpoints to prevent logout on profile update errors
+      // HTTP-only cookies handle authentication state
+      redirectToLogin();
     }
     
     return {
@@ -320,13 +297,6 @@ export async function apiRequest<T = any>(
 /**
  * Helper functions for common request types
  */
-/**
- * Helper function to determine if a method is state-changing
- * State-changing methods require CSRF protection
- */
-function isStateChangingMethod(method: string): boolean {
-  return ['POST', 'PUT', 'DELETE', 'PATCH'].includes(method);
-}
 
 export const api = {
   get: <T = any>(endpoint: string, options?: Omit<RequestOptions, 'method' | 'body'>) => 

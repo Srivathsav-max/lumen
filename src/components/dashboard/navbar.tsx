@@ -64,10 +64,10 @@ export default function Navbar() {
             className="flex items-center space-x-2 p-1 rounded-full hover:bg-gray-100 transition-colors"
           >
             <div className="w-8 h-8 rounded-full bg-white border-2 border-[#333] shadow-[0_2px_0_0_#333] flex items-center justify-center overflow-hidden">
-              {user?.first_name?.charAt(0)}{user?.last_name?.charAt(0)}
+              {(user?.first_name?.charAt(0) || user?.username?.charAt(0) || 'U')}{(user?.last_name?.charAt(0) || user?.username?.charAt(1) || 'U')}
             </div>
             <span className="hidden md:block font-mono text-sm text-[#333]">
-              {user?.first_name}
+              {user?.first_name || user?.username || 'User'}
             </span>
           </Link>
         </div>

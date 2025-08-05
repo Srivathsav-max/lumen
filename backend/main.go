@@ -4,85 +4,98 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/Srivathsav-max/lumen/backend/api"
+	"github.com/joho/godotenv"
 	"github.com/Srivathsav-max/lumen/backend/config"
 	"github.com/Srivathsav-max/lumen/backend/db"
-	"github.com/Srivathsav-max/lumen/backend/graphql"
-	"github.com/Srivathsav-max/lumen/backend/models"
-	"github.com/Srivathsav-max/lumen/backend/services/email"
+	internalConfig "github.com/Srivathsav-max/lumen/backend/internal/config"
+	"github.com/Srivathsav-max/lumen/backend/internal/container"
+	"github.com/Srivathsav-max/lumen/backend/internal/router"
 )
 
 func main() {
-	// Load configuration
-	cfg, err := config.LoadConfig()
-	if err != nil {
-		log.Fatalf("Failed to load configuration: %v", err)
+	// Load environment variables from .env file
+	if err := godotenv.Load(); err != nil {
+		log.Printf("Warning: Error loading .env file: %v", err)
 	}
 
-	// Connect to database
-	database, err := db.New(&cfg.Database)
+	// Create container builder
+	builder := container.NewBuilder()
+
+	// Build the dependency injection container
+	builder, err := builder.WithConfig(internalConfig.NewEnvConfigLoader())
 	if err != nil {
-		log.Fatalf("Failed to connect to database: %v", err)
+		log.Fatalf("Failed to load config: %v", err)
+	}
+
+	builder, err = builder.WithLogger()
+	if err != nil {
+		log.Fatalf("Failed to setup logger: %v", err)
+	}
+
+	builder, err = builder.WithDatabase()
+	if err != nil {
+		log.Fatalf("Failed to setup database: %v", err)
+	}
+
+	builder, err = builder.WithRepositories()
+	if err != nil {
+		log.Fatalf("Failed to setup repositories: %v", err)
+	}
+
+	builder, err = builder.WithServices()
+	if err != nil {
+		log.Fatalf("Failed to setup services: %v", err)
+	}
+
+	builder, err = builder.WithSecurity()
+	if err != nil {
+		log.Fatalf("Failed to setup security: %v", err)
+	}
+
+	appContainer, err := builder.Build()
+
+	if err != nil {
+		log.Fatalf("Failed to build application container: %v", err)
+	}
+
+	// Run database migrations using the old migration system
+	// TODO: Migrate this to use the new database manager
+	cfg := appContainer.GetConfig()
+	
+	// Create adapter for old config structure
+	oldCfg := &config.DatabaseConfig{
+		Host:            cfg.Database.Host,
+		Port:            cfg.Database.Port,
+		User:            cfg.Database.User,
+		Password:        cfg.Database.Password,
+		DBName:          cfg.Database.DBName,
+		SSLMode:         cfg.Database.SSLMode,
+		URL:             cfg.Database.URL,
+		MaxOpenConns:    cfg.Database.MaxOpenConns,
+		MaxIdleConns:    cfg.Database.MaxIdleConns,
+		ConnMaxLifetime: cfg.Database.ConnMaxLifetime,
+		ConnMaxIdleTime: cfg.Database.ConnMaxIdleTime,
+	}
+	
+	database, err := db.New(oldCfg)
+	if err != nil {
+		log.Fatalf("Failed to connect to database for migrations: %v", err)
 	}
 	defer database.Close()
 
-	// Run migrations
-	if err := db.RunMigrations(database, &cfg.Database); err != nil {
+	if err := db.RunMigrations(database, oldCfg); err != nil {
 		log.Fatalf("Failed to run migrations: %v", err)
 	}
 
-	// Initialize repositories
-	userRepo := models.NewPostgresUserRepository(database)
-	// Initialize role repository
-	roleRepo := models.NewRoleRepository(database)
-	// Initialize waitlist repository
-	waitlistRepo := models.NewWaitlistRepository(database)
-	// Initialize system settings repository
-	systemSettingsRepo := models.NewPostgresSystemSettingsRepository(database.DB)
-
-	// Initialize services
-	userService := models.NewUserService(userRepo, roleRepo, cfg)
-	// Initialize role service
-	roleService := models.NewRoleService(roleRepo)
-	// Initialize waitlist service
-	waitlistService := models.NewWaitlistService(waitlistRepo)
-	// Initialize system settings service
-	systemSettingsService := models.NewSystemSettingsService(systemSettingsRepo)
-	// Initialize token repository and service
-	tokenRepo := models.NewTokenRepository(database.DB)
-	tokenService := models.NewTokenService(tokenRepo, cfg.JWT.Secret)
-
-	// Initialize verification token repository and service
-	verificationTokenRepo := models.NewVerificationTokenRepository(database.DB)
-	verificationTokenService := models.NewVerificationTokenService(verificationTokenRepo)
-
-	// Initialize email service
-	emailConfig := email.EmailConfig{
-		Host:      cfg.Email.Host,
-		Port:      cfg.Email.Port,
-		Username:  cfg.Email.Username,
-		Password:  cfg.Email.Password,
-		FromEmail: cfg.Email.FromEmail,
-		FromName:  cfg.Email.FromName,
-		TemplatesDir: "./services/email/templates",
-	}
-	emailService := email.NewEmailService(emailConfig)
-
-	// Initialize handlers
-	handler := api.NewHandler(userService, roleService, waitlistService, systemSettingsService, tokenService, verificationTokenService, emailService, cfg)
-
-	// Setup router
-	router := api.SetupRouter(handler, cfg)
-
-	// Register GraphQL handlers
-	if err := graphql.RegisterHandlers(router, userService, cfg); err != nil {
-		log.Fatalf("Failed to register GraphQL handlers: %v", err)
-	}
+	// Create router with clean handlers
+	appRouter := router.NewRouter(appContainer)
+	ginEngine := appRouter.SetupRoutes()
 
 	// Start the server
 	serverAddr := fmt.Sprintf(":%d", cfg.Server.Port)
-	log.Printf("Server starting on %s", serverAddr)
-	if err := router.Run(serverAddr); err != nil {
+	appContainer.GetLogger().Info("Server starting", "address", serverAddr)
+	
+	if err := ginEngine.Run(serverAddr); err != nil {
 		log.Fatalf("Failed to start server: %v", err)
 	}
 }

@@ -154,11 +154,11 @@ export default function Sidebar({ onNavigate }: SidebarProps) {
         <div className="p-4 border-t-2 border-[#333]">
           <div className="flex items-center mb-4">
             <div className="w-10 h-10 rounded-full bg-white border-2 border-[#333] shadow-[0_2px_0_0_#333] flex items-center justify-center overflow-hidden">
-              {user?.first_name?.charAt(0)}{user?.last_name?.charAt(0)}
+              {(user?.first_name?.charAt(0) || user?.username?.charAt(0) || 'U')}{(user?.last_name?.charAt(0) || user?.username?.charAt(1) || 'U')}
             </div>
             <div className="ml-3">
               <p className="font-mono text-white text-sm font-medium">
-                {user?.first_name} {user?.last_name}
+                {(user?.first_name && user?.last_name) ? `${user.first_name} ${user.last_name}` : (user?.username || 'User')}
               </p>
               <p className="font-mono text-gray-400 text-xs">
                 {user?.email}
@@ -197,11 +197,11 @@ export default function Sidebar({ onNavigate }: SidebarProps) {
             <div className="p-4 border-t-2 border-[#333]">
               <div className="flex items-center mb-4">
                 <div className="w-10 h-10 rounded-full bg-white border-2 border-[#333] shadow-[0_2px_0_0_#333] flex items-center justify-center overflow-hidden">
-                  {user?.first_name?.charAt(0)}{user?.last_name?.charAt(0)}
+                  {(user?.first_name?.charAt(0) || user?.username?.charAt(0) || 'U')}{(user?.last_name?.charAt(0) || user?.username?.charAt(1) || 'U')}
                 </div>
                 <div className="ml-3">
                   <p className="font-mono text-white text-sm font-medium">
-                    {user?.first_name} {user?.last_name}
+                    {(user?.first_name && user?.last_name) ? `${user.first_name} ${user.last_name}` : (user?.username || 'User')}
                   </p>
                   <p className="font-mono text-gray-400 text-xs">
                     {user?.email}

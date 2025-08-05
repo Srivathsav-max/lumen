@@ -2,17 +2,15 @@ package resolvers
 
 import (
 	"github.com/Srivathsav-max/lumen/backend/config"
-	"github.com/Srivathsav-max/lumen/backend/models"
+	"github.com/Srivathsav-max/lumen/backend/internal/services"
 )
 
-// Resolver is the resolver for GraphQL queries
 type Resolver struct {
-	UserService models.UserService
+	UserService services.UserService
 	Config      *config.Config
 }
 
-// NewResolver creates a new resolver
-func NewResolver(userService models.UserService, cfg *config.Config) *Resolver {
+func NewResolver(userService services.UserService, cfg *config.Config) *Resolver {
 	return &Resolver{
 		UserService: userService,
 		Config:      cfg,

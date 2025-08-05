@@ -26,7 +26,7 @@ export default function UserDashboardPage() {
         <div className="flex flex-col md:flex-row md:items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold font-mono text-[#333] mb-2">
-              Welcome, {user?.first_name}!
+              Welcome, {user?.first_name || user?.username || 'User'}!
             </h1>
             <p className="text-gray-600 font-mono">
               We&apos;re cooking up something magical for you.

@@ -44,8 +44,10 @@ export async function handleUpdateProfile(
     toast.success('Profile updated successfully');
     return updatedUser;
   } catch (error) {
+    console.error('Profile update error:', error);
     toast.error(error instanceof Error ? error.message : 'Profile update failed');
-    throw error;
+    // Don't throw the error to prevent auth state issues
+    return undefined;
   } finally {
     setIsLoading(false);
   }

@@ -4,11 +4,9 @@ import { v4 as uuidv4 } from 'uuid';
 
 // Cookie names for consistency with client-side
 const COOKIE_NAMES = {
-  AUTH_TOKEN: 'auth_token',
+  ACCESS_TOKEN: 'access_token',
   REFRESH_TOKEN: 'refresh_token',
-  CSRF_TOKEN: 'csrf_token',
   USER_DATA: 'user_data',
-  PERMANENT_TOKEN: 'permanent_token',
 };
 
 // Public routes that don't require authentication
@@ -28,15 +26,15 @@ const AUTH_REDIRECT_ROUTES = [
 ];
 
 export async function middleware(request: NextRequest) {
-  const authToken = request.cookies.get(COOKIE_NAMES.AUTH_TOKEN)?.value;
+  const accessToken = request.cookies.get(COOKIE_NAMES.ACCESS_TOKEN)?.value;
   const path = request.nextUrl.pathname;
   const method = request.method;
   
   console.log('Middleware - Path:', path);
-  console.log('Middleware - Auth token:', authToken ? 'exists' : 'missing');
+  console.log('Middleware - Access token:', accessToken ? 'exists' : 'missing');
   
   // Handle authentication redirects for login/register pages
-  if (AUTH_REDIRECT_ROUTES.includes(path) && authToken) {
+  if (AUTH_REDIRECT_ROUTES.includes(path) && accessToken) {
     console.log('Middleware - User is authenticated, redirecting from auth page to dashboard');
     return NextResponse.redirect(new URL('/dashboard', request.url));
   }
@@ -54,25 +52,13 @@ export async function middleware(request: NextRequest) {
   }
   
   // If no token and not a public route, redirect to login
-  if (!authToken) {
-    console.log('Middleware - No auth token, redirecting to /auth/login');
+  if (!accessToken) {
+    console.log('Middleware - No access token, redirecting to /auth/login');
     return NextResponse.redirect(new URL('/auth/login', request.url));
   }
   
-  // Generate CSRF token if it doesn't exist (for non-GET requests)
+  // Simplified response (no CSRF token generation in middleware)
   let response = NextResponse.next();
-  
-  if (!request.cookies.get(COOKIE_NAMES.CSRF_TOKEN) && method !== 'GET') {
-    const csrfToken = uuidv4();
-    
-    // Set CSRF token cookie (not HTTP-only so JS can read it)
-    response.cookies.set(COOKIE_NAMES.CSRF_TOKEN, csrfToken, {
-      path: '/',
-      maxAge: 60 * 60 * 24 * 7, // 7 days
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
-    });
-  }
   
   // Handle dashboard routes based on user roles
   if (path.startsWith('/dashboard')) {
@@ -101,20 +87,7 @@ export async function middleware(request: NextRequest) {
       const canBypassMaintenance = isAdmin || roles.includes('admin') || roles.includes('developer');
       console.log('Middleware - User roles:', roles, 'isAdmin:', isAdmin, 'canBypassMaintenance:', canBypassMaintenance);
       
-      // Check maintenance mode status
-      try {
-        // Make a server-side request to check maintenance status
-        const maintenanceResponse = await fetch(new URL('/api/maintenance/status', request.url).toString());
-        const maintenanceData = await maintenanceResponse.json();
-        
-        if (maintenanceData.maintenance_enabled && !canBypassMaintenance) {
-          console.log('Middleware - System in maintenance mode, redirecting non-admin user to maintenance page');
-          return NextResponse.redirect(new URL('/maintenance', request.url));
-        }
-      } catch (error) {
-        console.error('Middleware - Error checking maintenance status:', error);
-        // Continue if we can't check maintenance status
-      }
+      // Removed API call for maintenance check - will be handled client-side
       
       // Handle different dashboard routes based on roles
       if (path === '/dashboard') {

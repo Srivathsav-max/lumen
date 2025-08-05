@@ -425,7 +425,7 @@
 						"method": "GET",
 						"header": [],
 						"url": {
-							"raw": "{{base_url}}/api/v1/registration/status",
+							"raw": "{{base_url}}/api/v1/system/registration",
 							"host": [
 								"{{base_url}}"
 							],
@@ -559,15 +559,15 @@
 						"method": "GET",
 						"header": [],
 						"url": {
-							"raw": "{{base_url}}/api/v1/maintenance/status",
+							"raw": "{{base_url}}/api/v1/system/maintenance",
 							"host": [
 								"{{base_url}}"
 							],
 							"path": [
 								"api",
 								"v1",
-								"maintenance",
-								"status"
+								"system",
+								"maintenance"
 							]
 						},
 						"description": "Check if maintenance mode is currently enabled"

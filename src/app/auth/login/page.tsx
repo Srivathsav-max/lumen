@@ -12,6 +12,7 @@ import { useRouter } from "next/navigation";
 import * as loginApi from "./api";
 import { loginSchema, type LoginFormData } from "@/lib/validation-schemas";
 import { memo } from "react";
+import { Spinner } from "@/components/ui/ios-spinner";
 
 const LoginPage = memo(function LoginPage() {
   const { login } = useAuth();
@@ -144,7 +145,7 @@ const LoginPage = memo(function LoginPage() {
               >
                 {isSubmitting ? (
                   <div className="flex items-center">
-                    <div className="animate-spin mr-2 h-5 w-5 border-2 border-[#333] border-t-transparent rounded-full"></div>
+                    <Spinner size="sm" className="mr-2" />
                     Signing in...
                   </div>
                 ) : (

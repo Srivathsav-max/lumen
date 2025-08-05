@@ -43,7 +43,7 @@ const DashboardPage = memo(function DashboardPage() {
         <div className="flex flex-col md:flex-row md:items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold font-mono text-[#333] mb-2">
-              Welcome back, {user?.first_name}!
+              Welcome back, {user?.first_name || user?.username || 'User'}!
             </h1>
             <p className="text-gray-600 font-mono">
               Here&apos;s what&apos;s happening with your learning journey today.

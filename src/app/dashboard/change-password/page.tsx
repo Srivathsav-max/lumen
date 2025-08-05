@@ -11,6 +11,7 @@ import { useRouter } from "next/navigation";
 import { KeyRound, AlertCircle, Shield, X } from "lucide-react";
 import * as api from "./api";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { Spinner } from "@/components/ui/ios-spinner";
 
 // OTP Input component with individual boxes
 function OtpInput({ value, onChange, length = 6 }: { value: string; onChange: (value: string) => void; length?: number }) {
@@ -307,7 +308,7 @@ const ChangePasswordPage = memo(function ChangePasswordPage() {
               >
                 {isSubmitting ? (
                   <div className="flex items-center justify-center w-full">
-                    <div className="animate-spin mr-2 h-4 w-4 border-2 border-current border-t-transparent rounded-full"></div>
+                    <Spinner size="sm" className="mr-2" />
                     Verifying...
                   </div>
                 ) : (
@@ -401,7 +402,7 @@ const ChangePasswordPage = memo(function ChangePasswordPage() {
               >
                 {isRequestingOtp ? (
                   <div className="flex items-center">
-                    <div className="animate-spin mr-2 h-4 w-4 border-2 border-current border-t-transparent rounded-full"></div>
+                    <Spinner size="sm" className="mr-2" />
                     Sending OTP...
                   </div>
                 ) : (

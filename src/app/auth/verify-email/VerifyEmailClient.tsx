@@ -10,6 +10,7 @@ import Link from "next/link";
 import { toast } from "@/providers/notification-provider";
 import "@/styles/sketchy-elements.css";
 import { useRouter, useSearchParams } from "next/navigation";
+import { Spinner } from "@/components/ui/ios-spinner";
 import * as api from "./api";
 
 export default function VerifyEmailClient() {
@@ -97,7 +98,7 @@ export default function VerifyEmailClient() {
           {isVerifying ? (
             <div className="space-y-6 text-center">
               <div className="mx-auto flex items-center justify-center">
-                <div className="animate-spin h-12 w-12 border-4 border-[#333] border-t-transparent rounded-full"></div>
+                <Spinner size="lg" />
               </div>
               <h3 className="text-xl font-mono font-medium text-[#333]">Verifying Your Email</h3>
               <p className="text-gray-600 font-mono">
@@ -198,7 +199,7 @@ export default function VerifyEmailClient() {
                     >
                       {isRequesting ? (
                         <div className="flex items-center">
-                          <div className="animate-spin mr-2 h-5 w-5 border-2 border-[#333] border-t-transparent rounded-full"></div>
+                          <Spinner size="sm" className="mr-2" />
                           Sending...
                         </div>
                       ) : (
@@ -212,7 +213,7 @@ export default function VerifyEmailClient() {
           ) : token ? (
             <div className="space-y-6 text-center">
               <div className="mx-auto flex items-center justify-center">
-                <div className="animate-spin h-12 w-12 border-4 border-[#333] border-t-transparent rounded-full"></div>
+                <Spinner size="lg" />
               </div>
               <h3 className="text-xl font-mono font-medium text-[#333]">Verifying Your Email</h3>
               <p className="text-gray-600 font-mono">
@@ -291,7 +292,7 @@ export default function VerifyEmailClient() {
                     >
                       {isRequesting ? (
                         <div className="flex items-center">
-                          <div className="animate-spin mr-2 h-5 w-5 border-2 border-[#333] border-t-transparent rounded-full"></div>
+                          <Spinner size="sm" className="mr-2" />
                           Sending...
                         </div>
                       ) : (

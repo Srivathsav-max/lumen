@@ -6,6 +6,7 @@ import { AuthProvider } from "@/providers/auth-provider";
 import { NotificationProvider, ToastProvider } from "@/providers/notification-provider";
 import { Suspense } from "react";
 import { PerformanceMonitorComponent } from "@/components/performance/performance-monitor";
+import { Spinner } from "@/components/ui/ios-spinner";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -30,7 +31,7 @@ export default function RootLayout({
               <AuthProvider>
                 <Suspense fallback={
                   <div className="flex items-center justify-center min-h-screen">
-                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#333]"></div>
+                    <Spinner size="lg" />
                   </div>
                 }>
                   {children}
