@@ -10,8 +10,10 @@ import (
 	"time"
 
 	"github.com/Srivathsav-max/lumen/backend/internal/config"
+	"github.com/Srivathsav-max/lumen/backend/internal/constants"
 	"github.com/Srivathsav-max/lumen/backend/internal/errors"
 	"github.com/Srivathsav-max/lumen/backend/internal/repository"
+	"github.com/Srivathsav-max/lumen/backend/internal/security"
 	"github.com/Srivathsav-max/lumen/backend/utils"
 	"github.com/golang-jwt/jwt/v4"
 )
@@ -22,11 +24,13 @@ const (
 )
 
 type AuthServiceImpl struct {
-	config    *config.Config
-	userRepo  repository.UserRepository
-	tokenRepo repository.TokenRepository
-	roleRepo  repository.RoleRepository
-	logger    *slog.Logger
+	config               *config.Config
+	userRepo             repository.UserRepository
+	tokenRepo            repository.TokenRepository
+	roleRepo             repository.RoleRepository
+	verificationTokenSvc VerificationTokenService
+	emailService         EmailService
+	logger               *slog.Logger
 }
 
 func NewAuthService(
@@ -34,14 +38,18 @@ func NewAuthService(
 	userRepo repository.UserRepository,
 	tokenRepo repository.TokenRepository,
 	roleRepo repository.RoleRepository,
+	verificationTokenSvc VerificationTokenService,
+	emailService EmailService,
 	logger *slog.Logger,
 ) AuthService {
 	return &AuthServiceImpl{
-		config:    config,
-		userRepo:  userRepo,
-		tokenRepo: tokenRepo,
-		roleRepo:  roleRepo,
-		logger:    logger,
+		config:               config,
+		userRepo:             userRepo,
+		tokenRepo:            tokenRepo,
+		roleRepo:             roleRepo,
+		verificationTokenSvc: verificationTokenSvc,
+		emailService:         emailService,
+		logger:               logger,
 	}
 }
 
@@ -92,8 +100,8 @@ func (s *AuthServiceImpl) GenerateTokenPair(ctx context.Context, userID int64) (
 	tokenPair := &TokenPair{
 		AccessToken:  accessToken,
 		RefreshToken: refreshToken,
-		ExpiresIn:    int64(s.config.JWT.AccessTokenDuration * 60),
-		TokenType:    "Bearer",
+		ExpiresIn:    int64(s.config.JWT.AccessTokenDuration * 60),           // Convert minutes to seconds
+		TokenType:    constants.BearerPrefix[:len(constants.BearerPrefix)-1], // Remove trailing space
 		IssuedAt:     time.Now().UTC(),
 	}
 
@@ -108,7 +116,7 @@ func (s *AuthServiceImpl) ValidateAccessToken(ctx context.Context, tokenString s
 		return nil, err
 	}
 
-	token, err := jwt.ParseWithClaims(tokenString, &CustomClaims{}, func(token *jwt.Token) (interface{}, error) {
+	token, err := jwt.ParseWithClaims(tokenString, &security.SecureJWTClaims{}, func(token *jwt.Token) (interface{}, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
 		}
@@ -120,7 +128,7 @@ func (s *AuthServiceImpl) ValidateAccessToken(ctx context.Context, tokenString s
 		return nil, NewInvalidTokenError(err.Error())
 	}
 
-	claims, ok := token.Claims.(*CustomClaims)
+	claims, ok := token.Claims.(*security.SecureJWTClaims)
 	if !ok || !token.Valid {
 		s.logger.Debug("Invalid token claims")
 		return nil, NewInvalidTokenError("invalid token claims")
@@ -217,6 +225,16 @@ func (s *AuthServiceImpl) ChangePassword(ctx context.Context, userID int64, req 
 		s.logger.Error("Failed to revoke user tokens", "user_id", userID, "error", err)
 	}
 
+	go func() {
+		ctx := context.Background()
+		if err := s.emailService.SendPasswordChangeNotification(ctx, userID, user.Email); err != nil {
+			s.logger.Error("Failed to send password change notification",
+				"user_id", userID, "email", user.Email, "error", err)
+		} else {
+			s.logger.Info("Password change notification sent", "user_id", userID, "email", user.Email)
+		}
+	}()
+
 	s.logger.Info("Password changed successfully", "user_id", userID)
 	return nil
 }
@@ -230,14 +248,22 @@ func (s *AuthServiceImpl) InitiatePasswordReset(ctx context.Context, email strin
 		return nil
 	}
 
-	resetToken, err := s.generateSecureToken(32)
+	resetToken, err := s.verificationTokenSvc.GenerateToken(ctx, user.ID, TokenTypePasswordReset, 1)
 	if err != nil {
-		s.logger.Error("Failed to generate reset token", "error", err)
+		s.logger.Error("Failed to generate reset token", "error", err, "user_id", user.ID)
 		return errors.NewInternalError("Failed to generate reset token").WithCause(err)
 	}
 
-	s.logger.Info("Password reset token generated", "user_id", user.ID, "token", resetToken)
+	// Send password reset email
+	err = s.emailService.SendPasswordResetEmail(ctx, user.ID, email, resetToken)
+	if err != nil {
+		s.logger.Error("Failed to send password reset email", "error", err, "user_id", user.ID, "email", email)
+		// Don't fail the request if email fails - user might retry
+		// But log it for monitoring
+		return nil
+	}
 
+	s.logger.Info("Password reset email sent successfully", "user_id", user.ID, "email", email)
 	return nil
 }
 
@@ -245,16 +271,74 @@ func (s *AuthServiceImpl) InitiatePasswordReset(ctx context.Context, email strin
 func (s *AuthServiceImpl) ResetPassword(ctx context.Context, req *ResetPasswordRequest) error {
 	s.logger.Info("Resetting password")
 
-	// In a real implementation, you would:
-	// 1. Validate the reset token from verification_tokens table
-	// 2. Check if token is not expired and not used
-	// 3. Get user ID from the token
-	// 4. Update password
-	// 5. Mark token as used
-	// 6. Revoke all existing refresh tokens
+	// Validate input
+	if req.Token == "" {
+		return errors.NewValidationError("Reset token is required", "")
+	}
 
-	// For now, return not implemented
-	return errors.NewInternalError("Password reset not implemented")
+	if req.NewPassword == "" {
+		return errors.NewValidationError("New password is required", "")
+	}
+
+	// Validate password strength
+	if len(req.NewPassword) < constants.MinPasswordLength {
+		return errors.NewValidationError("Password too short",
+			fmt.Sprintf("Password must be at least %d characters", constants.MinPasswordLength))
+	}
+
+	// Validate the reset token
+	tokenData, err := s.verificationTokenSvc.ValidateToken(ctx, req.Token, TokenTypePasswordReset)
+	if err != nil {
+		s.logger.Debug("Invalid password reset token", "error", err)
+		return errors.NewValidationError("Invalid or expired reset token", "")
+	}
+
+	// Get user
+	user, err := s.userRepo.GetByID(ctx, tokenData.UserID)
+	if err != nil {
+		s.logger.Error("Failed to get user for password reset", "user_id", tokenData.UserID, "error", err)
+		return NewUserNotFoundError(fmt.Sprintf("ID: %d", tokenData.UserID))
+	}
+
+	// Hash new password
+	hashedPassword, err := utils.HashPassword(req.NewPassword)
+	if err != nil {
+		s.logger.Error("Failed to hash new password", "user_id", tokenData.UserID, "error", err)
+		return errors.NewInternalError("Failed to hash password").WithCause(err)
+	}
+
+	// Update user password
+	user.PasswordHash = hashedPassword
+	if err := s.userRepo.Update(ctx, user); err != nil {
+		s.logger.Error("Failed to update password", "user_id", tokenData.UserID, "error", err)
+		return errors.NewInternalError("Failed to update password").WithCause(err)
+	}
+
+	// Mark token as used
+	if err := s.verificationTokenSvc.MarkTokenAsUsed(ctx, tokenData.ID); err != nil {
+		s.logger.Error("Failed to mark reset token as used", "token_id", tokenData.ID, "error", err)
+		// Don't fail the request since password was already updated
+	}
+
+	// Revoke all existing refresh tokens for security
+	if err := s.tokenRepo.RevokeAllUserTokens(ctx, tokenData.UserID, TokenTypeRefresh); err != nil {
+		s.logger.Error("Failed to revoke user tokens after password reset", "user_id", tokenData.UserID, "error", err)
+		// Don't fail the request since password was already updated
+	}
+
+	// Send password change notification email (async to not block the request)
+	go func() {
+		ctx := context.Background() // Use a new context for background operation
+		if err := s.emailService.SendPasswordChangeNotification(ctx, tokenData.UserID, user.Email); err != nil {
+			s.logger.Error("Failed to send password reset notification",
+				"user_id", tokenData.UserID, "email", user.Email, "error", err)
+		} else {
+			s.logger.Info("Password reset notification sent", "user_id", tokenData.UserID, "email", user.Email)
+		}
+	}()
+
+	s.logger.Info("Password reset completed successfully", "user_id", tokenData.UserID)
+	return nil
 }
 
 // InvalidateAllSessions revokes all refresh tokens for a user
@@ -306,20 +390,28 @@ func (s *AuthServiceImpl) generateAccessToken(userID int64, email string, roles 
 		return "", time.Time{}, fmt.Errorf("failed to generate token ID: %w", err)
 	}
 
-	claims := &CustomClaims{
-		UserID:  userID,
-		Email:   email,
-		Roles:   roles,
-		TokenID: tokenID,
+	sessionID := fmt.Sprintf("session_%d_%d", userID, time.Now().Unix())
+
+	claims := &security.SecureJWTClaims{
 		RegisteredClaims: jwt.RegisteredClaims{
 			ID:        tokenID,
 			ExpiresAt: jwt.NewNumericDate(expiresAt),
 			IssuedAt:  jwt.NewNumericDate(issuedAt),
 			NotBefore: jwt.NewNumericDate(issuedAt),
 			Subject:   fmt.Sprintf("%d", userID),
-			Issuer:    "lumen-auth-service",
-			Audience:  []string{"lumen-api"},
+			Issuer:    "lumen-backend",
+			Audience:  []string{"lumen-frontend"},
 		},
+		UserID:      userID,
+		Email:       email,
+		Roles:       roles,
+		TokenID:     tokenID,
+		TokenType:   TokenTypeAccess,
+		SessionID:   sessionID,
+		DeviceID:    "",
+		LoginTime:   time.Now().Unix(),
+		Permissions: []string{},
+		Scopes:      []string{},
 	}
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
@@ -349,10 +441,4 @@ func (s *AuthServiceImpl) generateSecureToken(length int) (string, error) {
 	return hex.EncodeToString(bytes), nil
 }
 
-type CustomClaims struct {
-	UserID  int64    `json:"user_id"`
-	Email   string   `json:"email"`
-	Roles   []string `json:"roles"`
-	TokenID string   `json:"token_id"`
-	jwt.RegisteredClaims
-}
+// CustomClaims is removed - we now use security.SecureJWTClaims for consistency

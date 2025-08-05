@@ -31,8 +31,13 @@ func NewRouter(container *container.Container) *Router {
 	engine := gin.New()
 
 	config := container.GetConfig()
+	// Set trusted proxies for all environments to avoid Gin warning
 	if config.IsProduction() {
+		// In production, only trust specific proxy IPs
 		engine.SetTrustedProxies([]string{"127.0.0.1", "::1"})
+	} else {
+		// In development, trust localhost addresses
+		engine.SetTrustedProxies([]string{"127.0.0.1", "::1", "localhost"})
 	}
 
 	return &Router{

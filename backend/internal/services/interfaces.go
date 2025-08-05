@@ -36,6 +36,7 @@ type AuthService interface {
 type EmailService interface {
 	SendVerificationEmail(ctx context.Context, userID int64, email string) error
 	SendPasswordResetEmail(ctx context.Context, userID int64, email string, resetToken string) error
+	SendPasswordChangeNotification(ctx context.Context, userID int64, email string) error
 	SendWelcomeEmail(ctx context.Context, userID int64, email, username string) error
 
 	RenderTemplate(templateName string, data interface{}) (string, error)

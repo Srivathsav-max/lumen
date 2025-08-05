@@ -74,6 +74,14 @@ type WelcomeEmailData struct {
 	DashboardURL string
 }
 
+type PasswordChangeEmailData struct {
+	EmailData
+	Username   string
+	ChangeTime string
+	LoginURL   string
+	SupportURL string
+}
+
 func NewEmailService(
 	config *config.EmailConfig,
 	userRepo repository.UserRepository,
@@ -166,6 +174,31 @@ func (s *EmailServiceImpl) SendPasswordResetEmail(ctx context.Context, userID in
 	}
 
 	return s.sendEmailWithRetry(ctx, []string{email}, "Reset Your Password", "password_reset.html", data, 3)
+}
+
+func (s *EmailServiceImpl) SendPasswordChangeNotification(ctx context.Context, userID int64, email string) error {
+	user, err := s.userRepo.GetByID(ctx, userID)
+	if err != nil {
+		s.logger.Error("Failed to get user for password change notification",
+			"user_id", userID,
+			"error", err)
+		return NewUserNotFoundError(fmt.Sprintf("ID: %d", userID))
+	}
+
+	data := PasswordChangeEmailData{
+		EmailData: EmailData{
+			AppName:      "Lumen",
+			BaseURL:      s.getBaseURL(),
+			SupportEmail: s.config.FromEmail,
+			Year:         time.Now().Year(),
+		},
+		Username:   user.Username,
+		ChangeTime: time.Now().Format("January 2, 2006 at 3:04 PM MST"),
+		LoginURL:   fmt.Sprintf("%s/auth/login", s.getBaseURL()),
+		SupportURL: fmt.Sprintf("%s/support", s.getBaseURL()),
+	}
+
+	return s.sendEmailWithRetry(ctx, []string{email}, "Password Changed Successfully", "password_change_otp.html", data, 3)
 }
 
 func (s *EmailServiceImpl) SendWelcomeEmail(ctx context.Context, userID int64, email, username string) error {

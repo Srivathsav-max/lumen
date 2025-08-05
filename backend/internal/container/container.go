@@ -23,12 +23,13 @@ type Container struct {
 	WaitlistRepository          repository.WaitlistRepository
 	SystemSettingsRepository    repository.SystemSettingsRepository
 
-	UserService           services.UserService
-	AuthService           services.AuthService
-	EmailService          services.EmailService
-	RoleService           services.RoleService
-	WaitlistService       services.WaitlistService
-	SystemSettingsService services.SystemSettingsService
+	UserService              services.UserService
+	AuthService              services.AuthService
+	EmailService             services.EmailService
+	VerificationTokenService services.VerificationTokenService
+	RoleService              services.RoleService
+	WaitlistService          services.WaitlistService
+	SystemSettingsService    services.SystemSettingsService
 
 	SecurityMiddleware *security.SecurityMiddleware
 }
@@ -123,6 +124,10 @@ func (c *Container) SetWaitlistService(service services.WaitlistService) {
 
 func (c *Container) SetSystemSettingsService(service services.SystemSettingsService) {
 	c.SystemSettingsService = service
+}
+
+func (c *Container) SetVerificationTokenService(service services.VerificationTokenService) {
+	c.VerificationTokenService = service
 }
 
 func (c *Container) GetUserRepository() repository.UserRepository {

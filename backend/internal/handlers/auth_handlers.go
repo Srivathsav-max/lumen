@@ -13,6 +13,7 @@ import (
 	"github.com/Srivathsav-max/lumen/backend/internal/security"
 	"github.com/Srivathsav-max/lumen/backend/internal/services"
 	"github.com/gin-gonic/gin"
+	"github.com/golang-jwt/jwt/v4"
 )
 
 type AuthHandlers struct {
@@ -81,14 +82,14 @@ func (h *AuthHandlers) Register(c *gin.Context) {
 		userRoles = []string{"free"}
 	}
 
-	secureTokenPair, err := h.jwtService.GenerateTokenPair(userResponse.ID, userResponse.Email, userRoles, c.Request)
+	tokenPair, err := h.authService.GenerateTokenPair(ctx, userResponse.ID)
 	if err != nil {
-		h.logger.Error("Failed to generate secure JWT token", "error", err, "user_id", userResponse.ID)
+		h.logger.Error("Failed to generate token pair", "error", err, "user_id", userResponse.ID)
 		c.Error(errors.NewInternalError("Registration failed"))
 		return
 	}
 
-	regClaims, err := h.jwtService.ValidateToken(secureTokenPair.AccessToken, c.Request)
+	regClaims, err := h.jwtService.ValidateToken(tokenPair.AccessToken, c.Request)
 	if err != nil {
 		h.logger.Error("Failed to parse generated token", "error", err)
 		c.Error(errors.NewInternalError("Registration failed"))
@@ -105,7 +106,7 @@ func (h *AuthHandlers) Register(c *gin.Context) {
 			h.logger.Debug("CSRF protection is disabled, skipping CSRF token generation", "user_id", userResponse.ID)
 			csrfTokenValue = constants.DevCSRFTokenDisabled
 			csrfEnabled = false
-			h.setSecureAuthCookiesWithoutCSRF(c, secureTokenPair.AccessToken)
+			h.setRefreshTokenCookies(c, tokenPair.AccessToken, tokenPair.RefreshToken)
 		} else {
 			h.logger.Error("Failed to generate CSRF token", "error", err, "user_id", userResponse.ID)
 			c.Error(errors.NewInternalError("Registration failed"))
@@ -113,7 +114,7 @@ func (h *AuthHandlers) Register(c *gin.Context) {
 		}
 	} else {
 		csrfTokenValue = csrfToken.Token
-		h.setSecureAuthCookies(c, secureTokenPair.AccessToken, csrfToken)
+		h.setRefreshTokenCookiesWithCSRF(c, tokenPair.AccessToken, tokenPair.RefreshToken, csrfToken)
 	}
 
 	secureAuthResponse := gin.H{
@@ -127,7 +128,7 @@ func (h *AuthHandlers) Register(c *gin.Context) {
 			"is_admin":   contains(regClaims.Roles, constants.RoleAdmin),
 			"created_at": userResponse.CreatedAt,
 		},
-		"expires_in":   secureTokenPair.ExpiresIn,
+		"expires_in":   tokenPair.ExpiresIn,
 		"token_type":   "Bearer",
 		"csrf_token":   csrfTokenValue,
 		"csrf_enabled": csrfEnabled,
@@ -172,21 +173,25 @@ func (h *AuthHandlers) Login(c *gin.Context) {
 		userRoles = []string{"free"}
 	}
 
-	secureTokenPair, err := h.jwtService.GenerateTokenPair(authResponse.User.ID, authResponse.User.Email, userRoles, c.Request)
+	tokenPair, err := h.authService.GenerateTokenPair(ctx, authResponse.User.ID)
 	if err != nil {
-		h.logger.Error("Failed to generate secure JWT token", "error", err, "user_id", authResponse.User.ID)
+		h.logger.Error("Failed to generate token pair", "error", err, "user_id", authResponse.User.ID)
 		c.Error(errors.NewInternalError("Authentication failed"))
 		return
 	}
 
-	claims, err := h.jwtService.ValidateToken(secureTokenPair.AccessToken, c.Request)
-	if err != nil {
-		h.logger.Error("Failed to parse generated token", "error", err)
-		c.Error(errors.NewInternalError("Authentication failed"))
-		return
+	jwtToken, _ := jwt.ParseWithClaims(tokenPair.AccessToken, &security.SecureJWTClaims{}, func(token *jwt.Token) (interface{}, error) {
+		return []byte(h.securityConfig.JWT.Secret), nil
+	})
+
+	var sessionID string
+	if jwtClaims, ok := jwtToken.Claims.(*security.SecureJWTClaims); ok && jwtToken.Valid {
+		sessionID = jwtClaims.SessionID
+	} else {
+		sessionID = fmt.Sprintf("session_%d_%d", authResponse.User.ID, time.Now().Unix())
 	}
 
-	csrfToken, err := h.csrfService.GenerateToken(claims.SessionID, authResponse.User.ID, c.Request)
+	csrfToken, err := h.csrfService.GenerateToken(sessionID, authResponse.User.ID, c.Request)
 
 	var csrfTokenValue string
 	var csrfEnabled bool = true
@@ -196,7 +201,7 @@ func (h *AuthHandlers) Login(c *gin.Context) {
 			h.logger.Debug("CSRF protection is disabled, skipping CSRF token generation", "user_id", authResponse.User.ID)
 			csrfTokenValue = constants.DevCSRFTokenDisabled
 			csrfEnabled = false
-			h.setSecureAuthCookiesWithoutCSRF(c, secureTokenPair.AccessToken)
+			h.setRefreshTokenCookies(c, tokenPair.AccessToken, tokenPair.RefreshToken)
 		} else {
 			h.logger.Error("Failed to generate CSRF token", "error", err, "user_id", authResponse.User.ID)
 			c.Error(errors.NewInternalError("Authentication failed"))
@@ -204,7 +209,7 @@ func (h *AuthHandlers) Login(c *gin.Context) {
 		}
 	} else {
 		csrfTokenValue = csrfToken.Token
-		h.setSecureAuthCookies(c, secureTokenPair.AccessToken, csrfToken)
+		h.setRefreshTokenCookiesWithCSRF(c, tokenPair.AccessToken, tokenPair.RefreshToken, csrfToken)
 	}
 
 	secureAuthResponse := gin.H{
@@ -214,11 +219,11 @@ func (h *AuthHandlers) Login(c *gin.Context) {
 			"username":   authResponse.User.Username,
 			"first_name": authResponse.User.FirstName,
 			"last_name":  authResponse.User.LastName,
-			"roles":      claims.Roles,
-			"is_admin":   contains(claims.Roles, "admin"),
+			"roles":      userRoles,
+			"is_admin":   contains(userRoles, constants.RoleAdmin),
 			"created_at": authResponse.User.CreatedAt,
 		},
-		"expires_in":   secureTokenPair.ExpiresIn,
+		"expires_in":   tokenPair.ExpiresIn,
 		"token_type":   "Bearer",
 		"csrf_token":   csrfTokenValue,
 		"csrf_enabled": csrfEnabled,
@@ -226,7 +231,7 @@ func (h *AuthHandlers) Login(c *gin.Context) {
 
 	h.logger.Info("User logged in successfully",
 		"user_id", authResponse.User.ID,
-		"session_id", claims.SessionID,
+		"session_id", sessionID,
 		"ip", c.ClientIP(),
 	)
 
@@ -302,7 +307,7 @@ func (h *AuthHandlers) ValidateToken(c *gin.Context) {
 				"is_admin":   contains(currentRoles, "admin"),
 			},
 			"session_id": claims.SessionID,
-			"expires_at": claims.ExpiresAt.Unix(),
+			"expires_at": time.Now().Add(time.Duration(h.securityConfig.JWT.AccessTokenDuration)).Unix(),
 			"roles":      currentRoles,
 		},
 	}
@@ -317,28 +322,24 @@ func (h *AuthHandlers) ValidateToken(c *gin.Context) {
 }
 
 func (h *AuthHandlers) RefreshToken(c *gin.Context) {
-	// Get refresh token from cookie or request body
 	refreshToken, err := c.Cookie(constants.RefreshTokenCookieName)
 	if err != nil {
 		var req struct {
-			RefreshToken string `json:"refresh_token" binding:"required"`
+			RefreshToken string `json:"refresh_token"`
 		}
-		if err := c.ShouldBindJSON(&req); err != nil {
-			h.logger.Warn("Invalid refresh token request", "error", err, "ip", c.ClientIP())
-			c.Error(errors.NewValidationError("Refresh token is required", ""))
-			return
+		if bindErr := c.ShouldBindJSON(&req); bindErr == nil && req.RefreshToken != "" {
+			refreshToken = req.RefreshToken
 		}
-		refreshToken = req.RefreshToken
 	}
 
 	if refreshToken == "" {
+		h.logger.Warn("Refresh token not found in cookie or request body", "ip", c.ClientIP())
 		c.Error(errors.NewAuthenticationError("Refresh token is required"))
 		return
 	}
 
 	ctx := context.Background()
 
-	// Use auth service for proper refresh token flow with rotation
 	tokenPair, err := h.authService.RefreshTokens(ctx, refreshToken)
 	if err != nil {
 		h.logger.Warn("Token refresh failed",
@@ -346,11 +347,10 @@ func (h *AuthHandlers) RefreshToken(c *gin.Context) {
 			"ip", c.ClientIP(),
 		)
 		h.clearSecureAuthCookies(c)
-		c.Error(err) // AuthService returns proper error types
+		c.Error(err)
 		return
 	}
 
-	// Parse the new access token to get claims for CSRF
 	claims, err := h.jwtService.ValidateToken(tokenPair.AccessToken, c.Request)
 	if err != nil {
 		h.logger.Error("Failed to parse new access token", "error", err)
@@ -358,7 +358,6 @@ func (h *AuthHandlers) RefreshToken(c *gin.Context) {
 		return
 	}
 
-	// Generate CSRF token for the new session
 	var csrfTokenValue string
 	var csrfEnabled bool = true
 

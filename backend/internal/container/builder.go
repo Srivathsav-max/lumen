@@ -112,6 +112,10 @@ func (b *Builder) WithServices() (*Builder, error) {
 		return nil, fmt.Errorf("failed to create email service: %w", err)
 	}
 
+	verificationTokenService := services.NewVerificationTokenService(
+		b.container.VerificationTokenRepository,
+	)
+
 	userService := services.NewUserService(
 		b.container.UserRepository,
 		b.container.RoleRepository,
@@ -124,6 +128,8 @@ func (b *Builder) WithServices() (*Builder, error) {
 		b.container.UserRepository,
 		b.container.TokenRepository,
 		b.container.RoleRepository,
+		verificationTokenService,
+		emailService,
 		b.container.Logger,
 	)
 
@@ -144,6 +150,7 @@ func (b *Builder) WithServices() (*Builder, error) {
 	)
 
 	b.container.SetEmailService(emailService)
+	b.container.SetVerificationTokenService(verificationTokenService)
 	b.container.SetUserService(userService)
 	b.container.SetAuthService(authService)
 	b.container.SetRoleService(roleService)
