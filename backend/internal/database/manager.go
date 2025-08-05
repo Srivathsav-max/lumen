@@ -10,7 +10,6 @@ import (
 	"github.com/Srivathsav-max/lumen/backend/internal/errors"
 )
 
-// Manager interface defines database management operations
 type Manager interface {
 	GetDB() *sql.DB
 	BeginTx(ctx context.Context) (*sql.Tx, error)
@@ -19,13 +18,11 @@ type Manager interface {
 	Close() error
 }
 
-// PostgresManager implements the Manager interface for PostgreSQL
 type PostgresManager struct {
 	db     *sql.DB
 	logger *slog.Logger
 }
 
-// NewPostgresManager creates a new PostgreSQL database manager
 func NewPostgresManager(db *sql.DB, logger *slog.Logger) *PostgresManager {
 	return &PostgresManager{
 		db:     db,
@@ -33,12 +30,10 @@ func NewPostgresManager(db *sql.DB, logger *slog.Logger) *PostgresManager {
 	}
 }
 
-// GetDB returns the underlying database connection
 func (m *PostgresManager) GetDB() *sql.DB {
 	return m.db
 }
 
-// BeginTx starts a new database transaction
 func (m *PostgresManager) BeginTx(ctx context.Context) (*sql.Tx, error) {
 	tx, err := m.db.BeginTx(ctx, nil)
 	if err != nil {
@@ -50,7 +45,6 @@ func (m *PostgresManager) BeginTx(ctx context.Context) (*sql.Tx, error) {
 	return tx, nil
 }
 
-// WithTransaction executes a function within a database transaction
 func (m *PostgresManager) WithTransaction(ctx context.Context, fn func(*sql.Tx) error) error {
 	tx, err := m.BeginTx(ctx)
 	if err != nil {
@@ -65,7 +59,7 @@ func (m *PostgresManager) WithTransaction(ctx context.Context, fn func(*sql.Tx) 
 					"rollback_error", rollbackErr,
 				)
 			}
-			panic(p) // Re-throw panic after rollback
+			panic(p)
 		}
 	}()
 
@@ -90,7 +84,6 @@ func (m *PostgresManager) WithTransaction(ctx context.Context, fn func(*sql.Tx) 
 	return nil
 }
 
-// Health checks the database connection health
 func (m *PostgresManager) Health() error {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
@@ -100,7 +93,6 @@ func (m *PostgresManager) Health() error {
 		return errors.NewDatabaseError("Database health check failed", err)
 	}
 
-	// Check if we can execute a simple query
 	var result int
 	if err := m.db.QueryRowContext(ctx, "SELECT 1").Scan(&result); err != nil {
 		m.logger.Error("Database query health check failed", "error", err)
@@ -116,7 +108,6 @@ func (m *PostgresManager) Health() error {
 	return nil
 }
 
-// Close closes the database connection
 func (m *PostgresManager) Close() error {
 	if err := m.db.Close(); err != nil {
 		m.logger.Error("Failed to close database connection", "error", err)
@@ -127,12 +118,10 @@ func (m *PostgresManager) Close() error {
 	return nil
 }
 
-// GetStats returns database connection statistics
 func (m *PostgresManager) GetStats() sql.DBStats {
 	return m.db.Stats()
 }
 
-// LogStats logs current database connection statistics
 func (m *PostgresManager) LogStats() {
 	stats := m.GetStats()
 	m.logger.Info("Database connection statistics",

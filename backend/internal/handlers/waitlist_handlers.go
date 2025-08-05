@@ -5,24 +5,22 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/gin-gonic/gin"
+	"github.com/Srivathsav-max/lumen/backend/internal/constants"
 	"github.com/Srivathsav-max/lumen/backend/internal/errors"
 	"github.com/Srivathsav-max/lumen/backend/internal/services"
+	"github.com/gin-gonic/gin"
 )
 
-// WaitlistHandlers handles waitlist-related HTTP requests
 type WaitlistHandlers struct {
 	waitlistService services.WaitlistService
 }
 
-// NewWaitlistHandlers creates a new WaitlistHandlers instance
 func NewWaitlistHandlers(waitlistService services.WaitlistService) *WaitlistHandlers {
 	return &WaitlistHandlers{
 		waitlistService: waitlistService,
 	}
 }
 
-// JoinWaitlist handles waitlist signup requests
 func (h *WaitlistHandlers) JoinWaitlist(c *gin.Context) {
 	var req services.WaitlistRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -32,7 +30,6 @@ func (h *WaitlistHandlers) JoinWaitlist(c *gin.Context) {
 
 	ctx := context.Background()
 
-	// Add to waitlist through WaitlistService
 	if err := h.waitlistService.AddToWaitlist(ctx, &req); err != nil {
 		c.Error(err)
 		return
@@ -43,7 +40,6 @@ func (h *WaitlistHandlers) JoinWaitlist(c *gin.Context) {
 	})
 }
 
-// GetWaitlistPosition handles retrieving waitlist position
 func (h *WaitlistHandlers) GetWaitlistPosition(c *gin.Context) {
 	email := c.Query("email")
 	if email == "" {
@@ -53,7 +49,6 @@ func (h *WaitlistHandlers) GetWaitlistPosition(c *gin.Context) {
 
 	ctx := context.Background()
 
-	// Get waitlist position through WaitlistService
 	position, err := h.waitlistService.GetWaitlistPosition(ctx, email)
 	if err != nil {
 		c.Error(err)
@@ -66,15 +61,12 @@ func (h *WaitlistHandlers) GetWaitlistPosition(c *gin.Context) {
 	})
 }
 
-// GetWaitlistEntries handles retrieving waitlist entries (admin only)
 func (h *WaitlistHandlers) GetWaitlistEntries(c *gin.Context) {
-	// Check if current user is admin
 	if !h.isAdmin(c) {
 		c.Error(errors.NewAuthorizationError("Admin access required"))
 		return
 	}
 
-	// Parse query parameters
 	req := &services.GetWaitlistRequest{
 		Page:     1,
 		PageSize: 20,
@@ -102,7 +94,6 @@ func (h *WaitlistHandlers) GetWaitlistEntries(c *gin.Context) {
 
 	ctx := context.Background()
 
-	// Get waitlist entries through WaitlistService
 	entries, err := h.waitlistService.GetWaitlistEntries(ctx, req)
 	if err != nil {
 		c.Error(err)
@@ -115,9 +106,7 @@ func (h *WaitlistHandlers) GetWaitlistEntries(c *gin.Context) {
 	})
 }
 
-// ApproveWaitlistEntry handles approving a waitlist entry (admin only)
 func (h *WaitlistHandlers) ApproveWaitlistEntry(c *gin.Context) {
-	// Check if current user is admin
 	if !h.isAdmin(c) {
 		c.Error(errors.NewAuthorizationError("Admin access required"))
 		return
@@ -134,7 +123,6 @@ func (h *WaitlistHandlers) ApproveWaitlistEntry(c *gin.Context) {
 
 	ctx := context.Background()
 
-	// Approve waitlist entry through WaitlistService
 	if err := h.waitlistService.ApproveWaitlistEntry(ctx, req.Email); err != nil {
 		c.Error(err)
 		return
@@ -145,9 +133,7 @@ func (h *WaitlistHandlers) ApproveWaitlistEntry(c *gin.Context) {
 	})
 }
 
-// RemoveFromWaitlist handles removing an entry from waitlist (admin only)
 func (h *WaitlistHandlers) RemoveFromWaitlist(c *gin.Context) {
-	// Check if current user is admin
 	if !h.isAdmin(c) {
 		c.Error(errors.NewAuthorizationError("Admin access required"))
 		return
@@ -161,7 +147,6 @@ func (h *WaitlistHandlers) RemoveFromWaitlist(c *gin.Context) {
 
 	ctx := context.Background()
 
-	// Remove from waitlist through WaitlistService
 	if err := h.waitlistService.RemoveFromWaitlist(ctx, email); err != nil {
 		c.Error(err)
 		return
@@ -172,9 +157,7 @@ func (h *WaitlistHandlers) RemoveFromWaitlist(c *gin.Context) {
 	})
 }
 
-// UpdateWaitlistStatus handles updating waitlist entry status (admin only)
 func (h *WaitlistHandlers) UpdateWaitlistStatus(c *gin.Context) {
-	// Check if current user is admin
 	if !h.isAdmin(c) {
 		c.Error(errors.NewAuthorizationError("Admin access required"))
 		return
@@ -195,19 +178,14 @@ func (h *WaitlistHandlers) UpdateWaitlistStatus(c *gin.Context) {
 		return
 	}
 
-	// This would require a new method in WaitlistService
-	// For now, return not implemented
 	c.Error(errors.NewInternalError("Feature not implemented"))
 }
 
-// Helper methods
-
-// isAdmin checks if the current user has admin role
 func (h *WaitlistHandlers) isAdmin(c *gin.Context) bool {
 	if roles, exists := c.Get("userRoles"); exists {
 		if roleSlice, ok := roles.([]string); ok {
 			for _, role := range roleSlice {
-				if role == "admin" {
+				if role == constants.RoleAdmin {
 					return true
 				}
 			}

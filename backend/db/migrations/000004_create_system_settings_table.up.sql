@@ -1,6 +1,7 @@
 -- Create system_settings table
 CREATE TABLE IF NOT EXISTS system_settings (
-    key VARCHAR(50) PRIMARY KEY,
+    id SERIAL PRIMARY KEY,
+    key VARCHAR(50) UNIQUE NOT NULL,
     value TEXT NOT NULL,
     description TEXT,
     created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),

@@ -27,7 +27,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Loader2, Trash2, Search } from "lucide-react";
+import { Trash2, Search } from "lucide-react";
+import { Spinner } from "@/components/ui/ios-spinner";
 import { WaitlistEntry, getWaitlistEntries, updateWaitlistEntry, deleteWaitlistEntry } from "./api";
 
 export function WaitlistTable() {
@@ -46,7 +47,6 @@ export function WaitlistTable() {
   const fetchWaitlistEntries = async () => {
     setLoading(true);
     try {
-      // Use the API module function
       const data = await getWaitlistEntries();
       console.log('Waitlist API response:', data);
       
@@ -171,7 +171,7 @@ export function WaitlistTable() {
         >
           {loading ? (
             <>
-              <Loader2 className="h-4 w-4 animate-spin mr-2" />
+              <Spinner size="sm" className="mr-2" />
               Loading...
             </>
           ) : (
@@ -182,7 +182,7 @@ export function WaitlistTable() {
       
       {loading ? (
         <div className="flex justify-center items-center h-64">
-          <Loader2 className="h-8 w-8 animate-spin text-[#333]" />
+          <Spinner size="md" />
         </div>
       ) : filteredEntries.length === 0 ? (
         <div className="text-center py-8 border-2 border-[#333] rounded-lg">
@@ -239,7 +239,7 @@ export function WaitlistTable() {
                         className="border-2 border-red-600 shadow-[0_2px_0_0_#333] hover:shadow-[0_4px_0_0_#333] hover:-translate-y-1 transition-all duration-200 font-mono"
                       >
                         {isDeleting && deleteId === entry.id ? (
-                          <Loader2 className="h-4 w-4 animate-spin" />
+                          <Spinner size="sm" />
                         ) : (
                           <Trash2 className="h-4 w-4" />
                         )}
@@ -306,7 +306,7 @@ export function WaitlistTable() {
             >
               {isUpdating ? (
                 <>
-                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                  <Spinner size="sm" className="mr-2" />
                   Updating...
                 </>
               ) : (

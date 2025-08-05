@@ -7,6 +7,7 @@ import { useState, useEffect } from "react";
 import { DashboardFeature, FeatureRouter } from "@/components/dashboard/feature-router";
 import { usePathname, useRouter } from "next/navigation";
 import { useAuth } from "@/hooks/use-auth";
+import { Spinner } from "@/components/ui/ios-spinner";
 import "@/styles/sketchy-elements.css";
 
 export default function DashboardLayout({
@@ -45,7 +46,7 @@ export default function DashboardLayout({
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#333]"></div>
+        <Spinner size="lg" />
       </div>
     );
   }

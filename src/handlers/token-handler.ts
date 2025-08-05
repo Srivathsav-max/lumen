@@ -96,18 +96,17 @@ export async function validateToken(
   try {
     // With HTTP-only cookies, we don't need to pass a token
     // The cookies are automatically sent with the request
-    const isValid = await loginApi.validateToken();
-    console.log('Token handler - Server validation result:', isValid);
+    const validationResponse = await loginApi.validateTokenWithUserData();
+    console.log('Token handler - Server validation result:', validationResponse);
 
-    if (!isValid) {
+    if (!validationResponse.valid) {
       console.log('Token handler - Server validation failed');
       throw new Error('Invalid session');
     }
 
-    // Get user profile to ensure we have the latest role information
-    console.log('Token handler - Getting user profile');
-    const userData = await profileApi.getUserProfile();
-    console.log('Token handler - User profile:', userData);
+    // Use user data from token validation response (includes fresh roles)
+    const userData = validationResponse.data.user;
+    console.log('Token handler - User data from validation:', userData);
 
     // Update user data and cache it
     setUser(userData);

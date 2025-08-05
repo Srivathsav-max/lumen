@@ -7,21 +7,19 @@ import (
 	"strconv"
 
 	"github.com/Srivathsav-max/lumen/backend/config"
-	"github.com/Srivathsav-max/lumen/backend/models"
+	"github.com/Srivathsav-max/lumen/backend/internal/services"
+
 	"github.com/gin-gonic/gin"
 	"github.com/graphql-go/graphql"
 )
 
-// Handler is the GraphQL handler
 type Handler struct {
-	UserService models.UserService
+	UserService services.UserService
 	Config      *config.Config
 	Schema      graphql.Schema
 }
 
-// NewHandler creates a new GraphQL handler
-func NewHandler(userService models.UserService, cfg *config.Config) (*Handler, error) {
-	// Define User type
+func NewHandler(userService services.UserService, cfg *config.Config) (*Handler, error) {
 	userType := graphql.NewObject(graphql.ObjectConfig{
 		Name: "User",
 		Fields: graphql.Fields{
@@ -37,7 +35,7 @@ func NewHandler(userService models.UserService, cfg *config.Config) (*Handler, e
 			"firstName": &graphql.Field{
 				Type: graphql.String,
 				Resolve: func(p graphql.ResolveParams) (interface{}, error) {
-					if user, ok := p.Source.(*models.User); ok {
+					if user, ok := p.Source.(*services.UserResponse); ok {
 						return user.FirstName, nil
 					}
 					return nil, nil
@@ -46,7 +44,7 @@ func NewHandler(userService models.UserService, cfg *config.Config) (*Handler, e
 			"lastName": &graphql.Field{
 				Type: graphql.String,
 				Resolve: func(p graphql.ResolveParams) (interface{}, error) {
-					if user, ok := p.Source.(*models.User); ok {
+					if user, ok := p.Source.(*services.UserResponse); ok {
 						return user.LastName, nil
 					}
 					return nil, nil
@@ -55,7 +53,7 @@ func NewHandler(userService models.UserService, cfg *config.Config) (*Handler, e
 			"createdAt": &graphql.Field{
 				Type: graphql.String,
 				Resolve: func(p graphql.ResolveParams) (interface{}, error) {
-					if user, ok := p.Source.(*models.User); ok {
+					if user, ok := p.Source.(*services.UserResponse); ok {
 						return user.CreatedAt.Format("2006-01-02T15:04:05Z07:00"), nil
 					}
 					return nil, nil
@@ -64,7 +62,7 @@ func NewHandler(userService models.UserService, cfg *config.Config) (*Handler, e
 			"updatedAt": &graphql.Field{
 				Type: graphql.String,
 				Resolve: func(p graphql.ResolveParams) (interface{}, error) {
-					if user, ok := p.Source.(*models.User); ok {
+					if user, ok := p.Source.(*services.UserResponse); ok {
 						return user.UpdatedAt.Format("2006-01-02T15:04:05Z07:00"), nil
 					}
 					return nil, nil
@@ -73,7 +71,6 @@ func NewHandler(userService models.UserService, cfg *config.Config) (*Handler, e
 		},
 	})
 
-	// Define query
 	queryType := graphql.NewObject(graphql.ObjectConfig{
 		Name: "Query",
 		Fields: graphql.Fields{
@@ -95,7 +92,7 @@ func NewHandler(userService models.UserService, cfg *config.Config) (*Handler, e
 						return nil, errors.New("invalid user ID format")
 					}
 
-					user, err := userService.GetByID(userID)
+					user, err := userService.GetByID(p.Context, userID)
 					if err != nil {
 						return nil, err
 					}
@@ -110,13 +107,12 @@ func NewHandler(userService models.UserService, cfg *config.Config) (*Handler, e
 			"me": &graphql.Field{
 				Type: userType,
 				Resolve: func(p graphql.ResolveParams) (interface{}, error) {
-					// Get user ID from context
-					userID, ok := p.Context.Value("userID").(int64)
-					if !ok {
-						return nil, errors.New("not authenticated")
+					userID, exists := p.Context.Value("userID").(int64)
+					if !exists {
+						return nil, errors.New("user not authenticated")
 					}
 
-					user, err := userService.GetByID(userID)
+					user, err := userService.GetByID(p.Context, userID)
 					if err != nil {
 						return nil, err
 					}
@@ -131,7 +127,6 @@ func NewHandler(userService models.UserService, cfg *config.Config) (*Handler, e
 		},
 	})
 
-	// Create schema
 	schema, err := graphql.NewSchema(graphql.SchemaConfig{
 		Query: queryType,
 	})
@@ -146,9 +141,7 @@ func NewHandler(userService models.UserService, cfg *config.Config) (*Handler, e
 	}, nil
 }
 
-// ServeHTTP handles GraphQL requests
 func (h *Handler) ServeHTTP(c *gin.Context) {
-	// Parse request
 	var params struct {
 		Query         string                 `json:"query"`
 		OperationName string                 `json:"operationName"`
@@ -160,13 +153,11 @@ func (h *Handler) ServeHTTP(c *gin.Context) {
 		return
 	}
 
-	// Create context with user ID if authenticated
 	ctx := c.Request.Context()
 	if userID, exists := c.Get("userID"); exists {
 		ctx = context.WithValue(ctx, "userID", userID.(int64))
 	}
 
-	// Execute query
 	result := graphql.Do(graphql.Params{
 		Schema:         h.Schema,
 		RequestString:  params.Query,
@@ -175,30 +166,24 @@ func (h *Handler) ServeHTTP(c *gin.Context) {
 		Context:        ctx,
 	})
 
-	// Handle errors
 	if len(result.Errors) > 0 {
 		c.JSON(http.StatusOK, result)
 		return
 	}
 
-	// Return result
 	c.JSON(http.StatusOK, result)
 }
 
-// RegisterHandlers registers GraphQL handlers with the Gin router
-func RegisterHandlers(r *gin.Engine, userService models.UserService, cfg *config.Config) error {
-	// Create GraphQL handler
+func RegisterHandlers(r *gin.Engine, userService services.UserService, cfg *config.Config) error {
 	handler, err := NewHandler(userService, cfg)
 	if err != nil {
 		return err
 	}
 
-	// Register GraphQL endpoint
 	r.POST("/graphql", func(c *gin.Context) {
 		handler.ServeHTTP(c)
 	})
 
-	// Register GraphQL playground in development mode
 	if cfg.Server.Env == "development" {
 		r.GET("/playground", func(c *gin.Context) {
 			c.HTML(http.StatusOK, "playground.html", gin.H{
@@ -206,7 +191,6 @@ func RegisterHandlers(r *gin.Engine, userService models.UserService, cfg *config
 			})
 		})
 
-		// Serve playground HTML
 		r.LoadHTMLGlob("graphql/playground.html")
 	}
 

@@ -8,12 +8,10 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// ErrorResponse represents the structure of error responses
 type ErrorResponse struct {
 	Error ErrorDetail `json:"error"`
 }
 
-// ErrorDetail contains the error information
 type ErrorDetail struct {
 	Code      string `json:"code"`
 	Message   string `json:"message"`
@@ -22,27 +20,21 @@ type ErrorDetail struct {
 	RequestID string `json:"request_id,omitempty"`
 }
 
-// ErrorHandlingMiddleware handles all application errors consistently
 func ErrorHandlingMiddleware(logger *slog.Logger) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		c.Next()
 
-		// Check if there are any errors
 		if len(c.Errors) > 0 {
 			err := c.Errors.Last().Err
 			requestID := getRequestID(c)
 
-			// Handle AppError
 			if appErr, ok := errors.AsAppError(err); ok {
-				// Add request ID if not already present
 				if appErr.RequestID == "" {
 					appErr = appErr.WithRequestID(requestID)
 				}
 
-				// Log the error with context
 				logError(logger, appErr, c)
 
-				// Return structured error response
 				errorResponse := ErrorResponse{
 					Error: ErrorDetail{
 						Code:      string(appErr.Code),
@@ -57,7 +49,6 @@ func ErrorHandlingMiddleware(logger *slog.Logger) gin.HandlerFunc {
 				return
 			}
 
-			// Handle unexpected errors
 			logger.Error("Unexpected error occurred",
 				"error", err.Error(),
 				"request_id", requestID,
@@ -67,7 +58,6 @@ func ErrorHandlingMiddleware(logger *slog.Logger) gin.HandlerFunc {
 				"ip", c.ClientIP(),
 			)
 
-			// Return generic internal server error
 			internalErr := errors.NewInternalError("Internal server error").WithRequestID(requestID)
 			errorResponse := ErrorResponse{
 				Error: ErrorDetail{
@@ -83,7 +73,6 @@ func ErrorHandlingMiddleware(logger *slog.Logger) gin.HandlerFunc {
 	}
 }
 
-// logError logs application errors with appropriate level and context
 func logError(logger *slog.Logger, appErr *errors.AppError, c *gin.Context) {
 	logArgs := []any{
 		"error_code", appErr.Code,
@@ -103,7 +92,6 @@ func logError(logger *slog.Logger, appErr *errors.AppError, c *gin.Context) {
 		logArgs = append(logArgs, "cause", appErr.Cause.Error())
 	}
 
-	// Log with appropriate level based on error category
 	switch appErr.Code {
 	case errors.ValidationError, errors.NotFoundError, errors.ConflictError:
 		logger.Info("Client error occurred", logArgs...)
@@ -116,7 +104,6 @@ func logError(logger *slog.Logger, appErr *errors.AppError, c *gin.Context) {
 	}
 }
 
-// getRequestID extracts request ID from context
 func getRequestID(c *gin.Context) string {
 	if requestID, exists := c.Get("request_id"); exists {
 		if id, ok := requestID.(string); ok {

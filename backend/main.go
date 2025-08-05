@@ -47,6 +47,11 @@ func main() {
 		log.Fatalf("Failed to setup services: %v", err)
 	}
 
+	builder, err = builder.WithSecurity()
+	if err != nil {
+		log.Fatalf("Failed to setup security: %v", err)
+	}
+
 	appContainer, err := builder.Build()
 
 	if err != nil {

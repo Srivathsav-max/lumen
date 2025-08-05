@@ -12,7 +12,7 @@ export function AuthNav() {
       {isAuthenticated ? (
         <>
           <span className="text-sm hidden md:inline-block">
-            Welcome, {user?.first_name}
+            Welcome, {user?.first_name || user?.username || 'User'}
           </span>
           <Button asChild variant="default" size="sm">
             <Link href="/dashboard">Dashboard</Link>

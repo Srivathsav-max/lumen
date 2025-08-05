@@ -7,7 +7,6 @@ import (
 // CORSMiddleware handles CORS for the API
 func CORSMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		// Get the origin from the request
 		origin := c.Request.Header.Get("Origin")
 
 		// List of allowed origins

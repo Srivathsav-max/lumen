@@ -6,21 +6,19 @@ import (
 	"time"
 )
 
-// ErrorCategory represents different types of application errors
 type ErrorCategory string
 
 const (
-	ValidationError     ErrorCategory = "VALIDATION_ERROR"
-	NotFoundError      ErrorCategory = "NOT_FOUND"
-	ConflictError      ErrorCategory = "CONFLICT"
-	AuthenticationError ErrorCategory = "AUTHENTICATION_ERROR"
-	AuthorizationError  ErrorCategory = "AUTHORIZATION_ERROR"
-	InternalError      ErrorCategory = "INTERNAL_ERROR"
-	DatabaseError      ErrorCategory = "DATABASE_ERROR"
+	ValidationError      ErrorCategory = "VALIDATION_ERROR"
+	NotFoundError        ErrorCategory = "NOT_FOUND"
+	ConflictError        ErrorCategory = "CONFLICT"
+	AuthenticationError  ErrorCategory = "AUTHENTICATION_ERROR"
+	AuthorizationError   ErrorCategory = "AUTHORIZATION_ERROR"
+	InternalError        ErrorCategory = "INTERNAL_ERROR"
+	DatabaseError        ErrorCategory = "DATABASE_ERROR"
 	ExternalServiceError ErrorCategory = "EXTERNAL_SERVICE_ERROR"
 )
 
-// AppError represents a structured application error
 type AppError struct {
 	Code       ErrorCategory `json:"code"`
 	Message    string        `json:"message"`
@@ -31,7 +29,6 @@ type AppError struct {
 	Cause      error         `json:"-"`
 }
 
-// Error implements the error interface
 func (e *AppError) Error() string {
 	if e.Details != "" {
 		return fmt.Sprintf("%s: %s - %s", e.Code, e.Message, e.Details)
@@ -39,12 +36,10 @@ func (e *AppError) Error() string {
 	return fmt.Sprintf("%s: %s", e.Code, e.Message)
 }
 
-// Unwrap returns the underlying cause error
 func (e *AppError) Unwrap() error {
 	return e.Cause
 }
 
-// NewAppError creates a new application error
 func NewAppError(category ErrorCategory, message, details string, statusCode int) *AppError {
 	return &AppError{
 		Code:       category,
@@ -55,19 +50,16 @@ func NewAppError(category ErrorCategory, message, details string, statusCode int
 	}
 }
 
-// WithRequestID adds a request ID to the error
 func (e *AppError) WithRequestID(requestID string) *AppError {
 	e.RequestID = requestID
 	return e
 }
 
-// WithCause adds a cause error
 func (e *AppError) WithCause(cause error) *AppError {
 	e.Cause = cause
 	return e
 }
 
-// Predefined error constructors
 func NewValidationError(message, details string) *AppError {
 	return NewAppError(ValidationError, message, details, http.StatusBadRequest)
 }
@@ -100,13 +92,11 @@ func NewExternalServiceError(service, message string) *AppError {
 	return NewAppError(ExternalServiceError, fmt.Sprintf("%s service error", service), message, http.StatusServiceUnavailable)
 }
 
-// IsAppError checks if an error is an AppError
 func IsAppError(err error) bool {
 	_, ok := err.(*AppError)
 	return ok
 }
 
-// AsAppError converts an error to AppError if possible
 func AsAppError(err error) (*AppError, bool) {
 	appErr, ok := err.(*AppError)
 	return appErr, ok

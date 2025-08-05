@@ -10,19 +10,16 @@ import (
 	"github.com/Srivathsav-max/lumen/backend/internal/repository"
 )
 
-// TokenRepository implements the TokenRepository interface for PostgreSQL
 type TokenRepository struct {
 	*repository.BaseRepository
 }
 
-// NewTokenRepository creates a new PostgreSQL token repository
 func NewTokenRepository(db database.Manager, logger *slog.Logger) repository.TokenRepository {
 	return &TokenRepository{
 		BaseRepository: repository.NewBaseRepository(db, logger, "tokens"),
 	}
 }
 
-// Create creates a new token
 func (r *TokenRepository) Create(ctx context.Context, token *repository.Token) error {
 	query := `
 		INSERT INTO tokens (user_id, refresh_token, device_info, expires_at, created_at, updated_at)
@@ -54,7 +51,6 @@ func (r *TokenRepository) Create(ctx context.Context, token *repository.Token) e
 	return nil
 }
 
-// GetByToken retrieves a token by token string
 func (r *TokenRepository) GetByToken(ctx context.Context, tokenString string) (*repository.Token, error) {
 	query := `
 		SELECT id, user_id, refresh_token, device_info, expires_at, created_at, updated_at
@@ -81,7 +77,6 @@ func (r *TokenRepository) GetByToken(ctx context.Context, tokenString string) (*
 	return token, nil
 }
 
-// GetByUserID retrieves tokens by user ID
 func (r *TokenRepository) GetByUserID(ctx context.Context, userID int64, tokenType string) ([]*repository.Token, error) {
 	query := `
 		SELECT id, user_id, refresh_token, device_info, expires_at, created_at, updated_at
@@ -120,7 +115,6 @@ func (r *TokenRepository) GetByUserID(ctx context.Context, userID int64, tokenTy
 	return tokens, nil
 }
 
-// Update updates a token
 func (r *TokenRepository) Update(ctx context.Context, token *repository.Token) error {
 	query := `
 		UPDATE tokens
@@ -159,7 +153,6 @@ func (r *TokenRepository) Update(ctx context.Context, token *repository.Token) e
 	return nil
 }
 
-// Delete deletes a token
 func (r *TokenRepository) Delete(ctx context.Context, id int64) error {
 	query := `DELETE FROM tokens WHERE id = $1`
 
@@ -181,7 +174,6 @@ func (r *TokenRepository) Delete(ctx context.Context, id int64) error {
 	return nil
 }
 
-// RevokeToken revokes a token by token string
 func (r *TokenRepository) RevokeToken(ctx context.Context, tokenString string) error {
 	query := `DELETE FROM tokens WHERE refresh_token = $1`
 
@@ -203,7 +195,6 @@ func (r *TokenRepository) RevokeToken(ctx context.Context, tokenString string) e
 	return nil
 }
 
-// RevokeAllUserTokens revokes all tokens for a user
 func (r *TokenRepository) RevokeAllUserTokens(ctx context.Context, userID int64, tokenType string) error {
 	query := `DELETE FROM tokens WHERE user_id = $1`
 
@@ -226,7 +217,6 @@ func (r *TokenRepository) RevokeAllUserTokens(ctx context.Context, userID int64,
 	return nil
 }
 
-// CleanupExpiredTokens removes expired tokens
 func (r *TokenRepository) CleanupExpiredTokens(ctx context.Context) error {
 	query := `DELETE FROM tokens WHERE expires_at < $1`
 
@@ -248,7 +238,6 @@ func (r *TokenRepository) CleanupExpiredTokens(ctx context.Context) error {
 	return nil
 }
 
-// StoreRefreshToken stores a refresh token
 func (r *TokenRepository) StoreRefreshToken(ctx context.Context, userID int64, token string, expiresAt time.Time) error {
 	refreshToken := &repository.Token{
 		UserID:     userID,
@@ -259,7 +248,6 @@ func (r *TokenRepository) StoreRefreshToken(ctx context.Context, userID int64, t
 	return r.Create(ctx, refreshToken)
 }
 
-// ValidateRefreshToken validates a refresh token and returns the user ID
 func (r *TokenRepository) ValidateRefreshToken(ctx context.Context, token string) (int64, error) {
 	query := `
 		SELECT user_id
@@ -278,7 +266,6 @@ func (r *TokenRepository) ValidateRefreshToken(ctx context.Context, token string
 	return userID, nil
 }
 
-// RevokeRefreshToken revokes a specific refresh token
 func (r *TokenRepository) RevokeRefreshToken(ctx context.Context, token string) error {
 	query := `DELETE FROM tokens WHERE refresh_token = $1`
 

@@ -2,12 +2,9 @@ package main
 
 import (
 	"flag"
-	"fmt"
 	"log"
-	"os"
 	"strconv"
 
-	"github.com/joho/godotenv"
 	"github.com/Srivathsav-max/lumen/backend/config"
 	"github.com/Srivathsav-max/lumen/backend/db"
 	"github.com/golang-migrate/migrate/v4"
@@ -28,24 +25,21 @@ func main() {
 	}
 
 	// Load environment variables from .env file
-	if err := godotenv.Load("../../.env"); err != nil {
-		log.Printf("Warning: Error loading .env file: %v", err)
-	}
+	// if err := godotenv.Load(); err != nil {
+	// 	log.Printf("Warning: Error loading .env file: %v", err)
+	// }
 
-	// Load database configuration
-	cfg, err := config.Load()
+	cfg, err := config.LoadConfig()
 	if err != nil {
 		log.Fatalf("Failed to load config: %v", err)
 	}
 
-	// Connect to database
 	database, err := db.New(&cfg.Database)
 	if err != nil {
 		log.Fatalf("Failed to connect to database: %v", err)
 	}
 	defer database.Close()
 
-	// Create migration instance
 	driver, err := postgres.WithInstance(database.DB, &postgres.Config{})
 	if err != nil {
 		log.Fatalf("Could not create migration driver: %v", err)

@@ -8,7 +8,6 @@ import (
 	"time"
 )
 
-// LogLevel represents the logging level
 type LogLevel string
 
 const (
@@ -18,15 +17,12 @@ const (
 	LevelError LogLevel = "error"
 )
 
-// Config holds logger configuration
 type Config struct {
 	Level  LogLevel `validate:"required,oneof=debug info warn error"`
 	Format string   `validate:"required,oneof=json text"`
 }
 
-// New creates a new structured logger
 func New(config Config) *slog.Logger {
-	// Parse log level
 	var level slog.Level
 	switch strings.ToLower(string(config.Level)) {
 	case "debug":
@@ -41,13 +37,11 @@ func New(config Config) *slog.Logger {
 		level = slog.LevelInfo
 	}
 
-	// Create handler options
 	opts := &slog.HandlerOptions{
-		Level: level,
-		AddSource: level == slog.LevelDebug, // Add source info for debug level
+		Level:     level,
+		AddSource: level == slog.LevelDebug,
 	}
 
-	// Create handler based on format
 	var handler slog.Handler
 	switch strings.ToLower(config.Format) {
 	case "json":
@@ -61,7 +55,6 @@ func New(config Config) *slog.Logger {
 	return slog.New(handler)
 }
 
-// NewDefault creates a logger with default configuration
 func NewDefault() *slog.Logger {
 	return New(Config{
 		Level:  LevelInfo,
@@ -69,13 +62,11 @@ func NewDefault() *slog.Logger {
 	})
 }
 
-// ContextLogger provides logging with context awareness
 type ContextLogger struct {
 	*slog.Logger
 	ctx context.Context
 }
 
-// NewContextLogger creates a logger with context
 func NewContextLogger(logger *slog.Logger, ctx context.Context) *ContextLogger {
 	return &ContextLogger{
 		Logger: logger,
@@ -83,7 +74,6 @@ func NewContextLogger(logger *slog.Logger, ctx context.Context) *ContextLogger {
 	}
 }
 
-// WithContext creates a new logger with the given context
 func (l *ContextLogger) WithContext(ctx context.Context) *ContextLogger {
 	return &ContextLogger{
 		Logger: l.Logger,
@@ -91,7 +81,6 @@ func (l *ContextLogger) WithContext(ctx context.Context) *ContextLogger {
 	}
 }
 
-// WithRequestID adds request ID to the logger context
 func (l *ContextLogger) WithRequestID(requestID string) *ContextLogger {
 	return &ContextLogger{
 		Logger: l.Logger.With("request_id", requestID),
@@ -99,7 +88,6 @@ func (l *ContextLogger) WithRequestID(requestID string) *ContextLogger {
 	}
 }
 
-// WithUserID adds user ID to the logger context
 func (l *ContextLogger) WithUserID(userID int64) *ContextLogger {
 	return &ContextLogger{
 		Logger: l.Logger.With("user_id", userID),
@@ -107,7 +95,6 @@ func (l *ContextLogger) WithUserID(userID int64) *ContextLogger {
 	}
 }
 
-// WithOperation adds operation name to the logger context
 func (l *ContextLogger) WithOperation(operation string) *ContextLogger {
 	return &ContextLogger{
 		Logger: l.Logger.With("operation", operation),
@@ -115,16 +102,12 @@ func (l *ContextLogger) WithOperation(operation string) *ContextLogger {
 	}
 }
 
-// Performance logging utilities
-
-// LogDuration logs the duration of an operation
 func (l *ContextLogger) LogDuration(operation string, start time.Time, args ...any) {
 	duration := time.Since(start)
 	allArgs := append([]any{"operation", operation, "duration_ms", duration.Milliseconds()}, args...)
 	l.Info("Operation completed", allArgs...)
 }
 
-// LogSlowOperation logs operations that exceed a threshold
 func (l *ContextLogger) LogSlowOperation(operation string, start time.Time, threshold time.Duration, args ...any) {
 	duration := time.Since(start)
 	if duration > threshold {
@@ -133,7 +116,6 @@ func (l *ContextLogger) LogSlowOperation(operation string, start time.Time, thre
 	}
 }
 
-// LogDatabaseOperation logs database operations with performance metrics
 func (l *ContextLogger) LogDatabaseOperation(operation string, query string, start time.Time, rowsAffected int64, err error) {
 	duration := time.Since(start)
 	args := []any{
@@ -142,7 +124,6 @@ func (l *ContextLogger) LogDatabaseOperation(operation string, query string, sta
 		"rows_affected", rowsAffected,
 	}
 
-	// Add query for debug level
 	if l.Logger.Enabled(l.ctx, slog.LevelDebug) {
 		args = append(args, "query", query)
 	}
@@ -152,15 +133,13 @@ func (l *ContextLogger) LogDatabaseOperation(operation string, query string, sta
 		l.Error("Database operation failed", args...)
 	} else {
 		l.Info("Database operation completed", args...)
-		
-		// Log slow queries (>100ms)
+
 		if duration > 100*time.Millisecond {
 			l.Warn("Slow database query detected", args...)
 		}
 	}
 }
 
-// LogAPIRequest logs HTTP API requests with performance metrics
 func (l *ContextLogger) LogAPIRequest(method, path string, statusCode int, start time.Time, userAgent, clientIP string) {
 	duration := time.Since(start)
 	args := []any{
@@ -180,13 +159,11 @@ func (l *ContextLogger) LogAPIRequest(method, path string, statusCode int, start
 		l.Info("API request completed", args...)
 	}
 
-	// Log slow requests (>1s)
 	if duration > time.Second {
 		l.Warn("Slow API request detected", args...)
 	}
 }
 
-// LogServiceOperation logs service layer operations
 func (l *ContextLogger) LogServiceOperation(service, operation string, start time.Time, err error, args ...any) {
 	duration := time.Since(start)
 	allArgs := append([]any{

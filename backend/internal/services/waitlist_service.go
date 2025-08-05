@@ -6,17 +6,16 @@ import (
 	"log/slog"
 	"math"
 
+	"github.com/Srivathsav-max/lumen/backend/internal/constants"
 	"github.com/Srivathsav-max/lumen/backend/internal/repository"
 )
 
-// WaitlistServiceImpl implements the WaitlistService interface
 type WaitlistServiceImpl struct {
 	waitlistRepo repository.WaitlistRepository
 	logger       *slog.Logger
 	validator    *Validator
 }
 
-// NewWaitlistService creates a new WaitlistService implementation
 func NewWaitlistService(
 	waitlistRepo repository.WaitlistRepository,
 	logger *slog.Logger,
@@ -28,9 +27,7 @@ func NewWaitlistService(
 	}
 }
 
-// AddToWaitlist adds a user to the waitlist
 func (s *WaitlistServiceImpl) AddToWaitlist(ctx context.Context, req *WaitlistRequest) error {
-	// Validate the waitlist request
 	if err := ValidateWaitlistRequest(s.validator, req); err != nil {
 		s.logger.Warn("Waitlist validation failed",
 			"email", req.Email,
@@ -45,7 +42,6 @@ func (s *WaitlistServiceImpl) AddToWaitlist(ctx context.Context, req *WaitlistRe
 		"last_name", req.LastName,
 	)
 
-	// Check if user is already on waitlist
 	exists, err := s.waitlistRepo.ExistsByEmail(ctx, req.Email)
 	if err != nil {
 		s.logger.Error("Failed to check if user exists on waitlist",
@@ -58,13 +54,12 @@ func (s *WaitlistServiceImpl) AddToWaitlist(ctx context.Context, req *WaitlistRe
 		return NewWaitlistAlreadyExistsError(req.Email)
 	}
 
-	// Create waitlist entry
 	waitlistEntry := &repository.WaitlistEntry{
 		Email:     req.Email,
 		FirstName: req.FirstName,
 		LastName:  req.LastName,
 		Reason:    req.Reason,
-		Status:    "pending", // Default status
+		Status:    constants.WaitlistStatusPending,
 	}
 
 	if err := s.waitlistRepo.Create(ctx, waitlistEntry); err != nil {
@@ -83,14 +78,11 @@ func (s *WaitlistServiceImpl) AddToWaitlist(ctx context.Context, req *WaitlistRe
 	return nil
 }
 
-// GetWaitlistPosition retrieves a user's position in the waitlist
 func (s *WaitlistServiceImpl) GetWaitlistPosition(ctx context.Context, email string) (*WaitlistPositionResponse, error) {
-	// Validate email
 	if email == "" {
 		return nil, NewInvalidEmailError()
 	}
 
-	// Get waitlist entry
 	entry, err := s.waitlistRepo.GetByEmail(ctx, email)
 	if err != nil {
 		if err == sql.ErrNoRows {
@@ -103,7 +95,6 @@ func (s *WaitlistServiceImpl) GetWaitlistPosition(ctx context.Context, email str
 		return nil, NewServiceUnavailableError("waitlist position retrieval", err)
 	}
 
-	// Get position (count of entries created before this one with pending status)
 	position, err := s.waitlistRepo.GetPositionByEmail(ctx, email)
 	if err != nil {
 		s.logger.Error("Failed to get waitlist position",
@@ -123,16 +114,13 @@ func (s *WaitlistServiceImpl) GetWaitlistPosition(ctx context.Context, email str
 	return response, nil
 }
 
-// RemoveFromWaitlist removes a user from the waitlist
 func (s *WaitlistServiceImpl) RemoveFromWaitlist(ctx context.Context, email string) error {
-	// Validate email
 	if email == "" {
 		return NewInvalidEmailError()
 	}
 
 	s.logger.Info("Removing user from waitlist", "email", email)
 
-	// Check if entry exists
 	_, err := s.waitlistRepo.GetByEmail(ctx, email)
 	if err != nil {
 		if err == sql.ErrNoRows {
@@ -145,7 +133,6 @@ func (s *WaitlistServiceImpl) RemoveFromWaitlist(ctx context.Context, email stri
 		return NewServiceUnavailableError("waitlist removal", err)
 	}
 
-	// Remove from waitlist
 	if err := s.waitlistRepo.DeleteByEmail(ctx, email); err != nil {
 		s.logger.Error("Failed to remove user from waitlist",
 			"email", email,
@@ -158,15 +145,12 @@ func (s *WaitlistServiceImpl) RemoveFromWaitlist(ctx context.Context, email stri
 	return nil
 }
 
-// GetWaitlistEntries retrieves paginated waitlist entries (admin only)
 func (s *WaitlistServiceImpl) GetWaitlistEntries(ctx context.Context, req *GetWaitlistRequest) (*WaitlistListResponse, error) {
-	// Validate request
 	if err := ValidateGetWaitlistRequest(s.validator, req); err != nil {
 		s.logger.Warn("Get waitlist entries validation failed", "error", err)
 		return nil, err
 	}
 
-	// Set defaults if not provided
 	if req.Page <= 0 {
 		req.Page = 1
 	}
@@ -177,10 +161,8 @@ func (s *WaitlistServiceImpl) GetWaitlistEntries(ctx context.Context, req *GetWa
 		req.PageSize = 100
 	}
 
-	// Calculate offset
 	offset := (req.Page - 1) * req.PageSize
 
-	// Get entries from repository
 	entries, err := s.waitlistRepo.GetPaginated(ctx, req.PageSize, offset, req.Status, req.Search)
 	if err != nil {
 		s.logger.Error("Failed to get waitlist entries",
@@ -191,19 +173,16 @@ func (s *WaitlistServiceImpl) GetWaitlistEntries(ctx context.Context, req *GetWa
 		return nil, NewServiceUnavailableError("waitlist entries retrieval", err)
 	}
 
-	// Get total count
 	total, err := s.waitlistRepo.GetTotalCount(ctx, req.Status, req.Search)
 	if err != nil {
 		s.logger.Error("Failed to get waitlist total count", "error", err)
 		return nil, NewServiceUnavailableError("waitlist entries retrieval", err)
 	}
 
-	// Convert to response DTOs
 	entryResponses := make([]WaitlistEntryResponse, len(entries))
 	for i, entry := range entries {
-		// Get position for each entry
 		position, _ := s.waitlistRepo.GetPositionByEmail(ctx, entry.Email)
-		
+
 		entryResponses[i] = WaitlistEntryResponse{
 			ID:        entry.ID,
 			Email:     entry.Email,
@@ -217,7 +196,6 @@ func (s *WaitlistServiceImpl) GetWaitlistEntries(ctx context.Context, req *GetWa
 		}
 	}
 
-	// Calculate total pages
 	totalPages := int(math.Ceil(float64(total) / float64(req.PageSize)))
 
 	response := &WaitlistListResponse{
@@ -231,16 +209,13 @@ func (s *WaitlistServiceImpl) GetWaitlistEntries(ctx context.Context, req *GetWa
 	return response, nil
 }
 
-// ApproveWaitlistEntry approves a waitlist entry
 func (s *WaitlistServiceImpl) ApproveWaitlistEntry(ctx context.Context, email string) error {
-	// Validate email
 	if email == "" {
 		return NewInvalidEmailError()
 	}
 
 	s.logger.Info("Approving waitlist entry", "email", email)
 
-	// Get waitlist entry
 	entry, err := s.waitlistRepo.GetByEmail(ctx, email)
 	if err != nil {
 		if err == sql.ErrNoRows {
@@ -253,14 +228,12 @@ func (s *WaitlistServiceImpl) ApproveWaitlistEntry(ctx context.Context, email st
 		return NewServiceUnavailableError("waitlist approval", err)
 	}
 
-	// Check if already approved
-	if entry.Status == "approved" {
+	if entry.Status == constants.WaitlistStatusApproved {
 		s.logger.Info("Waitlist entry already approved", "email", email)
 		return nil
 	}
 
-	// Update status to approved
-	entry.Status = "approved"
+	entry.Status = constants.WaitlistStatusApproved
 	if err := s.waitlistRepo.Update(ctx, entry); err != nil {
 		s.logger.Error("Failed to approve waitlist entry",
 			"email", email,

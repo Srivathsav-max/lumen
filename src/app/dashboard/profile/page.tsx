@@ -11,6 +11,7 @@ import { profileUpdateSchema, type ProfileUpdateFormData } from "@/lib/validatio
 import { User, Edit, Save, X, Mail, AtSign, Key, User as UserIcon, Shield, Code, Star } from "lucide-react";
 import { toast } from "@/providers/notification-provider";
 import * as profileApi from "./api";
+import { Spinner } from "@/components/ui/ios-spinner";
 
 const ProfilePage = memo(function ProfilePage() {
   const { user, updateProfile } = useAuth();
@@ -60,12 +61,12 @@ const ProfilePage = memo(function ProfilePage() {
           <div className="flex items-center">
             <div className="w-16 h-16 rounded-full bg-white border-2 border-[#333] shadow-[0_4px_0_0_#333] flex items-center justify-center overflow-hidden mr-4">
               <span className="text-2xl font-bold font-mono text-[#333]">
-                {user?.first_name?.charAt(0)}{user?.last_name?.charAt(0)}
+                {(user?.first_name?.charAt(0) || user?.username?.charAt(0) || 'U')}{(user?.last_name?.charAt(0) || user?.username?.charAt(1) || 'U')}
               </span>
             </div>
             <div>
               <h1 className="text-3xl font-bold font-mono text-[#333] mb-1">
-                {user?.first_name} {user?.last_name}
+                {(user?.first_name && user?.last_name) ? `${user.first_name} ${user.last_name}` : (user?.username || 'User Profile')}
               </h1>
               <p className="text-gray-600 font-mono flex items-center">
                 <AtSign className="w-4 h-4 mr-1" /> {user?.username}
@@ -253,7 +254,7 @@ const ProfilePage = memo(function ProfilePage() {
               >
                 {isSubmitting ? (
                   <div className="flex items-center">
-                    <div className="animate-spin mr-2 h-5 w-5 border-2 border-[#333] border-t-transparent rounded-full"></div>
+                    <Spinner size="sm" className="mr-2" />
                     Saving...
                   </div>
                 ) : (

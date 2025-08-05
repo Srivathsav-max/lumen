@@ -29,35 +29,30 @@ type EmailServiceImpl struct {
 	smtpClient SMTPClient
 }
 
-// SMTPClient interface for SMTP operations (for testing)
 type SMTPClient interface {
 	SendMail(addr string, auth smtp.Auth, from string, to []string, msg []byte) error
 }
 
-// DefaultSMTPClient implements SMTPClient using the standard smtp package
 type DefaultSMTPClient struct{}
 
 func (c *DefaultSMTPClient) SendMail(addr string, auth smtp.Auth, from string, to []string, msg []byte) error {
 	return smtp.SendMail(addr, auth, from, to, msg)
 }
 
-// EmailTemplate represents an email template with metadata
 type EmailTemplate struct {
-	Name        string
-	Subject     string
-	Template    *template.Template
+	Name           string
+	Subject        string
+	Template       *template.Template
 	RequiredFields []string
 }
 
-// EmailData represents common data for email templates
 type EmailData struct {
-	AppName     string
-	BaseURL     string
+	AppName      string
+	BaseURL      string
 	SupportEmail string
-	Year        int
+	Year         int
 }
 
-// VerificationEmailData represents data for verification emails
 type VerificationEmailData struct {
 	EmailData
 	Username         string
@@ -65,23 +60,20 @@ type VerificationEmailData struct {
 	ExpirationHours  int
 }
 
-// PasswordResetEmailData represents data for password reset emails
 type PasswordResetEmailData struct {
 	EmailData
-	Username         string
-	ResetLink        string
-	ExpirationHours  int
+	Username        string
+	ResetLink       string
+	ExpirationHours int
 }
 
-// WelcomeEmailData represents data for welcome emails
 type WelcomeEmailData struct {
 	EmailData
-	Username    string
-	LoginURL    string
+	Username     string
+	LoginURL     string
 	DashboardURL string
 }
 
-// NewEmailService creates a new email service instance
 func NewEmailService(
 	config *config.EmailConfig,
 	userRepo repository.UserRepository,
@@ -97,7 +89,6 @@ func NewEmailService(
 		smtpClient: &DefaultSMTPClient{},
 	}
 
-	// Load email templates
 	if err := service.loadTemplates(); err != nil {
 		return nil, fmt.Errorf("failed to load email templates: %w", err)
 	}
@@ -105,9 +96,7 @@ func NewEmailService(
 	return service, nil
 }
 
-// SendVerificationEmail sends an email verification link to the user
 func (s *EmailServiceImpl) SendVerificationEmail(ctx context.Context, userID int64, email string) error {
-	// Get user information
 	user, err := s.userRepo.GetByID(ctx, userID)
 	if err != nil {
 		s.logger.Error("Failed to get user for verification email",
@@ -116,7 +105,6 @@ func (s *EmailServiceImpl) SendVerificationEmail(ctx context.Context, userID int
 		return NewUserNotFoundError(fmt.Sprintf("ID: %d", userID))
 	}
 
-	// Generate verification token
 	tokenString, err := s.generateSecureToken()
 	if err != nil {
 		s.logger.Error("Failed to generate secure token",
@@ -141,7 +129,6 @@ func (s *EmailServiceImpl) SendVerificationEmail(ctx context.Context, userID int
 		return errors.NewInternalError("Failed to generate verification token").WithCause(err)
 	}
 
-	// Prepare template data
 	data := VerificationEmailData{
 		EmailData: EmailData{
 			AppName:      "Lumen",
@@ -154,13 +141,10 @@ func (s *EmailServiceImpl) SendVerificationEmail(ctx context.Context, userID int
 		ExpirationHours:  24,
 	}
 
-	// Send email with retry mechanism
 	return s.sendEmailWithRetry(ctx, []string{email}, "Verify Your Email Address", "verification.html", data, 3)
 }
 
-// SendPasswordResetEmail sends a password reset link to the user
 func (s *EmailServiceImpl) SendPasswordResetEmail(ctx context.Context, userID int64, email string, resetToken string) error {
-	// Get user information
 	user, err := s.userRepo.GetByID(ctx, userID)
 	if err != nil {
 		s.logger.Error("Failed to get user for password reset email",
@@ -169,7 +153,6 @@ func (s *EmailServiceImpl) SendPasswordResetEmail(ctx context.Context, userID in
 		return NewUserNotFoundError(fmt.Sprintf("ID: %d", userID))
 	}
 
-	// Prepare template data
 	data := PasswordResetEmailData{
 		EmailData: EmailData{
 			AppName:      "Lumen",
@@ -182,13 +165,10 @@ func (s *EmailServiceImpl) SendPasswordResetEmail(ctx context.Context, userID in
 		ExpirationHours: 1,
 	}
 
-	// Send email with retry mechanism
 	return s.sendEmailWithRetry(ctx, []string{email}, "Reset Your Password", "password_reset.html", data, 3)
 }
 
-// SendWelcomeEmail sends a welcome email to newly registered users
 func (s *EmailServiceImpl) SendWelcomeEmail(ctx context.Context, userID int64, email, username string) error {
-	// Prepare template data
 	data := WelcomeEmailData{
 		EmailData: EmailData{
 			AppName:      "Lumen",
@@ -201,11 +181,9 @@ func (s *EmailServiceImpl) SendWelcomeEmail(ctx context.Context, userID int64, e
 		DashboardURL: fmt.Sprintf("%s/dashboard", s.getBaseURL()),
 	}
 
-	// Send email with retry mechanism
 	return s.sendEmailWithRetry(ctx, []string{email}, "Welcome to Lumen", "welcome.html", data, 3)
 }
 
-// RenderTemplate renders an email template with the provided data
 func (s *EmailServiceImpl) RenderTemplate(templateName string, data interface{}) (string, error) {
 	template, exists := s.templates[templateName]
 	if !exists {
@@ -220,21 +198,17 @@ func (s *EmailServiceImpl) RenderTemplate(templateName string, data interface{})
 	return buf.String(), nil
 }
 
-// ValidateEmailAddress validates an email address format
 func (s *EmailServiceImpl) ValidateEmailAddress(email string) error {
-	// Basic email validation regex
 	emailRegex := regexp.MustCompile(`^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$`)
-	
+
 	if !emailRegex.MatchString(email) {
 		return NewInvalidEmailAddressError(email)
 	}
 
-	// Additional checks
 	if len(email) > 254 {
 		return NewInvalidEmailAddressError(email)
 	}
 
-	// Check for common invalid patterns
 	if strings.Contains(email, "..") || strings.HasPrefix(email, ".") || strings.HasSuffix(email, ".") {
 		return NewInvalidEmailAddressError(email)
 	}
@@ -242,7 +216,6 @@ func (s *EmailServiceImpl) ValidateEmailAddress(email string) error {
 	return nil
 }
 
-// sendEmailWithRetry sends an email with retry mechanism
 func (s *EmailServiceImpl) sendEmailWithRetry(ctx context.Context, to []string, subject, templateName string, data interface{}, maxRetries int) error {
 	var lastErr error
 
@@ -266,14 +239,12 @@ func (s *EmailServiceImpl) sendEmailWithRetry(ctx context.Context, to []string, 
 			"max_retries", maxRetries,
 			"error", err)
 
-		// Exponential backoff
 		if attempt < maxRetries {
 			backoffDuration := time.Duration(attempt*attempt) * time.Second
 			select {
 			case <-ctx.Done():
 				return ctx.Err()
 			case <-time.After(backoffDuration):
-				// Continue to next attempt
 			}
 		}
 	}
@@ -288,25 +259,20 @@ func (s *EmailServiceImpl) sendEmailWithRetry(ctx context.Context, to []string, 
 	return NewEmailDeliveryError(strings.Join(to, ", "), lastErr)
 }
 
-// sendEmail sends an email using the specified template
 func (s *EmailServiceImpl) sendEmail(ctx context.Context, to []string, subject, templateName string, data interface{}) error {
-	// Validate email addresses
 	for _, email := range to {
 		if err := s.ValidateEmailAddress(email); err != nil {
 			return err
 		}
 	}
 
-	// Render email template
 	body, err := s.RenderTemplate(templateName, data)
 	if err != nil {
 		return err
 	}
 
-	// Set up SMTP authentication
 	auth := smtp.PlainAuth("", s.config.Username, s.config.Password, s.config.Host)
 
-	// Compose email message
 	from := fmt.Sprintf("%s <%s>", s.config.FromName, s.config.FromEmail)
 	headers := map[string]string{
 		"From":         from,
@@ -317,7 +283,6 @@ func (s *EmailServiceImpl) sendEmail(ctx context.Context, to []string, subject, 
 		"Date":         time.Now().Format(time.RFC1123Z),
 	}
 
-	// Build message
 	var msgBuilder strings.Builder
 	for key, value := range headers {
 		msgBuilder.WriteString(fmt.Sprintf("%s: %s\r\n", key, value))
@@ -327,7 +292,6 @@ func (s *EmailServiceImpl) sendEmail(ctx context.Context, to []string, subject, 
 
 	message := []byte(msgBuilder.String())
 
-	// Send email
 	addr := fmt.Sprintf("%s:%s", s.config.Host, s.config.Port)
 	if err := s.smtpClient.SendMail(addr, auth, s.config.FromEmail, to, message); err != nil {
 		return fmt.Errorf("SMTP send failed: %w", err)
@@ -336,7 +300,6 @@ func (s *EmailServiceImpl) sendEmail(ctx context.Context, to []string, subject, 
 	return nil
 }
 
-// loadTemplates loads all email templates from the templates directory
 func (s *EmailServiceImpl) loadTemplates() error {
 	templateFiles := []string{
 		"verification.html",
@@ -346,7 +309,7 @@ func (s *EmailServiceImpl) loadTemplates() error {
 
 	for _, filename := range templateFiles {
 		templatePath := filepath.Join(s.config.TemplatesDir, filename)
-		
+
 		tmpl, err := template.ParseFiles(templatePath)
 		if err != nil {
 			return fmt.Errorf("failed to parse template %s: %w", filename, err)
@@ -359,14 +322,10 @@ func (s *EmailServiceImpl) loadTemplates() error {
 	return nil
 }
 
-// getBaseURL returns the base URL for the application
 func (s *EmailServiceImpl) getBaseURL() string {
-	// This should be configurable, but for now we'll use a default
-	// In production, this should come from configuration
 	return "https://lumen-app.com" // TODO: Make this configurable
 }
 
-// generateSecureToken generates a cryptographically secure random token
 func (s *EmailServiceImpl) generateSecureToken() (string, error) {
 	bytes := make([]byte, 32) // 256 bits
 	if _, err := rand.Read(bytes); err != nil {
@@ -375,16 +334,11 @@ func (s *EmailServiceImpl) generateSecureToken() (string, error) {
 	return hex.EncodeToString(bytes), nil
 }
 
-// Health check for email service
 func (s *EmailServiceImpl) HealthCheck(ctx context.Context) error {
-	// Try to connect to SMTP server
 	addr := fmt.Sprintf("%s:%s", s.config.Host, s.config.Port)
-	
-	// Create a simple connection test
+
 	auth := smtp.PlainAuth("", s.config.Username, s.config.Password, s.config.Host)
-	
-	// This is a basic connectivity test
-	// In a real implementation, you might want to use a more sophisticated health check
+
 	client, err := smtp.Dial(addr)
 	if err != nil {
 		return fmt.Errorf("failed to connect to SMTP server: %w", err)

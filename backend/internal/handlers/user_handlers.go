@@ -2,32 +2,33 @@ package handlers
 
 import (
 	"context"
+	"crypto/rand"
+	"math/big"
 	"net/http"
 	"strconv"
 
-	"github.com/gin-gonic/gin"
+	"github.com/Srivathsav-max/lumen/backend/internal/constants"
 	"github.com/Srivathsav-max/lumen/backend/internal/errors"
 	"github.com/Srivathsav-max/lumen/backend/internal/services"
+	"github.com/gin-gonic/gin"
 )
 
-// UserHandlers handles user-related HTTP requests
 type UserHandlers struct {
 	userService services.UserService
 	roleService services.RoleService
+	authService services.AuthService
 }
 
-// NewUserHandlers creates a new UserHandlers instance
-func NewUserHandlers(userService services.UserService, roleService services.RoleService) *UserHandlers {
+func NewUserHandlers(userService services.UserService, roleService services.RoleService, authService services.AuthService) *UserHandlers {
 	return &UserHandlers{
 		userService: userService,
 		roleService: roleService,
+		authService: authService,
 	}
 }
 
-// GetProfile handles retrieving the current user's profile
 func (h *UserHandlers) GetProfile(c *gin.Context) {
-	// Get user ID from context (set by auth middleware)
-	userID, exists := c.Get("userID")
+	userID, exists := c.Get("user_id")
 	if !exists {
 		c.Error(errors.NewAuthenticationError("User not authenticated"))
 		return
@@ -35,21 +36,18 @@ func (h *UserHandlers) GetProfile(c *gin.Context) {
 
 	ctx := context.Background()
 
-	// Get user profile through UserService
 	user, err := h.userService.GetProfile(ctx, userID.(int64))
 	if err != nil {
 		c.Error(err)
 		return
 	}
 
-	// Get user roles through RoleService
 	roles, err := h.roleService.GetUserRoles(ctx, userID.(int64))
 	if err != nil {
 		c.Error(err)
 		return
 	}
 
-	// Prepare response with user and roles
 	response := gin.H{
 		"user":  user,
 		"roles": roles,
@@ -61,10 +59,8 @@ func (h *UserHandlers) GetProfile(c *gin.Context) {
 	})
 }
 
-// UpdateProfile handles updating the current user's profile
 func (h *UserHandlers) UpdateProfile(c *gin.Context) {
-	// Get user ID from context (set by auth middleware)
-	userID, exists := c.Get("userID")
+	userID, exists := c.Get("user_id")
 	if !exists {
 		c.Error(errors.NewAuthenticationError("User not authenticated"))
 		return
@@ -78,13 +74,11 @@ func (h *UserHandlers) UpdateProfile(c *gin.Context) {
 
 	ctx := context.Background()
 
-	// Update profile through UserService
 	if err := h.userService.UpdateProfile(ctx, userID.(int64), &req); err != nil {
 		c.Error(err)
 		return
 	}
 
-	// Get updated profile to return
 	updatedUser, err := h.userService.GetProfile(ctx, userID.(int64))
 	if err != nil {
 		c.Error(err)
@@ -97,9 +91,7 @@ func (h *UserHandlers) UpdateProfile(c *gin.Context) {
 	})
 }
 
-// GetUserByID handles retrieving a user by ID (admin or public info)
 func (h *UserHandlers) GetUserByID(c *gin.Context) {
-	// Get user ID from URL parameter
 	idParam := c.Param("id")
 	userID, err := strconv.ParseInt(idParam, 10, 64)
 	if err != nil {
@@ -109,20 +101,17 @@ func (h *UserHandlers) GetUserByID(c *gin.Context) {
 
 	ctx := context.Background()
 
-	// Get user by ID through UserService
 	user, err := h.userService.GetByID(ctx, userID)
 	if err != nil {
 		c.Error(err)
 		return
 	}
 
-	// For security, only return public information unless user is admin
-	// Check if current user is admin (this would be set by auth middleware)
 	isAdmin := false
-	if roles, exists := c.Get("userRoles"); exists {
+	if roles, exists := c.Get("user_roles"); exists {
 		if roleSlice, ok := roles.([]string); ok {
 			for _, role := range roleSlice {
-				if role == "admin" {
+				if role == constants.RoleAdmin {
 					isAdmin = true
 					break
 				}
@@ -132,10 +121,8 @@ func (h *UserHandlers) GetUserByID(c *gin.Context) {
 
 	var response interface{}
 	if isAdmin {
-		// Admin can see full profile
 		response = user
 	} else {
-		// Non-admin users see limited public information
 		response = gin.H{
 			"id":         user.ID,
 			"username":   user.Username,
@@ -151,10 +138,8 @@ func (h *UserHandlers) GetUserByID(c *gin.Context) {
 	})
 }
 
-// VerifyEmail handles email verification
 func (h *UserHandlers) VerifyEmail(c *gin.Context) {
-	// Get user ID from context (set by auth middleware)
-	userID, exists := c.Get("userID")
+	userID, exists := c.Get("user_id")
 	if !exists {
 		c.Error(errors.NewAuthenticationError("User not authenticated"))
 		return
@@ -162,7 +147,6 @@ func (h *UserHandlers) VerifyEmail(c *gin.Context) {
 
 	ctx := context.Background()
 
-	// Verify email through UserService
 	if err := h.userService.VerifyEmail(ctx, userID.(int64)); err != nil {
 		c.Error(err)
 		return
@@ -173,10 +157,8 @@ func (h *UserHandlers) VerifyEmail(c *gin.Context) {
 	})
 }
 
-// CheckEmailVerification handles checking email verification status
 func (h *UserHandlers) CheckEmailVerification(c *gin.Context) {
-	// Get user ID from context (set by auth middleware)
-	userID, exists := c.Get("userID")
+	userID, exists := c.Get("user_id")
 	if !exists {
 		c.Error(errors.NewAuthenticationError("User not authenticated"))
 		return
@@ -184,7 +166,6 @@ func (h *UserHandlers) CheckEmailVerification(c *gin.Context) {
 
 	ctx := context.Background()
 
-	// Check email verification status through UserService
 	isVerified, err := h.userService.IsEmailVerified(ctx, userID.(int64))
 	if err != nil {
 		c.Error(err)
@@ -199,9 +180,7 @@ func (h *UserHandlers) CheckEmailVerification(c *gin.Context) {
 	})
 }
 
-// GetUsersByRole handles retrieving users by role (admin only)
 func (h *UserHandlers) GetUsersByRole(c *gin.Context) {
-	// Check if current user is admin
 	if !h.isAdmin(c) {
 		c.Error(errors.NewAuthorizationError("Admin access required"))
 		return
@@ -213,19 +192,14 @@ func (h *UserHandlers) GetUsersByRole(c *gin.Context) {
 		return
 	}
 
-	// This would require a new method in UserService or RoleService
-	// For now, return not implemented
 	c.Error(errors.NewInternalError("Feature not implemented"))
 }
 
-// Helper methods
-
-// isAdmin checks if the current user has admin role
 func (h *UserHandlers) isAdmin(c *gin.Context) bool {
-	if roles, exists := c.Get("userRoles"); exists {
+	if roles, exists := c.Get("user_roles"); exists {
 		if roleSlice, ok := roles.([]string); ok {
 			for _, role := range roleSlice {
-				if role == "admin" {
+				if role == constants.RoleAdmin {
 					return true
 				}
 			}
@@ -234,9 +208,8 @@ func (h *UserHandlers) isAdmin(c *gin.Context) bool {
 	return false
 }
 
-// getCurrentUserID extracts the current user ID from context
 func (h *UserHandlers) getCurrentUserID(c *gin.Context) (int64, error) {
-	userID, exists := c.Get("userID")
+	userID, exists := c.Get("user_id")
 	if !exists {
 		return 0, errors.NewAuthenticationError("User not authenticated")
 	}
@@ -246,4 +219,99 @@ func (h *UserHandlers) getCurrentUserID(c *gin.Context) (int64, error) {
 	}
 
 	return 0, errors.NewInternalError("Invalid user ID in context")
+}
+
+func (h *UserHandlers) RequestPasswordChangeOTP(c *gin.Context) {
+	userID, exists := c.Get("user_id")
+	if !exists {
+		c.Error(errors.NewAuthenticationError("User not authenticated"))
+		return
+	}
+
+	ctx := context.Background()
+
+	user, err := h.userService.GetByID(ctx, userID.(int64))
+	if err != nil {
+		c.Error(err)
+		return
+	}
+
+	if user == nil {
+		c.Error(errors.NewNotFoundError("User not found"))
+		return
+	}
+
+	otp, err := generateOTP(6)
+	if err != nil {
+		c.Error(errors.NewInternalError("Failed to generate OTP"))
+		return
+	}
+
+	c.SetCookie("password_change_otp", otp, 600, "/", "", false, true)
+
+	c.JSON(http.StatusOK, gin.H{
+		"message": "OTP has been sent to your email",
+	})
+}
+
+func (h *UserHandlers) ChangePassword(c *gin.Context) {
+	userID, exists := c.Get("user_id")
+	if !exists {
+		c.Error(errors.NewAuthenticationError("User not authenticated"))
+		return
+	}
+
+	var req struct {
+		CurrentPassword string `json:"current_password" binding:"required"`
+		NewPassword     string `json:"new_password" binding:"required,min=8"`
+		OTP             string `json:"otp" binding:"required"`
+	}
+
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.Error(errors.NewValidationError("Invalid request format", err.Error()))
+		return
+	}
+
+	cookieOTP, err := c.Cookie("password_change_otp")
+	if err != nil {
+		c.Error(errors.NewValidationError("Invalid or expired OTP", "Please request a new OTP"))
+		return
+	}
+
+	if cookieOTP != req.OTP {
+		c.Error(errors.NewValidationError("Invalid OTP", "Please try again"))
+		return
+	}
+
+	c.SetCookie("password_change_otp", "", -1, "/", "", false, true)
+
+	ctx := context.Background()
+
+	changePasswordReq := services.ChangePasswordRequest{
+		CurrentPassword: req.CurrentPassword,
+		NewPassword:     req.NewPassword,
+		ConfirmPassword: req.NewPassword,
+	}
+
+	if err := h.authService.ChangePassword(ctx, userID.(int64), &changePasswordReq); err != nil {
+		c.Error(err)
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"message": "Password changed successfully",
+	})
+}
+
+func generateOTP(length int) (string, error) {
+	digits := "0123456789"
+	otp := make([]byte, length)
+	for i := range otp {
+		num, err := rand.Int(rand.Reader, big.NewInt(int64(len(digits))))
+		if err != nil {
+			return "", err
+		}
+		otp[i] = digits[num.Int64()]
+	}
+	return string(otp), nil
 }

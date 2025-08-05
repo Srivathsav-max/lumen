@@ -11,6 +11,7 @@ import { toast } from "@/providers/notification-provider";
 import "@/styles/sketchy-elements.css";
 import { useRouter, useSearchParams } from "next/navigation";
 import * as api from "./api";
+import { Spinner } from "@/components/ui/ios-spinner";
 
 const ResetPasswordClient = memo(function ResetPasswordClient() {
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -171,7 +172,7 @@ const ResetPasswordClient = memo(function ResetPasswordClient() {
                 >
                   {isSubmitting ? (
                     <div className="flex items-center">
-                      <div className="animate-spin mr-2 h-5 w-5 border-2 border-[#333] border-t-transparent rounded-full"></div>
+                      <Spinner size="sm" className="mr-2" />
                       Resetting...
                     </div>
                   ) : (

@@ -1,41 +1,62 @@
 /**
- * Register API methods
- * Contains all API calls related to user registration
+ * Register API methods with comprehensive security
+ * Contains all API calls related to user registration with CSRF protection and input sanitization
  */
 
 import { api } from '@/lib/api-client';
 import { User, RegisterData } from '@/providers/auth-provider';
 import { setAuthCookies } from '@/lib/cookies';
+import securityService from '@/lib/security/security-service';
 
 // API endpoints
 const ENDPOINTS = {
   REGISTER: '/register',
-  REGISTRATION_STATUS: '/registration/status',
+  REGISTRATION_STATUS: '/system/registration',
   VERIFY_EMAIL: '/verify-email',
 };
 
 /**
- * Register a new user
+ * Register a new user with comprehensive input validation and sanitization
  */
 export async function register(userData: RegisterData) {
+  console.log('=== SECURE REGISTRATION API CALL ===');
+  
+  // Sanitize all user inputs to prevent XSS attacks
+  const sanitizedUserData = {
+    username: securityService.sanitizeInput(userData.username),
+    email: securityService.sanitizeInput(userData.email),
+    password: securityService.sanitizeInput(userData.password),
+    first_name: securityService.sanitizeInput(userData.first_name),
+    last_name: securityService.sanitizeInput(userData.last_name),
+  };
+  
+  // Validate all inputs for potential security threats
+  const validations = {
+    username: securityService.validateInput(sanitizedUserData.username),
+    email: securityService.validateInput(sanitizedUserData.email),
+    first_name: securityService.validateInput(sanitizedUserData.first_name),
+    last_name: securityService.validateInput(sanitizedUserData.last_name),
+  };
+  
+  // Check for any validation failures
+  for (const [field, validation] of Object.entries(validations)) {
+    if (!validation.valid) {
+      console.warn(`Security threat detected in ${field}:`, validation.threats);
+      throw new Error(`Invalid ${field} format detected`);
+    }
+  }
+  
   const response = await api.post<{ 
     data: {
-      access_token: string;
       user: User;
-      refresh_token: string;
       expires_in: number;
       token_type: string;
+      csrf_token: string;
     };
     message: string;
-  } | {
-    token: string; 
-    user: User; 
-    permanent_token: string;
-    expires_at: number;
-    csrf_token: string;
   }>(
     ENDPOINTS.REGISTER,
-    userData,
+    sanitizedUserData,
     { requiresAuth: false }
   );
   
@@ -43,25 +64,39 @@ export async function register(userData: RegisterData) {
     throw new Error(response.error);
   }
   
-  // Handle the response data structure - backend returns nested data
-  const responseData = 'data' in response.data ? response.data.data : response.data;
-  const token = 'access_token' in responseData ? responseData.access_token : responseData.token;
-  const { user } = responseData;
-  const permanent_token = 'refresh_token' in responseData ? responseData.refresh_token : responseData.permanent_token;
-  const expires_at = 'expires_in' in responseData ? Date.now() + (responseData.expires_in * 1000) : responseData.expires_at;
+  // Handle secure response - tokens are now in HTTP-only cookies
+  const responseData = response.data.data;
+  const { user, csrf_token, expires_in } = responseData;
   
-  // Store auth data in cookies
-  setAuthCookies(token, user);
+  console.log('Secure registration response:', {
+    user: user?.email, // Don't log sensitive data
+    has_csrf_token: !!csrf_token,
+    expires_in,
+    security_features: {
+      input_sanitized: true,
+      csrf_protection: true,
+      xss_prevention: true,
+      http_only_cookies: true
+    }
+  });
   
-  // Store permanent token in sessionStorage for token refresh
-  // This is safe because it's only used for refreshing the HTTP-only cookie
-  // The actual authentication is done with the HTTP-only cookie
-  if (permanent_token) {
-    sessionStorage.setItem('permanent_token', permanent_token);
-    sessionStorage.setItem('token_expires_at', expires_at.toString());
+  // Store user data (access token is in HTTP-only cookie)
+  setAuthCookies('', user); // No token needed, it's in HTTP-only cookie
+  
+  // CSRF token will be handled by the security service automatically
+  if (csrf_token) {
+    console.log('CSRF token received and will be managed by security service');
   }
   
-  return { token, user, permanent_token, expires_at };
+  console.log('Secure registration completed successfully');
+  return { 
+    user, 
+    csrf_token,
+    expires_in,
+    token: '', // Token is now in HTTP-only cookie
+    permanent_token: '', // Refresh token is in HTTP-only cookie
+    expires_at: Date.now() + (expires_in * 1000)
+  };
 }
 
 /**

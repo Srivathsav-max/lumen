@@ -7,6 +7,7 @@ import { useState, memo, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import Link from "next/link";
+import { Spinner } from '@/components/ui/ios-spinner';
 import { toast } from "@/providers/notification-provider";
 import "@/styles/sketchy-elements.css";
 import { useRouter } from "next/navigation";
@@ -125,7 +126,7 @@ const ForgotPasswordPage = memo(function ForgotPasswordPage() {
                 >
                   {isSubmitting ? (
                     <div className="flex items-center">
-                      <div className="animate-spin mr-2 h-5 w-5 border-2 border-[#333] border-t-transparent rounded-full"></div>
+                      <Spinner size="sm" className="mr-2" />
                       Sending...
                     </div>
                   ) : (

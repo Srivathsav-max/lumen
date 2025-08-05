@@ -5,19 +5,16 @@ import (
 	"errors"
 	"strconv"
 
-	"github.com/Srivathsav-max/lumen/backend/models"
+	"github.com/Srivathsav-max/lumen/backend/internal/services"
 )
 
-// User returns a user by ID
-func (r *Resolver) User(ctx context.Context, id string) (*models.User, error) {
-	// Convert ID from string to int64
+func (r *Resolver) User(ctx context.Context, id string) (*services.UserResponse, error) {
 	userID, err := strconv.ParseInt(id, 10, 64)
 	if err != nil {
 		return nil, errors.New("invalid user ID format")
 	}
 
-	// Get user from service
-	user, err := r.UserService.GetByID(userID)
+	user, err := r.UserService.GetByID(ctx, userID)
 	if err != nil {
 		return nil, err
 	}
@@ -29,16 +26,13 @@ func (r *Resolver) User(ctx context.Context, id string) (*models.User, error) {
 	return user, nil
 }
 
-// Me returns the current authenticated user
-func (r *Resolver) Me(ctx context.Context) (*models.User, error) {
-	// Get user ID from context
+func (r *Resolver) Me(ctx context.Context) (*services.UserResponse, error) {
 	userID, ok := GetUserID(ctx)
 	if !ok {
 		return nil, errors.New("not authenticated")
 	}
 
-	// Get user from service
-	user, err := r.UserService.GetByID(userID)
+	user, err := r.UserService.GetByID(ctx, userID)
 	if err != nil {
 		return nil, err
 	}

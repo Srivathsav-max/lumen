@@ -5,7 +5,6 @@ import (
 	"time"
 )
 
-// User represents the user entity
 type User struct {
 	ID            int64     `db:"id" json:"id"`
 	Username      string    `db:"username" json:"username"`
@@ -18,7 +17,6 @@ type User struct {
 	UpdatedAt     time.Time `db:"updated_at" json:"updated_at"`
 }
 
-// Role represents the role entity
 type Role struct {
 	ID          int64     `db:"id" json:"id"`
 	Name        string    `db:"name" json:"name"`
@@ -27,7 +25,6 @@ type Role struct {
 	UpdatedAt   time.Time `db:"updated_at" json:"updated_at"`
 }
 
-// Token represents the token entity
 type Token struct {
 	ID         int64     `db:"id" json:"id"`
 	UserID     int64     `db:"user_id" json:"user_id"`
@@ -38,7 +35,6 @@ type Token struct {
 	UpdatedAt  time.Time `db:"updated_at" json:"updated_at"`
 }
 
-// VerificationToken represents the verification token entity
 type VerificationToken struct {
 	ID        int64     `db:"id" json:"id"`
 	UserID    int64     `db:"user_id" json:"user_id"`
@@ -49,7 +45,6 @@ type VerificationToken struct {
 	IsUsed    bool      `db:"is_used" json:"is_used"`
 }
 
-// WaitlistEntry represents the waitlist entity
 type WaitlistEntry struct {
 	ID        int64     `db:"id" json:"id"`
 	Email     string    `db:"email" json:"email"`
@@ -61,9 +56,7 @@ type WaitlistEntry struct {
 	UpdatedAt time.Time `db:"updated_at" json:"updated_at"`
 }
 
-// SystemSetting represents the system settings entity
 type SystemSetting struct {
-	ID          int64     `db:"id" json:"id"`
 	Key         string    `db:"key" json:"key"`
 	Value       string    `db:"value" json:"value"`
 	Description string    `db:"description" json:"description"`
@@ -71,7 +64,6 @@ type SystemSetting struct {
 	UpdatedAt   time.Time `db:"updated_at" json:"updated_at"`
 }
 
-// UserRepository defines the interface for user data access
 type UserRepository interface {
 	Create(ctx context.Context, user *User) error
 	GetByID(ctx context.Context, id int64) (*User, error)
@@ -85,7 +77,6 @@ type UserRepository interface {
 	Count(ctx context.Context) (int64, error)
 }
 
-// RoleRepository defines the interface for role data access
 type RoleRepository interface {
 	Create(ctx context.Context, role *Role) error
 	GetByID(ctx context.Context, id int64) (*Role, error)
@@ -99,7 +90,6 @@ type RoleRepository interface {
 	HasRole(ctx context.Context, userID int64, roleName string) (bool, error)
 }
 
-// TokenRepository defines the interface for token data access
 type TokenRepository interface {
 	Create(ctx context.Context, token *Token) error
 	GetByToken(ctx context.Context, tokenString string) (*Token, error)
@@ -109,13 +99,11 @@ type TokenRepository interface {
 	RevokeToken(ctx context.Context, tokenString string) error
 	RevokeAllUserTokens(ctx context.Context, userID int64, tokenType string) error
 	CleanupExpiredTokens(ctx context.Context) error
-	// Refresh token specific methods
 	StoreRefreshToken(ctx context.Context, userID int64, token string, expiresAt time.Time) error
 	ValidateRefreshToken(ctx context.Context, token string) (int64, error)
 	RevokeRefreshToken(ctx context.Context, token string) error
 }
 
-// VerificationTokenRepository defines the interface for verification token data access
 type VerificationTokenRepository interface {
 	Create(ctx context.Context, token interface{}) error
 	GetByToken(ctx context.Context, tokenString, tokenType string) (interface{}, error)
@@ -127,7 +115,6 @@ type VerificationTokenRepository interface {
 	DeleteUserTokensByType(ctx context.Context, userID int64, tokenType string) error
 }
 
-// WaitlistRepository defines the interface for waitlist data access
 type WaitlistRepository interface {
 	Create(ctx context.Context, waitlist *WaitlistEntry) error
 	GetByID(ctx context.Context, id int64) (*WaitlistEntry, error)
@@ -143,7 +130,6 @@ type WaitlistRepository interface {
 	ExistsByEmail(ctx context.Context, email string) (bool, error)
 }
 
-// SystemSettingsRepository defines the interface for system settings data access
 type SystemSettingsRepository interface {
 	Create(ctx context.Context, setting *SystemSetting) error
 	GetByKey(ctx context.Context, key string) (*SystemSetting, error)

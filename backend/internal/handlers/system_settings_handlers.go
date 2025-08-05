@@ -5,30 +5,26 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/gin-gonic/gin"
 	"github.com/Srivathsav-max/lumen/backend/internal/container"
 	"github.com/Srivathsav-max/lumen/backend/internal/services"
+	"github.com/gin-gonic/gin"
 )
 
-// SystemSettingsHandlers handles system settings-related HTTP requests
 type SystemSettingsHandlers struct {
 	container *container.Container
 }
 
-// NewSystemSettingsHandlers creates a new SystemSettingsHandlers instance
 func NewSystemSettingsHandlers(container *container.Container) *SystemSettingsHandlers {
 	return &SystemSettingsHandlers{
 		container: container,
 	}
 }
 
-// GetRegistrationStatus returns the current registration status
 func (h *SystemSettingsHandlers) GetRegistrationStatus(c *gin.Context) {
 	ctx := context.Background()
 	logger := h.container.GetLogger()
 	systemSettingsService := h.container.GetSystemSettingsService()
 
-	// Get registration status setting
 	setting, err := systemSettingsService.GetSetting(ctx, "registration_enabled")
 	if err != nil {
 		logger.Error("Failed to get registration status", "error", err)
@@ -36,7 +32,6 @@ func (h *SystemSettingsHandlers) GetRegistrationStatus(c *gin.Context) {
 		return
 	}
 
-	// Parse the setting value as boolean
 	enabled := false
 	if setting != nil && setting.Value != nil {
 		if boolVal, ok := setting.Value.(bool); ok {
@@ -51,18 +46,15 @@ func (h *SystemSettingsHandlers) GetRegistrationStatus(c *gin.Context) {
 	})
 }
 
-// ToggleRegistrationStatusRequest represents a request to toggle registration status
 type ToggleRegistrationStatusRequest struct {
 	Value string `json:"value" binding:"required"`
 }
 
-// ToggleRegistrationStatus toggles the registration status
 func (h *SystemSettingsHandlers) ToggleRegistrationStatus(c *gin.Context) {
 	ctx := context.Background()
 	logger := h.container.GetLogger()
 	systemSettingsService := h.container.GetSystemSettingsService()
 
-	// Check if user is admin or developer
 	if !h.isAdminOrDeveloper(c) {
 		c.JSON(http.StatusForbidden, gin.H{"error": "Unauthorized: Admin or developer role required"})
 		return
@@ -75,10 +67,8 @@ func (h *SystemSettingsHandlers) ToggleRegistrationStatus(c *gin.Context) {
 		return
 	}
 
-	// Convert string value to boolean
 	enabled := req.Value == "true"
 
-	// Update the setting
 	settingReq := &services.SetSettingRequest{
 		Key:   "registration_enabled",
 		Value: enabled,
@@ -94,18 +84,16 @@ func (h *SystemSettingsHandlers) ToggleRegistrationStatus(c *gin.Context) {
 	logger.Info("Registration status updated", "enabled", enabled)
 
 	c.JSON(http.StatusOK, gin.H{
-		"message": "Registration status updated successfully",
+		"message":              "Registration status updated successfully",
 		"registration_enabled": enabled,
 	})
 }
 
-// GetAllSystemSettings returns all system settings
 func (h *SystemSettingsHandlers) GetAllSystemSettings(c *gin.Context) {
 	ctx := context.Background()
 	logger := h.container.GetLogger()
 	systemSettingsService := h.container.GetSystemSettingsService()
 
-	// Check if user is admin or developer
 	if !h.isAdminOrDeveloper(c) {
 		c.JSON(http.StatusForbidden, gin.H{"error": "Unauthorized: Admin or developer role required"})
 		return
@@ -123,18 +111,15 @@ func (h *SystemSettingsHandlers) GetAllSystemSettings(c *gin.Context) {
 	})
 }
 
-// UpdateSystemSettingRequest represents a request to update a system setting
 type UpdateSystemSettingRequest struct {
 	Value interface{} `json:"value" binding:"required"`
 }
 
-// UpdateSystemSetting updates a system setting
 func (h *SystemSettingsHandlers) UpdateSystemSetting(c *gin.Context) {
 	ctx := context.Background()
 	logger := h.container.GetLogger()
 	systemSettingsService := h.container.GetSystemSettingsService()
 
-	// Check if user is admin or developer
 	if !h.isAdminOrDeveloper(c) {
 		c.JSON(http.StatusForbidden, gin.H{"error": "Unauthorized: Admin or developer role required"})
 		return
@@ -153,7 +138,6 @@ func (h *SystemSettingsHandlers) UpdateSystemSetting(c *gin.Context) {
 		return
 	}
 
-	// Update the setting
 	settingReq := &services.SetSettingRequest{
 		Key:   key,
 		Value: req.Value,
@@ -170,20 +154,17 @@ func (h *SystemSettingsHandlers) UpdateSystemSetting(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{
 		"message": "System setting updated successfully",
-		"key": key,
-		"value": req.Value,
+		"key":     key,
+		"value":   req.Value,
 	})
 }
 
-// isAdminOrDeveloper checks if the user is an admin or developer
 func (h *SystemSettingsHandlers) isAdminOrDeveloper(c *gin.Context) bool {
-	// Get user ID from context (set by AuthMiddleware)
 	userIDInterface, exists := c.Get("userID")
 	if !exists {
 		return false
 	}
 
-	// Convert userID to int64
 	var userID int64
 	switch v := userIDInterface.(type) {
 	case int64:
@@ -200,7 +181,6 @@ func (h *SystemSettingsHandlers) isAdminOrDeveloper(c *gin.Context) bool {
 		return false
 	}
 
-	// Get user roles from context
 	roles, exists := c.Get("userRoles")
 	if exists {
 		roleNames, ok := roles.([]string)
@@ -213,7 +193,6 @@ func (h *SystemSettingsHandlers) isAdminOrDeveloper(c *gin.Context) bool {
 		}
 	}
 
-	// If roles not in context, check using RoleService
 	roleService := h.container.GetRoleService()
 	if roleService != nil {
 		ctx := context.Background()

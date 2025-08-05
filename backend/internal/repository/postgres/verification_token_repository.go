@@ -10,19 +10,16 @@ import (
 	"github.com/Srivathsav-max/lumen/backend/internal/repository"
 )
 
-// VerificationTokenRepository implements the VerificationTokenRepository interface for PostgreSQL
 type VerificationTokenRepository struct {
 	*repository.BaseRepository
 }
 
-// NewVerificationTokenRepository creates a new PostgreSQL verification token repository
 func NewVerificationTokenRepository(db database.Manager, logger *slog.Logger) repository.VerificationTokenRepository {
 	return &VerificationTokenRepository{
 		BaseRepository: repository.NewBaseRepository(db, logger, "verification_tokens"),
 	}
 }
 
-// Create creates a new verification token
 func (r *VerificationTokenRepository) Create(ctx context.Context, token interface{}) error {
 	vt, ok := token.(*repository.VerificationToken)
 	if !ok {
@@ -58,7 +55,6 @@ func (r *VerificationTokenRepository) Create(ctx context.Context, token interfac
 	return nil
 }
 
-// GetByToken retrieves a verification token by token string and type
 func (r *VerificationTokenRepository) GetByToken(ctx context.Context, tokenString string, tokenType string) (interface{}, error) {
 	query := `
 		SELECT id, user_id, token, token_type, expires_at, created_at, is_used
@@ -85,7 +81,6 @@ func (r *VerificationTokenRepository) GetByToken(ctx context.Context, tokenStrin
 	return token, nil
 }
 
-// GetByUserID retrieves a verification token by user ID and token type
 func (r *VerificationTokenRepository) GetByUserID(ctx context.Context, userID int64, tokenType string) (interface{}, error) {
 	query := `
 		SELECT id, user_id, token, token_type, expires_at, created_at, is_used
@@ -114,7 +109,6 @@ func (r *VerificationTokenRepository) GetByUserID(ctx context.Context, userID in
 	return token, nil
 }
 
-// Update updates a verification token
 func (r *VerificationTokenRepository) Update(ctx context.Context, token interface{}) error {
 	vt, ok := token.(*repository.VerificationToken)
 	if !ok {
@@ -157,7 +151,6 @@ func (r *VerificationTokenRepository) Update(ctx context.Context, token interfac
 	return nil
 }
 
-// Delete deletes a verification token
 func (r *VerificationTokenRepository) Delete(ctx context.Context, id int64) error {
 	query := `DELETE FROM verification_tokens WHERE id = $1`
 
@@ -179,7 +172,6 @@ func (r *VerificationTokenRepository) Delete(ctx context.Context, id int64) erro
 	return nil
 }
 
-// MarkAsUsed marks a verification token as used by token ID
 func (r *VerificationTokenRepository) MarkAsUsed(ctx context.Context, tokenID int64) error {
 	query := `UPDATE verification_tokens SET is_used = true WHERE id = $1`
 
@@ -201,7 +193,6 @@ func (r *VerificationTokenRepository) MarkAsUsed(ctx context.Context, tokenID in
 	return nil
 }
 
-// DeleteExpiredTokens removes expired verification tokens
 func (r *VerificationTokenRepository) DeleteExpiredTokens(ctx context.Context) error {
 	query := `DELETE FROM verification_tokens WHERE expires_at < $1`
 
@@ -223,7 +214,6 @@ func (r *VerificationTokenRepository) DeleteExpiredTokens(ctx context.Context) e
 	return nil
 }
 
-// DeleteUserTokensByType deletes all tokens for a user of a specific type
 func (r *VerificationTokenRepository) DeleteUserTokensByType(ctx context.Context, userID int64, tokenType string) error {
 	query := `DELETE FROM verification_tokens WHERE user_id = $1 AND token_type = $2`
 

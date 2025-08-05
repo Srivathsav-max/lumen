@@ -10,23 +10,20 @@ import (
 	"github.com/Srivathsav-max/lumen/backend/internal/repository"
 )
 
-// UserRepository implements the UserRepository interface for PostgreSQL
 type UserRepository struct {
 	*repository.BaseRepository
 }
 
-// NewUserRepository creates a new PostgreSQL user repository
 func NewUserRepository(db database.Manager, logger *slog.Logger) repository.UserRepository {
 	return &UserRepository{
 		BaseRepository: repository.NewBaseRepository(db, logger, "users"),
 	}
 }
 
-// Create creates a new user
 func (r *UserRepository) Create(ctx context.Context, user *repository.User) error {
 	query := `
-		INSERT INTO users (username, email, password_hash, email_verified, created_at, updated_at)
-		VALUES ($1, $2, $3, $4, $5, $6)
+		INSERT INTO users (username, email, password_hash, first_name, last_name, email_verified, created_at, updated_at)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
 		RETURNING id`
 
 	now := time.Now().UTC()
@@ -37,6 +34,8 @@ func (r *UserRepository) Create(ctx context.Context, user *repository.User) erro
 		user.Username,
 		user.Email,
 		user.PasswordHash,
+		user.FirstName,
+		user.LastName,
 		user.EmailVerified,
 		user.CreatedAt,
 		user.UpdatedAt,
@@ -55,10 +54,9 @@ func (r *UserRepository) Create(ctx context.Context, user *repository.User) erro
 	return nil
 }
 
-// GetByID retrieves a user by ID
 func (r *UserRepository) GetByID(ctx context.Context, id int64) (*repository.User, error) {
 	query := `
-		SELECT id, username, email, password_hash, email_verified, created_at, updated_at
+		SELECT id, username, email, password_hash, first_name, last_name, email_verified, created_at, updated_at
 		FROM users
 		WHERE id = $1`
 
@@ -70,6 +68,8 @@ func (r *UserRepository) GetByID(ctx context.Context, id int64) (*repository.Use
 		&user.Username,
 		&user.Email,
 		&user.PasswordHash,
+		&user.FirstName,
+		&user.LastName,
 		&user.EmailVerified,
 		&user.CreatedAt,
 		&user.UpdatedAt,
@@ -82,10 +82,9 @@ func (r *UserRepository) GetByID(ctx context.Context, id int64) (*repository.Use
 	return user, nil
 }
 
-// GetByEmail retrieves a user by email
 func (r *UserRepository) GetByEmail(ctx context.Context, email string) (*repository.User, error) {
 	query := `
-		SELECT id, username, email, password_hash, email_verified, created_at, updated_at
+		SELECT id, username, email, password_hash, first_name, last_name, email_verified, created_at, updated_at
 		FROM users
 		WHERE email = $1`
 
@@ -97,6 +96,8 @@ func (r *UserRepository) GetByEmail(ctx context.Context, email string) (*reposit
 		&user.Username,
 		&user.Email,
 		&user.PasswordHash,
+		&user.FirstName,
+		&user.LastName,
 		&user.EmailVerified,
 		&user.CreatedAt,
 		&user.UpdatedAt,
@@ -109,10 +110,9 @@ func (r *UserRepository) GetByEmail(ctx context.Context, email string) (*reposit
 	return user, nil
 }
 
-// GetByUsername retrieves a user by username
 func (r *UserRepository) GetByUsername(ctx context.Context, username string) (*repository.User, error) {
 	query := `
-		SELECT id, username, email, password_hash, email_verified, created_at, updated_at
+		SELECT id, username, email, password_hash, first_name, last_name, email_verified, created_at, updated_at
 		FROM users
 		WHERE username = $1`
 
@@ -124,6 +124,8 @@ func (r *UserRepository) GetByUsername(ctx context.Context, username string) (*r
 		&user.Username,
 		&user.Email,
 		&user.PasswordHash,
+		&user.FirstName,
+		&user.LastName,
 		&user.EmailVerified,
 		&user.CreatedAt,
 		&user.UpdatedAt,
@@ -136,12 +138,11 @@ func (r *UserRepository) GetByUsername(ctx context.Context, username string) (*r
 	return user, nil
 }
 
-// Update updates a user
 func (r *UserRepository) Update(ctx context.Context, user *repository.User) error {
 	query := `
 		UPDATE users
-		SET username = $1, email = $2, password_hash = $3, email_verified = $4, updated_at = $5
-		WHERE id = $6`
+		SET username = $1, email = $2, password_hash = $3, first_name = $4, last_name = $5, email_verified = $6, updated_at = $7
+		WHERE id = $8`
 
 	user.UpdatedAt = time.Now().UTC()
 
@@ -149,6 +150,8 @@ func (r *UserRepository) Update(ctx context.Context, user *repository.User) erro
 		user.Username,
 		user.Email,
 		user.PasswordHash,
+		user.FirstName,
+		user.LastName,
 		user.EmailVerified,
 		user.UpdatedAt,
 		user.ID,
@@ -176,7 +179,6 @@ func (r *UserRepository) Update(ctx context.Context, user *repository.User) erro
 	return nil
 }
 
-// Delete deletes a user
 func (r *UserRepository) Delete(ctx context.Context, id int64) error {
 	query := `DELETE FROM users WHERE id = $1`
 
@@ -198,7 +200,6 @@ func (r *UserRepository) Delete(ctx context.Context, id int64) error {
 	return nil
 }
 
-// ExistsByEmail checks if a user exists by email
 func (r *UserRepository) ExistsByEmail(ctx context.Context, email string) (bool, error) {
 	query := `SELECT EXISTS(SELECT 1 FROM users WHERE email = $1)`
 
@@ -212,7 +213,6 @@ func (r *UserRepository) ExistsByEmail(ctx context.Context, email string) (bool,
 	return exists, nil
 }
 
-// ExistsByUsername checks if a user exists by username
 func (r *UserRepository) ExistsByUsername(ctx context.Context, username string) (bool, error) {
 	query := `SELECT EXISTS(SELECT 1 FROM users WHERE username = $1)`
 
@@ -226,7 +226,6 @@ func (r *UserRepository) ExistsByUsername(ctx context.Context, username string) 
 	return exists, nil
 }
 
-// List retrieves a list of users with pagination
 func (r *UserRepository) List(ctx context.Context, limit, offset int) ([]*repository.User, error) {
 	query := `
 		SELECT id, username, email, password_hash, email_verified, created_at, updated_at
@@ -265,7 +264,6 @@ func (r *UserRepository) List(ctx context.Context, limit, offset int) ([]*reposi
 	return users, nil
 }
 
-// Count returns the total number of users
 func (r *UserRepository) Count(ctx context.Context) (int64, error) {
 	query := `SELECT COUNT(*) FROM users`
 

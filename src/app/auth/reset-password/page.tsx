@@ -1,5 +1,6 @@
 import { Suspense } from 'react';
 import ResetPasswordClient from './ResetPasswordClient';
+import { Spinner } from '@/components/ui/ios-spinner';
 
 export default function ResetPasswordPage() {
   return (
@@ -19,7 +20,7 @@ export default function ResetPasswordPage() {
           <div className="mt-6 bg-white rounded-lg shadow-[0_8px_0_0_#333] border-2 border-[#333] p-6 relative transform hover:-translate-y-1 hover:shadow-[0_12px_0_0_#333] transition-all duration-200 overflow-y-auto max-h-[70vh]">
             <div className="space-y-6 text-center">
               <div className="mx-auto flex items-center justify-center">
-                <div className="animate-spin h-12 w-12 border-4 border-[#333] border-t-transparent rounded-full"></div>
+                <Spinner size="lg" />
               </div>
               <h3 className="text-xl font-mono font-medium text-[#333]">Loading...</h3>
               <p className="text-gray-600 font-mono">

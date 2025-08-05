@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { toast } from '@/providers/notification-provider';
 import {
   clearAuthCookies,
-  getAuthToken,
+  isAuthenticated as checkIsAuthenticated,
   getUserData,
 } from '@/lib/cookies';
 import * as authHandlers from '@/handlers';
@@ -91,7 +91,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       // Try to load cached user data first
       const userData = getUserData();
-      const storedToken = getAuthToken();
+      const isAuth = checkIsAuthenticated();
 
       // Update state with what we have from cookies
       if (userData) {
@@ -99,13 +99,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setUser(userData);
       }
 
-      if (storedToken) {
-        console.log('Found auth token');
-        setToken(storedToken);
+      // HTTP-only tokens can't be read by JavaScript, so we check authentication status
+      if (isAuth) {
+        console.log('User appears to be authenticated');
+        setToken('authenticated'); // Placeholder since we can't read HTTP-only cookies
       }
 
-      // If we have either user data or a token, validate the session
-      if (userData || storedToken) {
+      // If we have user data, validate the session
+      if (userData && isAuth) {
         console.log('Validating token after page refresh');
         try {
           // Validate the token with the server

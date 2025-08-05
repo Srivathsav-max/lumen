@@ -10,19 +10,16 @@ import (
 	"github.com/Srivathsav-max/lumen/backend/internal/repository"
 )
 
-// RoleRepository implements the RoleRepository interface for PostgreSQL
 type RoleRepository struct {
 	*repository.BaseRepository
 }
 
-// NewRoleRepository creates a new PostgreSQL role repository
 func NewRoleRepository(db database.Manager, logger *slog.Logger) repository.RoleRepository {
 	return &RoleRepository{
 		BaseRepository: repository.NewBaseRepository(db, logger, "roles"),
 	}
 }
 
-// Create creates a new role
 func (r *RoleRepository) Create(ctx context.Context, role *repository.Role) error {
 	query := `
 		INSERT INTO roles (name, description, created_at, updated_at)
@@ -52,7 +49,6 @@ func (r *RoleRepository) Create(ctx context.Context, role *repository.Role) erro
 	return nil
 }
 
-// GetByID retrieves a role by ID
 func (r *RoleRepository) GetByID(ctx context.Context, id int64) (*repository.Role, error) {
 	query := `
 		SELECT id, name, description, created_at, updated_at
@@ -77,7 +73,6 @@ func (r *RoleRepository) GetByID(ctx context.Context, id int64) (*repository.Rol
 	return role, nil
 }
 
-// GetByName retrieves a role by name
 func (r *RoleRepository) GetByName(ctx context.Context, name string) (*repository.Role, error) {
 	query := `
 		SELECT id, name, description, created_at, updated_at
@@ -102,7 +97,6 @@ func (r *RoleRepository) GetByName(ctx context.Context, name string) (*repositor
 	return role, nil
 }
 
-// Update updates a role
 func (r *RoleRepository) Update(ctx context.Context, role *repository.Role) error {
 	query := `
 		UPDATE roles
@@ -139,7 +133,6 @@ func (r *RoleRepository) Update(ctx context.Context, role *repository.Role) erro
 	return nil
 }
 
-// Delete deletes a role
 func (r *RoleRepository) Delete(ctx context.Context, id int64) error {
 	query := `DELETE FROM roles WHERE id = $1`
 
@@ -161,7 +154,6 @@ func (r *RoleRepository) Delete(ctx context.Context, id int64) error {
 	return nil
 }
 
-// List retrieves all roles
 func (r *RoleRepository) List(ctx context.Context) ([]*repository.Role, error) {
 	query := `
 		SELECT id, name, description, created_at, updated_at
@@ -197,7 +189,6 @@ func (r *RoleRepository) List(ctx context.Context) ([]*repository.Role, error) {
 	return roles, nil
 }
 
-// AssignRoleToUser assigns a role to a user
 func (r *RoleRepository) AssignRoleToUser(ctx context.Context, userID, roleID int64) error {
 	query := `
 		INSERT INTO user_roles (user_id, role_id, created_at)
@@ -219,7 +210,6 @@ func (r *RoleRepository) AssignRoleToUser(ctx context.Context, userID, roleID in
 	return nil
 }
 
-// RemoveRoleFromUser removes a role from a user
 func (r *RoleRepository) RemoveRoleFromUser(ctx context.Context, userID, roleID int64) error {
 	query := `DELETE FROM user_roles WHERE user_id = $1 AND role_id = $2`
 
@@ -245,7 +235,6 @@ func (r *RoleRepository) RemoveRoleFromUser(ctx context.Context, userID, roleID 
 	return nil
 }
 
-// GetUserRoles retrieves all roles for a user
 func (r *RoleRepository) GetUserRoles(ctx context.Context, userID int64) ([]*repository.Role, error) {
 	query := `
 		SELECT r.id, r.name, r.description, r.created_at, r.updated_at
@@ -283,7 +272,6 @@ func (r *RoleRepository) GetUserRoles(ctx context.Context, userID int64) ([]*rep
 	return roles, nil
 }
 
-// HasRole checks if a user has a specific role
 func (r *RoleRepository) HasRole(ctx context.Context, userID int64, roleName string) (bool, error) {
 	query := `
 		SELECT EXISTS(

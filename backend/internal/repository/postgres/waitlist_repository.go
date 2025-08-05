@@ -4,39 +4,41 @@ import (
 	"context"
 	"database/sql"
 	"log/slog"
+	"strings"
 	"time"
 
 	"github.com/Srivathsav-max/lumen/backend/internal/database"
 	"github.com/Srivathsav-max/lumen/backend/internal/repository"
 )
 
-// WaitlistRepository implements the WaitlistRepository interface for PostgreSQL
 type WaitlistRepository struct {
 	*repository.BaseRepository
 }
 
-// NewWaitlistRepository creates a new PostgreSQL waitlist repository
 func NewWaitlistRepository(db database.Manager, logger *slog.Logger) repository.WaitlistRepository {
 	return &WaitlistRepository{
 		BaseRepository: repository.NewBaseRepository(db, logger, "waitlist"),
 	}
 }
 
-// Create creates a new waitlist entry
 func (r *WaitlistRepository) Create(ctx context.Context, waitlist *repository.WaitlistEntry) error {
 	query := `
-		INSERT INTO waitlist (email, first_name, last_name, reason, status, created_at, updated_at)
-		VALUES ($1, $2, $3, $4, $5, $6, $7)
+		INSERT INTO waitlist (email, name, notes, status, created_at, updated_at)
+		VALUES ($1, $2, $3, $4, $5, $6)
 		RETURNING id`
 
 	now := time.Now().UTC()
 	waitlist.CreatedAt = now
 	waitlist.UpdatedAt = now
 
+	name := ""
+	if waitlist.FirstName != "" || waitlist.LastName != "" {
+		name = waitlist.FirstName + " " + waitlist.LastName
+	}
+
 	row := r.ExecuteQueryRow(ctx, query,
 		waitlist.Email,
-		waitlist.FirstName,
-		waitlist.LastName,
+		name,
 		waitlist.Reason,
 		waitlist.Status,
 		waitlist.CreatedAt,
@@ -56,22 +58,22 @@ func (r *WaitlistRepository) Create(ctx context.Context, waitlist *repository.Wa
 	return nil
 }
 
-// GetByID retrieves a waitlist entry by ID
 func (r *WaitlistRepository) GetByID(ctx context.Context, id int64) (*repository.WaitlistEntry, error) {
 	query := `
-		SELECT id, email, first_name, last_name, reason, status, created_at, updated_at
+		SELECT id, email, name, notes, status, created_at, updated_at
 		FROM waitlist
 		WHERE id = $1`
 
 	waitlist := &repository.WaitlistEntry{}
 	row := r.ExecuteQueryRow(ctx, query, id)
 
+	var name sql.NullString
+	var notes sql.NullString
 	err := row.Scan(
 		&waitlist.ID,
 		&waitlist.Email,
-		&waitlist.FirstName,
-		&waitlist.LastName,
-		&waitlist.Reason,
+		&name,
+		&notes,
 		&waitlist.Status,
 		&waitlist.CreatedAt,
 		&waitlist.UpdatedAt,
@@ -81,25 +83,39 @@ func (r *WaitlistRepository) GetByID(ctx context.Context, id int64) (*repository
 		return nil, r.HandleSQLError(err, "get waitlist entry by ID")
 	}
 
+	if notes.Valid {
+		waitlist.Reason = notes.String
+	}
+
+	if name.Valid && name.String != "" {
+		parts := strings.Fields(name.String)
+		if len(parts) > 0 {
+			waitlist.FirstName = parts[0]
+			if len(parts) > 1 {
+				waitlist.LastName = strings.Join(parts[1:], " ")
+			}
+		}
+	}
+
 	return waitlist, nil
 }
 
-// GetByEmail retrieves a waitlist entry by email
 func (r *WaitlistRepository) GetByEmail(ctx context.Context, email string) (*repository.WaitlistEntry, error) {
 	query := `
-		SELECT id, email, first_name, last_name, reason, status, created_at, updated_at
+		SELECT id, email, name, notes, status, created_at, updated_at
 		FROM waitlist
 		WHERE email = $1`
 
 	waitlist := &repository.WaitlistEntry{}
 	row := r.ExecuteQueryRow(ctx, query, email)
 
+	var name sql.NullString
+	var notes sql.NullString
 	err := row.Scan(
 		&waitlist.ID,
 		&waitlist.Email,
-		&waitlist.FirstName,
-		&waitlist.LastName,
-		&waitlist.Reason,
+		&name,
+		&notes,
 		&waitlist.Status,
 		&waitlist.CreatedAt,
 		&waitlist.UpdatedAt,
@@ -109,22 +125,39 @@ func (r *WaitlistRepository) GetByEmail(ctx context.Context, email string) (*rep
 		return nil, r.HandleSQLError(err, "get waitlist entry by email")
 	}
 
+	if notes.Valid {
+		waitlist.Reason = notes.String
+	}
+
+	if name.Valid && name.String != "" {
+		parts := strings.Fields(name.String)
+		if len(parts) > 0 {
+			waitlist.FirstName = parts[0]
+			if len(parts) > 1 {
+				waitlist.LastName = strings.Join(parts[1:], " ")
+			}
+		}
+	}
+
 	return waitlist, nil
 }
 
-// Update updates a waitlist entry
 func (r *WaitlistRepository) Update(ctx context.Context, waitlist *repository.WaitlistEntry) error {
 	query := `
 		UPDATE waitlist
-		SET email = $1, first_name = $2, last_name = $3, reason = $4, status = $5, updated_at = $6
-		WHERE id = $7`
+		SET email = $1, name = $2, notes = $3, status = $4, updated_at = $5
+		WHERE id = $6`
 
 	waitlist.UpdatedAt = time.Now().UTC()
 
+	name := ""
+	if waitlist.FirstName != "" || waitlist.LastName != "" {
+		name = waitlist.FirstName + " " + waitlist.LastName
+	}
+
 	result, err := r.ExecuteExec(ctx, query,
 		waitlist.Email,
-		waitlist.FirstName,
-		waitlist.LastName,
+		name,
 		waitlist.Reason,
 		waitlist.Status,
 		waitlist.UpdatedAt,
@@ -153,7 +186,6 @@ func (r *WaitlistRepository) Update(ctx context.Context, waitlist *repository.Wa
 	return nil
 }
 
-// Delete deletes a waitlist entry
 func (r *WaitlistRepository) Delete(ctx context.Context, id int64) error {
 	query := `DELETE FROM waitlist WHERE id = $1`
 
@@ -175,10 +207,9 @@ func (r *WaitlistRepository) Delete(ctx context.Context, id int64) error {
 	return nil
 }
 
-// List retrieves a list of waitlist entries with pagination
 func (r *WaitlistRepository) List(ctx context.Context, limit, offset int) ([]*repository.WaitlistEntry, error) {
 	query := `
-		SELECT id, email, first_name, last_name, reason, status, created_at, updated_at
+		SELECT id, email, name, notes, status, created_at, updated_at
 		FROM waitlist
 		ORDER BY created_at DESC
 		LIMIT $1 OFFSET $2`
@@ -192,12 +223,13 @@ func (r *WaitlistRepository) List(ctx context.Context, limit, offset int) ([]*re
 	var waitlists []*repository.WaitlistEntry
 	for rows.Next() {
 		waitlist := &repository.WaitlistEntry{}
+		var name sql.NullString
+		var notes sql.NullString
 		err := rows.Scan(
 			&waitlist.ID,
 			&waitlist.Email,
-			&waitlist.FirstName,
-			&waitlist.LastName,
-			&waitlist.Reason,
+			&name,
+			&notes,
 			&waitlist.Status,
 			&waitlist.CreatedAt,
 			&waitlist.UpdatedAt,
@@ -205,6 +237,21 @@ func (r *WaitlistRepository) List(ctx context.Context, limit, offset int) ([]*re
 		if err != nil {
 			return nil, r.HandleSQLError(err, "scan waitlist entry")
 		}
+
+		if notes.Valid {
+			waitlist.Reason = notes.String
+		}
+
+		if name.Valid && name.String != "" {
+			parts := strings.Fields(name.String)
+			if len(parts) > 0 {
+				waitlist.FirstName = parts[0]
+				if len(parts) > 1 {
+					waitlist.LastName = strings.Join(parts[1:], " ")
+				}
+			}
+		}
+
 		waitlists = append(waitlists, waitlist)
 	}
 
@@ -215,7 +262,6 @@ func (r *WaitlistRepository) List(ctx context.Context, limit, offset int) ([]*re
 	return waitlists, nil
 }
 
-// Count returns the total number of waitlist entries
 func (r *WaitlistRepository) Count(ctx context.Context) (int64, error) {
 	query := `SELECT COUNT(*) FROM waitlist`
 
@@ -229,7 +275,6 @@ func (r *WaitlistRepository) Count(ctx context.Context) (int64, error) {
 	return count, nil
 }
 
-// ExistsByEmail checks if a waitlist entry exists by email
 func (r *WaitlistRepository) ExistsByEmail(ctx context.Context, email string) (bool, error) {
 	query := `SELECT EXISTS(SELECT 1 FROM waitlist WHERE email = $1)`
 
@@ -243,7 +288,6 @@ func (r *WaitlistRepository) ExistsByEmail(ctx context.Context, email string) (b
 	return exists, nil
 }
 
-// DeleteByEmail deletes a waitlist entry by email
 func (r *WaitlistRepository) DeleteByEmail(ctx context.Context, email string) error {
 	query := `DELETE FROM waitlist WHERE email = $1`
 
@@ -265,13 +309,12 @@ func (r *WaitlistRepository) DeleteByEmail(ctx context.Context, email string) er
 	return nil
 }
 
-// GetPaginated retrieves waitlist entries with filtering and pagination
 func (r *WaitlistRepository) GetPaginated(ctx context.Context, limit, offset int, status, search string) ([]*repository.WaitlistEntry, error) {
 	query := `
-		SELECT id, email, first_name, last_name, reason, status, created_at, updated_at
+		SELECT id, email, name, notes, status, created_at, updated_at
 		FROM waitlist
 		WHERE ($3 = '' OR status = $3)
-		AND ($4 = '' OR email ILIKE '%' || $4 || '%' OR first_name ILIKE '%' || $4 || '%' OR last_name ILIKE '%' || $4 || '%')
+		AND ($4 = '' OR email ILIKE '%' || $4 || '%' OR name ILIKE '%' || $4 || '%' OR notes ILIKE '%' || $4 || '%')
 		ORDER BY created_at DESC
 		LIMIT $1 OFFSET $2`
 
@@ -284,12 +327,13 @@ func (r *WaitlistRepository) GetPaginated(ctx context.Context, limit, offset int
 	var waitlists []*repository.WaitlistEntry
 	for rows.Next() {
 		waitlist := &repository.WaitlistEntry{}
+		var name sql.NullString
+		var notes sql.NullString
 		err := rows.Scan(
 			&waitlist.ID,
 			&waitlist.Email,
-			&waitlist.FirstName,
-			&waitlist.LastName,
-			&waitlist.Reason,
+			&name,
+			&notes,
 			&waitlist.Status,
 			&waitlist.CreatedAt,
 			&waitlist.UpdatedAt,
@@ -297,6 +341,21 @@ func (r *WaitlistRepository) GetPaginated(ctx context.Context, limit, offset int
 		if err != nil {
 			return nil, r.HandleSQLError(err, "scan waitlist entry")
 		}
+
+		if notes.Valid {
+			waitlist.Reason = notes.String
+		}
+
+		if name.Valid && name.String != "" {
+			parts := strings.Fields(name.String)
+			if len(parts) > 0 {
+				waitlist.FirstName = parts[0]
+				if len(parts) > 1 {
+					waitlist.LastName = strings.Join(parts[1:], " ")
+				}
+			}
+		}
+
 		waitlists = append(waitlists, waitlist)
 	}
 
@@ -307,13 +366,12 @@ func (r *WaitlistRepository) GetPaginated(ctx context.Context, limit, offset int
 	return waitlists, nil
 }
 
-// GetTotalCount returns the total count of waitlist entries with filtering
 func (r *WaitlistRepository) GetTotalCount(ctx context.Context, status, search string) (int64, error) {
 	query := `
 		SELECT COUNT(*)
 		FROM waitlist
 		WHERE ($1 = '' OR status = $1)
-		AND ($2 = '' OR email ILIKE '%' || $2 || '%' OR first_name ILIKE '%' || $2 || '%' OR last_name ILIKE '%' || $2 || '%')`
+		AND ($2 = '' OR email ILIKE '%' || $2 || '%' OR name ILIKE '%' || $2 || '%' OR notes ILIKE '%' || $2 || '%')`
 
 	var count int64
 	row := r.ExecuteQueryRow(ctx, query, status, search)
@@ -325,7 +383,6 @@ func (r *WaitlistRepository) GetTotalCount(ctx context.Context, status, search s
 	return count, nil
 }
 
-// GetPositionByEmail returns the position of a user in the waitlist
 func (r *WaitlistRepository) GetPositionByEmail(ctx context.Context, email string) (int, error) {
 	query := `
 		SELECT COUNT(*) + 1

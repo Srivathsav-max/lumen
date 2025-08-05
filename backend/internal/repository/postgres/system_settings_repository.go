@@ -10,30 +10,26 @@ import (
 	"github.com/Srivathsav-max/lumen/backend/internal/repository"
 )
 
-// SystemSettingsRepository implements the SystemSettingsRepository interface for PostgreSQL
 type SystemSettingsRepository struct {
 	*repository.BaseRepository
 }
 
-// NewSystemSettingsRepository creates a new PostgreSQL system settings repository
 func NewSystemSettingsRepository(db database.Manager, logger *slog.Logger) repository.SystemSettingsRepository {
 	return &SystemSettingsRepository{
 		BaseRepository: repository.NewBaseRepository(db, logger, "system_settings"),
 	}
 }
 
-// Create creates a new system setting
 func (r *SystemSettingsRepository) Create(ctx context.Context, setting *repository.SystemSetting) error {
 	query := `
 		INSERT INTO system_settings (key, value, description, created_at, updated_at)
-		VALUES ($1, $2, $3, $4, $5)
-		RETURNING id`
+		VALUES ($1, $2, $3, $4, $5)`
 
 	now := time.Now().UTC()
 	setting.CreatedAt = now
 	setting.UpdatedAt = now
 
-	row := r.ExecuteQueryRow(ctx, query,
+	_, err := r.ExecuteExec(ctx, query,
 		setting.Key,
 		setting.Value,
 		setting.Description,
@@ -41,22 +37,20 @@ func (r *SystemSettingsRepository) Create(ctx context.Context, setting *reposito
 		setting.UpdatedAt,
 	)
 
-	if err := row.Scan(&setting.ID); err != nil {
+	if err != nil {
 		return r.HandleSQLError(err, "create system setting")
 	}
 
 	r.GetLogger().Info("System setting created successfully",
-		"setting_id", setting.ID,
 		"key", setting.Key,
 	)
 
 	return nil
 }
 
-// GetByKey retrieves a system setting by key
 func (r *SystemSettingsRepository) GetByKey(ctx context.Context, key string) (*repository.SystemSetting, error) {
 	query := `
-		SELECT id, key, value, description, created_at, updated_at
+		SELECT key, value, description, created_at, updated_at
 		FROM system_settings
 		WHERE key = $1`
 
@@ -64,7 +58,6 @@ func (r *SystemSettingsRepository) GetByKey(ctx context.Context, key string) (*r
 	row := r.ExecuteQueryRow(ctx, query, key)
 
 	err := row.Scan(
-		&setting.ID,
 		&setting.Key,
 		&setting.Value,
 		&setting.Description,
@@ -79,21 +72,19 @@ func (r *SystemSettingsRepository) GetByKey(ctx context.Context, key string) (*r
 	return setting, nil
 }
 
-// Update updates a system setting
 func (r *SystemSettingsRepository) Update(ctx context.Context, setting *repository.SystemSetting) error {
 	query := `
 		UPDATE system_settings
-		SET key = $1, value = $2, description = $3, updated_at = $4
-		WHERE id = $5`
+		SET value = $1, description = $2, updated_at = $3
+		WHERE key = $4`
 
 	setting.UpdatedAt = time.Now().UTC()
 
 	result, err := r.ExecuteExec(ctx, query,
-		setting.Key,
 		setting.Value,
 		setting.Description,
 		setting.UpdatedAt,
-		setting.ID,
+		setting.Key,
 	)
 
 	if err != nil {
@@ -110,14 +101,12 @@ func (r *SystemSettingsRepository) Update(ctx context.Context, setting *reposito
 	}
 
 	r.GetLogger().Info("System setting updated successfully",
-		"setting_id", setting.ID,
 		"key", setting.Key,
 	)
 
 	return nil
 }
 
-// Delete deletes a system setting by key
 func (r *SystemSettingsRepository) Delete(ctx context.Context, key string) error {
 	query := `DELETE FROM system_settings WHERE key = $1`
 
@@ -139,10 +128,9 @@ func (r *SystemSettingsRepository) Delete(ctx context.Context, key string) error
 	return nil
 }
 
-// List retrieves all system settings
 func (r *SystemSettingsRepository) List(ctx context.Context) ([]*repository.SystemSetting, error) {
 	query := `
-		SELECT id, key, value, description, created_at, updated_at
+		SELECT key, value, description, created_at, updated_at
 		FROM system_settings
 		ORDER BY key`
 
@@ -156,7 +144,6 @@ func (r *SystemSettingsRepository) List(ctx context.Context) ([]*repository.Syst
 	for rows.Next() {
 		setting := &repository.SystemSetting{}
 		err := rows.Scan(
-			&setting.ID,
 			&setting.Key,
 			&setting.Value,
 			&setting.Description,
@@ -176,12 +163,10 @@ func (r *SystemSettingsRepository) List(ctx context.Context) ([]*repository.Syst
 	return settings, nil
 }
 
-// GetAll retrieves all system settings (alias for List)
 func (r *SystemSettingsRepository) GetAll(ctx context.Context) ([]*repository.SystemSetting, error) {
 	return r.List(ctx)
 }
 
-// GetValue retrieves a system setting value by key
 func (r *SystemSettingsRepository) GetValue(ctx context.Context, key string) (string, error) {
 	query := `SELECT value FROM system_settings WHERE key = $1`
 
@@ -195,7 +180,6 @@ func (r *SystemSettingsRepository) GetValue(ctx context.Context, key string) (st
 	return value, nil
 }
 
-// SetValue sets a system setting value by key (creates or updates)
 func (r *SystemSettingsRepository) SetValue(ctx context.Context, key, value string) error {
 	query := `
 		INSERT INTO system_settings (key, value, created_at, updated_at)

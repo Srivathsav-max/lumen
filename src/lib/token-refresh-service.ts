@@ -6,11 +6,8 @@
  * remain logged in for the full 10-day period or until they explicitly log out.
  */
 
-import { api } from './api-client';
-import { getAuthToken, getUserData } from './cookies';
-
-// Configuration
-const TOKEN_REFRESH_ENDPOINT = '/auth/refresh';
+import { refreshToken as apiRefreshToken } from '@/app/auth/login/api';
+import { isAuthenticated, getUserData } from './cookies';
 
 // Token expiration and refresh configuration
 const TOKEN_EXPIRY_MINUTES = 15; // Backend temporary tokens expire after 15 minutes
@@ -62,11 +59,10 @@ function startTokenCheck(): void {
   
   // Set up a new check interval
   checkTimerId = setInterval(() => {
-    const token = getAuthToken();
     const userData = getUserData();
     
-    // If we have a token and user data, check if we need to refresh
-    if (token && userData) {
+    // If we have user data (indicating authentication), check if we need to refresh
+    if (isAuthenticated() && userData) {
       const now = Date.now();
       const nextRefreshTime = getRefreshTime(lastRefreshTime);
       
@@ -121,14 +117,11 @@ export async function refreshToken(): Promise<boolean> {
   console.log('Refreshing authentication token');
   
   try {
-    // Call the token refresh endpoint
-    const response = await api.post(TOKEN_REFRESH_ENDPOINT, {}, {
-      skipTokenRefresh: true, // Avoid infinite loops
-      skipAuthRedirect: true, // Don't redirect on failure
-    });
+    // Call the token refresh API
+    const result = await apiRefreshToken();
     
     // Check if refresh was successful
-    const success = response.status === 200 && !response.error;
+    const success = !!(result && result.success);
     
     if (success) {
       console.log('Token refresh successful');
@@ -138,7 +131,7 @@ export async function refreshToken(): Promise<boolean> {
       const nextRefreshDelay = (TOKEN_EXPIRY_MINUTES - REFRESH_BEFORE_EXPIRY_MINUTES) * 60 * 1000;
       scheduleTokenRefresh(nextRefreshDelay);
     } else {
-      console.error('Token refresh failed:', response.error);
+      console.error('Token refresh failed');
     }
     
     isRefreshing = false;
@@ -157,10 +150,9 @@ export async function refreshToken(): Promise<boolean> {
 function handleVisibilityChange(): void {
   if (document.visibilityState === 'visible') {
     console.log('Page became visible, checking authentication status');
-    const token = getAuthToken();
     const userData = getUserData();
     
-    if (token && userData) {
+    if (isAuthenticated() && userData) {
       // Refresh token immediately if we've been away for a while
       refreshToken();
     }
@@ -173,10 +165,9 @@ function handleVisibilityChange(): void {
  */
 function handleOnlineStatus(): void {
   console.log('Browser came online, checking authentication status');
-  const token = getAuthToken();
   const userData = getUserData();
   
-  if (token && userData) {
+  if (isAuthenticated() && userData) {
     // Refresh token immediately
     refreshToken();
   }

@@ -5,11 +5,12 @@ import (
 	"os"
 	"strconv"
 	"strings"
+
+	"github.com/Srivathsav-max/lumen/backend/internal/constants"
 	"github.com/Srivathsav-max/lumen/backend/internal/logger"
 	"github.com/go-playground/validator/v10"
 )
 
-// Config holds all application configuration
 type Config struct {
 	Server   ServerConfig   `validate:"required"`
 	Database DatabaseConfig `validate:"required"`
@@ -18,13 +19,11 @@ type Config struct {
 	Logging  logger.Config  `validate:"required"`
 }
 
-// ServerConfig holds server configuration
 type ServerConfig struct {
 	Port int    `validate:"required,min=1,max=65535"`
 	Env  string `validate:"required,oneof=development staging production"`
 }
 
-// DatabaseConfig holds database configuration
 type DatabaseConfig struct {
 	Host            string `validate:"required_without=URL"`
 	Port            int    `validate:"required_without=URL,min=1,max=65535"`
@@ -35,18 +34,16 @@ type DatabaseConfig struct {
 	URL             string `validate:"required_without_all=Host Port User Password DBName"`
 	MaxOpenConns    int    `validate:"min=1"`
 	MaxIdleConns    int    `validate:"min=1"`
-	ConnMaxLifetime int    `validate:"min=1"` // in minutes
-	ConnMaxIdleTime int    `validate:"min=1"` // in minutes
+	ConnMaxLifetime int    `validate:"min=1"`
+	ConnMaxIdleTime int    `validate:"min=1"`
 }
 
-// JWTConfig holds JWT configuration
 type JWTConfig struct {
 	Secret               string `validate:"required,min=32"`
-	AccessTokenDuration  int    `validate:"required,min=1"`  // in minutes
-	RefreshTokenDuration int    `validate:"required,min=1"`  // in hours
+	AccessTokenDuration  int    `validate:"required,min=1"`
+	RefreshTokenDuration int    `validate:"required,min=1"`
 }
 
-// EmailConfig holds email service configuration
 type EmailConfig struct {
 	Host         string `validate:"required"`
 	Port         string `validate:"required"`
@@ -57,32 +54,26 @@ type EmailConfig struct {
 	TemplatesDir string `validate:"required"`
 }
 
-// ConfigLoader interface for loading configuration
 type ConfigLoader interface {
 	Load() (*Config, error)
 	Validate(*Config) error
 }
 
-// EnvConfigLoader loads configuration from environment variables
 type EnvConfigLoader struct {
 	validator *validator.Validate
 }
 
-// NewEnvConfigLoader creates a new environment config loader
 func NewEnvConfigLoader() *EnvConfigLoader {
 	return &EnvConfigLoader{
 		validator: validator.New(),
 	}
 }
 
-// Load loads configuration from environment variables
 func (l *EnvConfigLoader) Load() (*Config, error) {
 	config := &Config{}
 
-	// Server configuration
 	serverPort, err := getRequiredEnvInt("SERVER_PORT")
 	if err != nil {
-		// Check for Heroku PORT
 		if port := os.Getenv("PORT"); port != "" {
 			if serverPort, err = strconv.Atoi(port); err != nil {
 				return nil, fmt.Errorf("invalid PORT: %w", err)
@@ -97,10 +88,8 @@ func (l *EnvConfigLoader) Load() (*Config, error) {
 		Env:  getRequiredEnv("ENV"),
 	}
 
-	// Database configuration
 	databaseURL := os.Getenv("DATABASE_URL")
 	if databaseURL != "" {
-		// Use DATABASE_URL (Heroku style)
 		config.Database = DatabaseConfig{
 			URL:             databaseURL,
 			MaxOpenConns:    getEnvInt("DB_MAX_OPEN_CONNS", 25),
@@ -109,7 +98,6 @@ func (l *EnvConfigLoader) Load() (*Config, error) {
 			ConnMaxIdleTime: getEnvInt("DB_CONN_MAX_IDLE_TIME", 10),
 		}
 	} else {
-		// Use individual database environment variables
 		dbPort, err := getRequiredEnvInt("DB_PORT")
 		if err != nil {
 			return nil, err
@@ -129,14 +117,12 @@ func (l *EnvConfigLoader) Load() (*Config, error) {
 		}
 	}
 
-	// JWT configuration
 	config.JWT = JWTConfig{
 		Secret:               getRequiredEnv("JWT_SECRET"),
-		AccessTokenDuration:  getEnvInt("JWT_ACCESS_TOKEN_DURATION", 15),
-		RefreshTokenDuration: getEnvInt("JWT_REFRESH_TOKEN_DURATION", 24),
+		AccessTokenDuration:  getEnvInt("JWT_ACCESS_TOKEN_DURATION", constants.DefaultJWTAccessTokenDuration),
+		RefreshTokenDuration: getEnvInt("JWT_REFRESH_TOKEN_DURATION", constants.DefaultJWTRefreshTokenDuration),
 	}
 
-	// Email configuration
 	config.Email = EmailConfig{
 		Host:         getRequiredEnv("EMAIL_HOST"),
 		Port:         getRequiredEnv("EMAIL_PORT"),
@@ -144,16 +130,14 @@ func (l *EnvConfigLoader) Load() (*Config, error) {
 		Password:     getRequiredEnv("EMAIL_PASSWORD"),
 		FromEmail:    getRequiredEnv("EMAIL_FROM"),
 		FromName:     getRequiredEnv("EMAIL_FROM_NAME"),
-		TemplatesDir: getEnv("EMAIL_TEMPLATES_DIR", "./services/email/templates"),
+		TemplatesDir: getEnv("EMAIL_TEMPLATES_DIR", constants.DefaultEmailTemplatesDir),
 	}
 
-	// Logging configuration
 	config.Logging = logger.Config{
-		Level:  logger.LogLevel(getEnv("LOG_LEVEL", "info")),
-		Format: getEnv("LOG_FORMAT", "json"),
+		Level:  logger.LogLevel(getEnv("LOG_LEVEL", constants.LogLevelInfo)),
+		Format: getEnv("LOG_FORMAT", constants.LogFormatJSON),
 	}
 
-	// Validate configuration
 	if err := l.Validate(config); err != nil {
 		return nil, err
 	}
@@ -161,7 +145,6 @@ func (l *EnvConfigLoader) Load() (*Config, error) {
 	return config, nil
 }
 
-// Validate validates the configuration
 func (l *EnvConfigLoader) Validate(config *Config) error {
 	if err := l.validator.Struct(config); err != nil {
 		return fmt.Errorf("configuration validation failed: %w", err)
@@ -169,7 +152,6 @@ func (l *EnvConfigLoader) Validate(config *Config) error {
 	return nil
 }
 
-// GetDSN returns the PostgreSQL connection string
 func (c *DatabaseConfig) GetDSN() string {
 	if c.URL != "" {
 		return c.URL
@@ -179,7 +161,6 @@ func (c *DatabaseConfig) GetDSN() string {
 		c.Host, c.Port, c.User, c.Password, c.DBName, c.SSLMode)
 }
 
-// Helper functions for environment variable handling
 func getRequiredEnv(key string) string {
 	value := os.Getenv(key)
 	if value == "" {
@@ -213,12 +194,14 @@ func getEnvInt(key string, defaultValue int) int {
 	return defaultValue
 }
 
-// IsDevelopment returns true if running in development environment
 func (c *Config) IsDevelopment() bool {
-	return strings.ToLower(c.Server.Env) == "development"
+	return strings.ToLower(c.Server.Env) == constants.EnvDevelopment
 }
 
-// IsProduction returns true if running in production environment
 func (c *Config) IsProduction() bool {
-	return strings.ToLower(c.Server.Env) == "production"
+	return strings.ToLower(c.Server.Env) == constants.EnvProduction
+}
+
+func (c *Config) IsStaging() bool {
+	return strings.ToLower(c.Server.Env) == constants.EnvStaging
 }

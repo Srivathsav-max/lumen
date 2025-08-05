@@ -12,6 +12,7 @@ import { AlertCircle, Lock, Mail, Settings, Shield, Users, Wrench } from "lucide
 import { toast } from "@/providers/notification-provider";
 import * as settingsApi from "./api";
 import { Input } from "@/components/ui/input";
+import { Spinner } from "@/components/ui/ios-spinner";
 
 // Import the SystemSetting interface from the API
 import { SystemSetting } from './api';
@@ -150,7 +151,7 @@ const SettingsPage = memo(function SettingsPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#333]"></div>
+        <Spinner size="lg" />
       </div>
     );
   }
