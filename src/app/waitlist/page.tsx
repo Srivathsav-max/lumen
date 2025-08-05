@@ -1,5 +1,8 @@
 "use client";
-import React, { useState } from "react";
+import React, { useState, memo, useCallback } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { waitlistSchema, type WaitlistFormData } from "@/lib/validation-schemas";
 import { BackgroundLines } from "@/components/ui/background-lines";
 import { FooterSection } from "@/components/sections/footer";
 import { Navbar } from "@/components/ui/navbar";
@@ -10,29 +13,32 @@ import { toast } from "@/providers/notification-provider";
 import { Sparkles } from "lucide-react";
 import * as waitlistApi from "./api";
 
-export default function WaitlistPage() {
-  const [email, setEmail] = useState("");
-  const [name, setName] = useState("");
+const WaitlistPage = memo(function WaitlistPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!email) {
-      toast.error("Please enter your email address");
-      return;
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+    reset,
+  } = useForm<WaitlistFormData>({
+    resolver: zodResolver(waitlistSchema),
+    defaultValues: {
+      email: '',
+      name: ''
     }
-    
+  });
+
+  const onSubmit = useCallback(async (data: WaitlistFormData) => {
     setIsSubmitting(true);
     
     try {
       // Use the centralized waitlist API module
-      await waitlistApi.joinWaitlist({ email, name });
+      await waitlistApi.joinWaitlist(data);
       
       toast.success("You've been added to the waitlist!");
-      setEmail("");
-      setName("");
+      reset();
       setIsSuccess(true);
       
     } catch (error) {
@@ -40,7 +46,7 @@ export default function WaitlistPage() {
     } finally {
       setIsSubmitting(false);
     }
-  };
+  }, [reset]);
   return (
     <main className="min-h-screen bg-gradient-to-b from-white to-gray-50">
       <ScrollToTop/>
@@ -70,7 +76,7 @@ export default function WaitlistPage() {
             </div>
           ) : (
             <div className="bg-white rounded-lg shadow-[0_8px_0_0_#333] border-2 border-[#333] p-6 relative transform hover:-translate-y-1 hover:shadow-[0_12px_0_0_#333] transition-all duration-200 max-w-md mx-auto">
-              <form onSubmit={handleSubmit} className="space-y-4">
+              <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
                 <div>
                   <label htmlFor="email" className="block text-sm font-medium font-mono text-gray-700 mb-1">
                     Email Address <span className="text-red-500">*</span>
@@ -79,11 +85,14 @@ export default function WaitlistPage() {
                     id="email"
                     type="email"
                     placeholder="your.email@example.com"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    required
-                    className="w-full border-2 border-[#333] shadow-[0_2px_0_0_#333] font-mono"
+                    {...register("email")}
+                    className={`w-full border-2 border-[#333] shadow-[0_2px_0_0_#333] font-mono ${
+                      errors.email ? 'border-red-500' : ''
+                    }`}
                   />
+                  {errors.email && (
+                    <p className="mt-1 text-sm text-red-600 font-mono">{errors.email.message}</p>
+                  )}
                 </div>
                 
                 <div>
@@ -94,10 +103,14 @@ export default function WaitlistPage() {
                     id="name"
                     type="text"
                     placeholder="Your Name"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    className="w-full border-2 border-[#333] shadow-[0_2px_0_0_#333] font-mono"
+                    {...register("name")}
+                    className={`w-full border-2 border-[#333] shadow-[0_2px_0_0_#333] font-mono ${
+                      errors.name ? 'border-red-500' : ''
+                    }`}
                   />
+                  {errors.name && (
+                    <p className="mt-1 text-sm text-red-600 font-mono">{errors.name.message}</p>
+                  )}
                 </div>
                 
                 <Button 
@@ -115,4 +128,6 @@ export default function WaitlistPage() {
       <FooterSection />
     </main>
   );
-}
+});
+
+export default WaitlistPage;

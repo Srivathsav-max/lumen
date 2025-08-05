@@ -1,6 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { forgotPasswordSchema, type ForgotPasswordFormData } from "@/lib/validation-schemas";
+import { useState, memo, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import Link from "next/link";
@@ -9,30 +12,25 @@ import "@/styles/sketchy-elements.css";
 import { useRouter } from "next/navigation";
 import * as api from "./api";
 
-export default function ForgotPasswordPage() {
-  const [email, setEmail] = useState("");
+const ForgotPasswordPage = memo(function ForgotPasswordPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [requestSent, setRequestSent] = useState(false);
   const router = useRouter();
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!email) {
-      toast.error("Please enter your email address");
-      return;
-    }
-    
-    // Simple email validation
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      toast.error("Please enter a valid email address");
-      return;
-    }
-    
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+    getValues,
+  } = useForm<ForgotPasswordFormData>({
+    resolver: zodResolver(forgotPasswordSchema),
+  });
+
+  const onSubmit = useCallback(async (data: ForgotPasswordFormData) => {
     setIsSubmitting(true);
     
     try {
-      const message = await api.requestPasswordReset(email);
+      const message = await api.requestPasswordReset(data.email);
       toast.success(message || "Password reset instructions sent to your email");
       setRequestSent(true);
     } catch (error) {
@@ -41,7 +39,7 @@ export default function ForgotPasswordPage() {
     } finally {
       setIsSubmitting(false);
     }
-  };
+  }, []);
 
   return (
     <div className="flex min-h-screen flex-col items-center justify-center p-4 sm:p-6 lg:p-8 relative overflow-hidden sketchy-black-bg">
@@ -76,7 +74,7 @@ export default function ForgotPasswordPage() {
               </div>
               <h3 className="text-xl font-mono font-medium text-[#333]">Check Your Email</h3>
               <p className="text-gray-600 font-mono">
-                We&apos;ve sent password reset instructions to <span className="font-semibold">{email}</span>
+                We&apos;ve sent password reset instructions to <span className="font-semibold">{getValues('email')}</span>
               </p>
               <p className="text-gray-600 font-mono text-sm">
                 If you don&apos;t see the email in your inbox, check your spam folder.
@@ -91,7 +89,7 @@ export default function ForgotPasswordPage() {
               </div>
             </div>
           ) : (
-            <form className="space-y-6" onSubmit={handleSubmit}>
+            <form className="space-y-6" onSubmit={handleSubmit(onSubmit)}>
               <div>
                 <label
                   htmlFor="email"
@@ -102,15 +100,17 @@ export default function ForgotPasswordPage() {
                 <div className="mt-1 relative">
                   <Input
                     id="email"
-                    name="email"
                     type="email"
                     autoComplete="email"
-                    required
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    className="block w-full rounded-md border-2 border-[#333] shadow-[0_4px_0_0_#333] focus:shadow-[0_6px_0_0_#333] focus:border-[#333] transition-all duration-200 font-mono text-lg bg-white hover:bg-[#fafafa]"
+                    {...register("email")}
+                    className={`block w-full rounded-md border-2 shadow-[0_4px_0_0_#333] focus:shadow-[0_6px_0_0_#333] transition-all duration-200 font-mono text-lg bg-white hover:bg-[#fafafa] ${
+                      errors.email ? 'border-red-500' : 'border-[#333] focus:border-[#333]'
+                    }`}
                     placeholder="you@example.com"
                   />
+                  {errors.email && (
+                    <p className="mt-1 text-sm text-red-600 font-mono">{errors.email.message}</p>
+                  )}
                 </div>
                 <p className="mt-2 text-sm text-gray-500 font-mono">
                   We&apos;ll send a password reset link to this email
@@ -139,4 +139,6 @@ export default function ForgotPasswordPage() {
       </div>
     </div>
   );
-}
+});
+
+export default ForgotPasswordPage;

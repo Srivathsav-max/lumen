@@ -3,41 +3,46 @@
 import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { useState } from "react";
+import { useState, memo, useCallback, useMemo } from "react";
 import { useRouter } from "next/navigation";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { profileUpdateSchema, type ProfileUpdateFormData } from "@/lib/validation-schemas";
 import { User, Edit, Save, X, Mail, AtSign, Key, User as UserIcon, Shield, Code, Star } from "lucide-react";
 import { toast } from "@/providers/notification-provider";
 import * as profileApi from "./api";
 
-export default function ProfilePage() {
+const ProfilePage = memo(function ProfilePage() {
   const { user, updateProfile } = useAuth();
   const router = useRouter();
   const [isEditing, setIsEditing] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [formData, setFormData] = useState({
-    first_name: user?.first_name || "",
-    last_name: user?.last_name || "",
-    username: user?.username || "",
-    email: user?.email || "",
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+    reset,
+    setValue,
+  } = useForm<ProfileUpdateFormData>({
+    resolver: zodResolver(profileUpdateSchema),
+    defaultValues: {
+      first_name: user?.first_name || "",
+      last_name: user?.last_name || "",
+      username: user?.username || "",
+      email: user?.email || "",
+    },
   });
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
-  };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+
+  const onSubmit = useCallback(async (data: ProfileUpdateFormData) => {
     setIsSubmitting(true);
     
     try {
       // Use the centralized profile API instead of auth context
-      await profileApi.updateUserProfile(formData);
+      await profileApi.updateUserProfile(data);
       // Update the user in auth context
-      updateProfile(formData);
+      updateProfile(data);
       toast.success("Profile updated successfully");
       setIsEditing(false);
     } catch (error) {
@@ -45,7 +50,7 @@ export default function ProfilePage() {
     } finally {
       setIsSubmitting(false);
     }
-  };
+  }, [updateProfile]);
 
   return (
     <div className="space-y-6">
@@ -132,7 +137,7 @@ export default function ProfilePage() {
           Profile Information
         </h2>
         
-        <form onSubmit={handleSubmit} className="space-y-6">
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
               <label
@@ -146,14 +151,17 @@ export default function ProfilePage() {
                   <UserIcon className="h-5 w-5 text-gray-400" />
                 </div>
                 <Input
+                  {...register("first_name")}
                   id="first_name"
-                  name="first_name"
                   type="text"
-                  value={isEditing ? formData.first_name : user?.first_name || ""}
-                  onChange={handleChange}
                   disabled={!isEditing}
-                  className="pl-10 block w-full rounded-md border-2 border-[#333] shadow-[0_4px_0_0_#333] focus:shadow-[0_6px_0_0_#333] focus:border-[#333] transition-all duration-200 font-mono text-lg bg-white hover:bg-[#fafafa]"
+                  className={`pl-10 block w-full rounded-md border-2 border-[#333] shadow-[0_4px_0_0_#333] focus:shadow-[0_6px_0_0_#333] focus:border-[#333] transition-all duration-200 font-mono text-lg bg-white hover:bg-[#fafafa] ${
+                    errors.first_name ? 'border-red-500' : ''
+                  }`}
                 />
+                {errors.first_name && (
+                  <p className="mt-1 text-sm text-red-600 font-mono">{errors.first_name.message}</p>
+                )}
               </div>
             </div>
             
@@ -169,14 +177,17 @@ export default function ProfilePage() {
                   <UserIcon className="h-5 w-5 text-gray-400" />
                 </div>
                 <Input
+                  {...register("last_name")}
                   id="last_name"
-                  name="last_name"
                   type="text"
-                  value={isEditing ? formData.last_name : user?.last_name || ""}
-                  onChange={handleChange}
                   disabled={!isEditing}
-                  className="pl-10 block w-full rounded-md border-2 border-[#333] shadow-[0_4px_0_0_#333] focus:shadow-[0_6px_0_0_#333] focus:border-[#333] transition-all duration-200 font-mono text-lg bg-white hover:bg-[#fafafa]"
+                  className={`pl-10 block w-full rounded-md border-2 border-[#333] shadow-[0_4px_0_0_#333] focus:shadow-[0_6px_0_0_#333] focus:border-[#333] transition-all duration-200 font-mono text-lg bg-white hover:bg-[#fafafa] ${
+                    errors.last_name ? 'border-red-500' : ''
+                  }`}
                 />
+                {errors.last_name && (
+                  <p className="mt-1 text-sm text-red-600 font-mono">{errors.last_name.message}</p>
+                )}
               </div>
             </div>
             
@@ -192,14 +203,17 @@ export default function ProfilePage() {
                   <AtSign className="h-5 w-5 text-gray-400" />
                 </div>
                 <Input
+                  {...register("username")}
                   id="username"
-                  name="username"
                   type="text"
-                  value={isEditing ? formData.username : user?.username || ""}
-                  onChange={handleChange}
                   disabled={!isEditing}
-                  className="pl-10 block w-full rounded-md border-2 border-[#333] shadow-[0_4px_0_0_#333] focus:shadow-[0_6px_0_0_#333] focus:border-[#333] transition-all duration-200 font-mono text-lg bg-white hover:bg-[#fafafa]"
+                  className={`pl-10 block w-full rounded-md border-2 border-[#333] shadow-[0_4px_0_0_#333] focus:shadow-[0_6px_0_0_#333] focus:border-[#333] transition-all duration-200 font-mono text-lg bg-white hover:bg-[#fafafa] ${
+                    errors.username ? 'border-red-500' : ''
+                  }`}
                 />
+                {errors.username && (
+                  <p className="mt-1 text-sm text-red-600 font-mono">{errors.username.message}</p>
+                )}
               </div>
             </div>
             
@@ -215,14 +229,17 @@ export default function ProfilePage() {
                   <Mail className="h-5 w-5 text-gray-400" />
                 </div>
                 <Input
+                  {...register("email")}
                   id="email"
-                  name="email"
                   type="email"
-                  value={isEditing ? formData.email : user?.email || ""}
-                  onChange={handleChange}
                   disabled={!isEditing}
-                  className="pl-10 block w-full rounded-md border-2 border-[#333] shadow-[0_4px_0_0_#333] focus:shadow-[0_6px_0_0_#333] focus:border-[#333] transition-all duration-200 font-mono text-lg bg-white hover:bg-[#fafafa]"
+                  className={`pl-10 block w-full rounded-md border-2 border-[#333] shadow-[0_4px_0_0_#333] focus:shadow-[0_6px_0_0_#333] focus:border-[#333] transition-all duration-200 font-mono text-lg bg-white hover:bg-[#fafafa] ${
+                    errors.email ? 'border-red-500' : ''
+                  }`}
                 />
+                {errors.email && (
+                  <p className="mt-1 text-sm text-red-600 font-mono">{errors.email.message}</p>
+                )}
               </div>
             </div>
           </div>
@@ -296,4 +313,6 @@ export default function ProfilePage() {
       </div>
     </div>
   );
-}
+});
+
+export default ProfilePage;

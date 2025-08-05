@@ -37,14 +37,14 @@ export async function handleLogin(
     // Log the data for debugging
     console.log('Login handler - login data:', data);
     
-    // Update state
+    // Update state first
     setToken(data.token);
     setUser(data.user);
     setLastValidated(Date.now());
-    toast.success('Login successful');
     
     // Check maintenance status
     const isMaintenanceActive = await loginApi.isInMaintenanceMode();
+    console.log('Maintenance mode status:', isMaintenanceActive);
     
     // Determine if user can bypass maintenance mode
     const canBypassMaintenance = 
@@ -54,21 +54,19 @@ export async function handleLogin(
         data.user.roles.includes('developer')
       ));
     
+    // Show success message
+    toast.success('Login successful');
+    
     // Redirect based on user role and maintenance status
-    setTimeout(() => {
-      // If maintenance is active and user cannot bypass, redirect to maintenance page
-      if (isMaintenanceActive && !canBypassMaintenance) {
-        router.push('/maintenance');
-        toast.info('System is currently in maintenance mode. Only administrators can access the dashboard.');
-      } else {
-        // Normal login flow - redirect based on user role
-        if (data.user.is_admin) {
-          router.push('/dashboard');
-        } else {
-          router.push('/dashboard/user');
-        }
-      }
-    }, 300);
+    if (isMaintenanceActive && !canBypassMaintenance) {
+      console.log('Redirecting to maintenance page');
+      router.replace('/maintenance');
+      toast.info('System is currently in maintenance mode. Only administrators can access the dashboard.');
+    } else {
+      // Normal login flow - all users go to main dashboard
+      console.log('Redirecting to dashboard, user:', data.user.username);
+      router.replace('/dashboard');
+    }
   } catch (error) {
     toast.error(error instanceof Error ? error.message : 'Login failed');
     throw error;

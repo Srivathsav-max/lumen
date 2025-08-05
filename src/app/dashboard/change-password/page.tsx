@@ -1,6 +1,9 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, memo } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { changePasswordSchema, type ChangePasswordFormData } from "@/lib/validation-schemas";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "@/providers/notification-provider";
@@ -23,7 +26,6 @@ function OtpInput({ value, onChange, length = 6 }: { value: string; onChange: (v
     }
   }, [length]);
   
-  // When value changes externally, focus on the appropriate input
   useEffect(() => {
     const valueLength = value.length;
     if (valueLength < length && inputRefs.current[valueLength]) {
@@ -36,11 +38,9 @@ function OtpInput({ value, onChange, length = 6 }: { value: string; onChange: (v
     
     
     if (val.length > 1) {
-      // If pasting multiple digits, distribute them across inputs
       const digits = val.split('').filter(char => /\d/.test(char));
       const newOtp = [...value.split('')]; 
       
-      // Fill current and subsequent inputs
       for (let i = 0; i < digits.length && index + i < length; i++) {
         newOtp[index + i] = digits[i];
       }
@@ -48,7 +48,6 @@ function OtpInput({ value, onChange, length = 6 }: { value: string; onChange: (v
       const newValue = newOtp.join('');
       onChange(newValue);
       
-      // Focus appropriate input after paste
       const nextIndex = Math.min(index + digits.length, length - 1);
       const nextInput = inputRefs.current[nextIndex];
       if (nextInput) {
@@ -145,10 +144,7 @@ function OtpInput({ value, onChange, length = 6 }: { value: string; onChange: (v
   );
 }
 
-export default function ChangePasswordPage() {
-  const [currentPassword, setCurrentPassword] = useState("");
-  const [newPassword, setNewPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
+const ChangePasswordPage = memo(function ChangePasswordPage() {
   const [otp, setOtp] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isRequestingOtp, setIsRequestingOtp] = useState(false);
@@ -156,7 +152,20 @@ export default function ChangePasswordPage() {
   
   const router = useRouter();
   
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+    watch,
+    reset,
+    getValues
+  } = useForm<ChangePasswordFormData>({
+    resolver: zodResolver(changePasswordSchema),
+  });
+  
   const requestOtp = async () => {
+    const { currentPassword, newPassword, confirmPassword } = getValues();
+    
     if (!currentPassword || !newPassword || !confirmPassword) {
       toast.error("Please fill in all password fields first");
       return;
@@ -192,39 +201,23 @@ export default function ChangePasswordPage() {
     }
   };
   
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!currentPassword || !newPassword || !confirmPassword || !otp) {
-      toast.error("Please fill in all fields including OTP");
-      return;
-    }
-    
-    // Validate password strength
-    if (newPassword.length < 8) {
-      toast.error("New password must be at least 8 characters long");
-      return;
-    }
-    
-    // Validate passwords match
-    if (newPassword !== confirmPassword) {
-      toast.error("New passwords do not match");
+  const onSubmit = async (data: ChangePasswordFormData) => {
+    if (!otp) {
+      toast.error("Please enter the OTP");
       return;
     }
     
     setIsSubmitting(true);
     
     try {
-      const message = await api.changePassword(currentPassword, newPassword, otp);
+      const message = await api.changePassword(data.currentPassword, data.newPassword, otp);
       toast.success(message || "Password has been changed successfully");
       
       // Close the OTP dialog if it's open
       setOtpDialogOpen(false);
       
       // Reset form state
-      setCurrentPassword("");
-      setNewPassword("");
-      setConfirmPassword("");
+      reset();
       setOtp("");
       
       // Redirect back to profile after successful password change
@@ -308,11 +301,7 @@ export default function ChangePasswordPage() {
                 Cancel
               </Button>
               <Button 
-                type="button" 
-                onClick={(e) => {
-                  e.preventDefault();
-                  handleSubmit(e as React.FormEvent);
-                }}
+                type="submit"
                 disabled={otp.length !== 6 || isSubmitting}
                 className="flex-1 font-mono border-2 border-[#333] shadow-[0_4px_0_0_#333] bg-blue-500 hover:bg-blue-600 text-white transform hover:-translate-y-1 hover:shadow-[0_6px_0_0_#333] transition-all duration-200"
               >
@@ -342,47 +331,53 @@ export default function ChangePasswordPage() {
             </div>
           </div>
           
-          <form onSubmit={(e) => e.preventDefault()} className="space-y-6">
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
             <div>
               <p className="text-sm text-gray-500 font-mono mb-1">Current Password</p>
               <Input
                 id="current-password"
-                name="current-password"
                 type="password"
-                required
-                value={currentPassword}
-                onChange={(e) => setCurrentPassword(e.target.value)}
-                className="w-full border-2 border-[#333] rounded-md p-2 font-mono focus:outline-none focus:ring-2 focus:ring-blue-300 focus:border-blue-500"
+                {...register("currentPassword")}
+                className={`w-full border-2 border-[#333] rounded-md p-2 font-mono focus:outline-none focus:ring-2 focus:ring-blue-300 focus:border-blue-500 ${
+                  errors.currentPassword ? "border-red-500" : ""
+                }`}
                 placeholder="Enter your current password"
               />
+              {errors.currentPassword && (
+                <p className="mt-1 text-sm text-red-600 font-mono">{errors.currentPassword.message}</p>
+              )}
             </div>
 
             <div>
               <p className="text-sm text-gray-500 font-mono mb-1">New Password</p>
               <Input
                 id="new-password"
-                name="new-password"
                 type="password"
-                required
-                value={newPassword}
-                onChange={(e) => setNewPassword(e.target.value)}
-                className="w-full border-2 border-[#333] rounded-md p-2 font-mono focus:outline-none focus:ring-2 focus:ring-blue-300 focus:border-blue-500"
+                {...register("newPassword")}
+                className={`w-full border-2 border-[#333] rounded-md p-2 font-mono focus:outline-none focus:ring-2 focus:ring-blue-300 focus:border-blue-500 ${
+                  errors.newPassword ? "border-red-500" : ""
+                }`}
                 placeholder="Enter your new password"
               />
+              {errors.newPassword && (
+                <p className="mt-1 text-sm text-red-600 font-mono">{errors.newPassword.message}</p>
+              )}
             </div>
 
             <div>
               <p className="text-sm text-gray-500 font-mono mb-1">Confirm New Password</p>
               <Input
                 id="confirm-password"
-                name="confirm-password"
                 type="password"
-                required
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                className="w-full border-2 border-[#333] rounded-md p-2 font-mono focus:outline-none focus:ring-2 focus:ring-blue-300 focus:border-blue-500"
+                {...register("confirmPassword")}
+                className={`w-full border-2 border-[#333] rounded-md p-2 font-mono focus:outline-none focus:ring-2 focus:ring-blue-300 focus:border-blue-500 ${
+                  errors.confirmPassword ? "border-red-500" : ""
+                }`}
                 placeholder="Confirm your new password"
               />
+              {errors.confirmPassword && (
+                <p className="mt-1 text-sm text-red-600 font-mono">{errors.confirmPassword.message}</p>
+              )}
             </div>
             
             <div className="flex items-center text-sm text-amber-600 font-mono mt-2">
@@ -401,7 +396,7 @@ export default function ChangePasswordPage() {
               <Button
                 type="button"
                 onClick={requestOtp}
-                disabled={isRequestingOtp || !currentPassword || !newPassword || !confirmPassword || newPassword !== confirmPassword || newPassword.length < 8}
+                disabled={isRequestingOtp || Object.keys(errors).length > 0 || !watch("currentPassword") || !watch("newPassword") || !watch("confirmPassword")}
                 className="font-mono border-2 border-[#333] shadow-[0_4px_0_0_#333] bg-blue-500 hover:bg-blue-600 text-white transform hover:-translate-y-1 hover:shadow-[0_6px_0_0_#333] transition-all duration-200"
               >
                 {isRequestingOtp ? (
@@ -422,4 +417,6 @@ export default function ChangePasswordPage() {
       </div>
     </div>
   );
-}
+});
+
+export default ChangePasswordPage;

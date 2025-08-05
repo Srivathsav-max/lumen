@@ -1,6 +1,9 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { emailVerificationRequestSchema, type EmailVerificationRequestFormData } from "@/lib/validation-schemas";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import Link from "next/link";
@@ -14,9 +17,21 @@ export default function VerifyEmailClient() {
   const [verificationComplete, setVerificationComplete] = useState(false);
   const [verificationFailed, setVerificationFailed] = useState(false);
   const [token, setToken] = useState("");
-  const [email, setEmail] = useState("");
   const [isRequesting, setIsRequesting] = useState(false);
   const [requestSent, setRequestSent] = useState(false);
+  const [submittedEmail, setSubmittedEmail] = useState("");
+
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+    watch,
+  } = useForm<EmailVerificationRequestFormData>({
+    resolver: zodResolver(emailVerificationRequestSchema),
+    defaultValues: {
+      email: ''
+    }
+  });
   
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -46,25 +61,13 @@ export default function VerifyEmailClient() {
     }
   };
 
-  const handleRequestVerification = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!email) {
-      toast.error("Please enter your email address");
-      return;
-    }
-    
-    // Simple email validation
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      toast.error("Please enter a valid email address");
-      return;
-    }
-    
+  const onSubmitVerificationRequest = async (data: EmailVerificationRequestFormData) => {
     setIsRequesting(true);
     
     try {
-      const message = await api.requestVerification(email);
+      const message = await api.requestVerification(data.email);
       toast.success(message || "Verification email sent");
+      setSubmittedEmail(data.email);
       setRequestSent(true);
     } catch (error) {
       console.error('Request verification error:', error);
@@ -144,7 +147,7 @@ export default function VerifyEmailClient() {
                   </div>
                   <h3 className="text-xl font-mono font-medium text-[#333]">Verification Email Sent</h3>
                   <p className="text-gray-600 font-mono">
-                    We&apos;ve sent a new verification email to <span className="font-semibold">{email}</span>
+                    We&apos;ve sent a new verification email to <span className="font-semibold">{submittedEmail}</span>
                   </p>
                   <p className="text-gray-600 font-mono text-sm">
                     If you don&apos;t see the email in your inbox, check your spam folder.
@@ -159,7 +162,7 @@ export default function VerifyEmailClient() {
                   </div>
                 </div>
               ) : (
-                <form className="space-y-6" onSubmit={handleRequestVerification}>
+                <form className="space-y-6" onSubmit={handleSubmit(onSubmitVerificationRequest)}>
                   <div>
                     <label
                       htmlFor="email"
@@ -170,16 +173,18 @@ export default function VerifyEmailClient() {
                     <div className="mt-1 relative">
                       <Input
                         id="email"
-                        name="email"
                         type="email"
                         autoComplete="email"
-                        required
-                        value={email}
-                        onChange={(e) => setEmail(e.target.value)}
-                        className="block w-full rounded-md border-2 border-[#333] shadow-[0_4px_0_0_#333] focus:shadow-[0_6px_0_0_#333] focus:border-[#333] transition-all duration-200 font-mono text-lg bg-white hover:bg-[#fafafa]"
+                        {...register("email")}
+                        className={`block w-full rounded-md border-2 border-[#333] shadow-[0_4px_0_0_#333] focus:shadow-[0_6px_0_0_#333] focus:border-[#333] transition-all duration-200 font-mono text-lg bg-white hover:bg-[#fafafa] ${
+                          errors.email ? 'border-red-500' : ''
+                        }`}
                         placeholder="you@example.com"
                       />
                     </div>
+                    {errors.email && (
+                      <p className="mt-1 text-sm text-red-600 font-mono">{errors.email.message}</p>
+                    )}
                     <p className="mt-2 text-sm text-gray-500 font-mono">
                       Enter your email to request a new verification link
                     </p>
@@ -235,7 +240,7 @@ export default function VerifyEmailClient() {
                   </div>
                   <h3 className="text-xl font-mono font-medium text-[#333]">Verification Email Sent</h3>
                   <p className="text-gray-600 font-mono">
-                    We&apos;ve sent a verification email to <span className="font-semibold">{email}</span>
+                    We&apos;ve sent a verification email to <span className="font-semibold">{submittedEmail}</span>
                   </p>
                   <p className="text-gray-600 font-mono text-sm">
                     If you don&apos;t see the email in your inbox, check your spam folder.
@@ -250,7 +255,7 @@ export default function VerifyEmailClient() {
                   </div>
                 </div>
               ) : (
-                <form className="space-y-6" onSubmit={handleRequestVerification}>
+                <form className="space-y-6" onSubmit={handleSubmit(onSubmitVerificationRequest)}>
                   <div>
                     <label
                       htmlFor="email"
@@ -261,16 +266,18 @@ export default function VerifyEmailClient() {
                     <div className="mt-1 relative">
                       <Input
                         id="email"
-                        name="email"
                         type="email"
                         autoComplete="email"
-                        required
-                        value={email}
-                        onChange={(e) => setEmail(e.target.value)}
-                        className="block w-full rounded-md border-2 border-[#333] shadow-[0_4px_0_0_#333] focus:shadow-[0_6px_0_0_#333] focus:border-[#333] transition-all duration-200 font-mono text-lg bg-white hover:bg-[#fafafa]"
+                        {...register("email")}
+                        className={`block w-full rounded-md border-2 border-[#333] shadow-[0_4px_0_0_#333] focus:shadow-[0_6px_0_0_#333] focus:border-[#333] transition-all duration-200 font-mono text-lg bg-white hover:bg-[#fafafa] ${
+                          errors.email ? 'border-red-500' : ''
+                        }`}
                         placeholder="you@example.com"
                       />
                     </div>
+                    {errors.email && (
+                      <p className="mt-1 text-sm text-red-600 font-mono">{errors.email.message}</p>
+                    )}
                     <p className="mt-2 text-sm text-gray-500 font-mono">
                       Enter your email to request a verification link
                     </p>

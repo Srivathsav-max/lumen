@@ -41,6 +41,10 @@ export async function isInMaintenanceMode() {
  * Login with email and password
  */
 export async function login(email: string, password: string) {
+  console.log('=== LOGIN API CALL ===');
+  console.log('Endpoint:', ENDPOINTS.LOGIN);
+  console.log('Email:', email);
+  
   const response = await api.post<{ 
     token: string; 
     user: User; 
@@ -54,7 +58,10 @@ export async function login(email: string, password: string) {
     { requiresAuth: false }
   );
   
+  console.log('Login API response:', response);
+  
   if (response.error) {
+    console.error('Login API error:', response.error);
     throw new Error(response.error);
   }
   
@@ -62,19 +69,24 @@ export async function login(email: string, password: string) {
   const { token, user, permanent_token, expires_at } = response.data;
   
   // Log the response structure for debugging
-  console.log('Login response:', response.data);
+  console.log('Login response data:', response.data);
+  console.log('User:', user);
+  console.log('Token received:', !!token);
   
   // Store auth data in cookies
+  console.log('Setting auth cookies...');
   setAuthCookies(token, user);
   
   // Store permanent token in sessionStorage for token refresh
   // This is safe because it's only used for refreshing the HTTP-only cookie
   // The actual authentication is done with the HTTP-only cookie
   if (permanent_token) {
+    console.log('Storing permanent token in sessionStorage');
     sessionStorage.setItem('permanent_token', permanent_token);
     sessionStorage.setItem('token_expires_at', expires_at.toString());
   }
   
+  console.log('Login API call completed successfully');
   return { token, user, permanent_token, expires_at };
 }
 
@@ -163,8 +175,7 @@ export async function validateToken(token?: string): Promise<boolean> {
       ENDPOINTS.VALIDATE_TOKEN,
       {
         headers: {
-          // Only include Authorization header if we have a token and it's not the dummy HTTP-only token
-          ...(token && token !== 'http-only-cookie' ? { 'Authorization': `Bearer ${token}` } : {}),
+          ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
           'X-CSRF-Token': getCsrfToken() || '',
         },
         // This ensures cookies are sent with the request

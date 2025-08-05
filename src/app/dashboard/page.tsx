@@ -3,6 +3,7 @@
 import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
+import { memo, useMemo } from "react";
 import { 
   BookOpen, 
   BarChart2, 
@@ -15,22 +16,25 @@ import {
   AlertCircle
 } from "lucide-react";
 
-export default function DashboardPage() {
+const DashboardPage = memo(function DashboardPage() {
   const { user } = useAuth();
+  
+  // Debug logging
+  console.log('Dashboard page rendered for user:', user?.username);
 
-  // Mock data for dashboard
-  const stats = [
+  // Mock data for dashboard - memoized for performance
+  const stats = useMemo(() => [
     { label: "Courses Enrolled", value: 5, icon: <BookOpen className="w-5 h-5" />, color: "bg-blue-500" },
     { label: "Completed Courses", value: 2, icon: <CheckCircle className="w-5 h-5" />, color: "bg-green-500" },
     { label: "Upcoming Deadlines", value: 3, icon: <AlertCircle className="w-5 h-5" />, color: "bg-red-500" },
     { label: "Hours Studied", value: 42, icon: <Clock className="w-5 h-5" />, color: "bg-purple-500" },
-  ];
+  ], []);
 
-  const activities = [
+  const activities = useMemo(() => [
     { id: 1, title: "Calculus Quiz", type: "quiz", date: "Today", course: "Advanced Mathematics" },
     { id: 2, title: "Physics Lab Report", type: "assignment", date: "Tomorrow", course: "Physics 101" },
     { id: 3, title: "Literature Essay", type: "assignment", date: "May 10", course: "World Literature" },
-  ];
+  ], []);
 
   return (
     <div className="space-y-6">
@@ -205,4 +209,6 @@ export default function DashboardPage() {
       </div>
     </div>
   );
-}
+});
+
+export default DashboardPage;

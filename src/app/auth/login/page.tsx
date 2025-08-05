@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,36 +10,27 @@ import { toast } from "@/providers/notification-provider";
 import "@/styles/sketchy-elements.css";
 import { useRouter } from "next/navigation";
 import * as loginApi from "./api";
+import { loginSchema, type LoginFormData } from "@/lib/validation-schemas";
+import { memo } from "react";
 
-import SketchyInputDecorator from "@/components/ui/sketchy-input-decorator";
-
-export default function LoginPage() {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [isSubmitting, setIsSubmitting] = useState(false);
+const LoginPage = memo(function LoginPage() {
   const { login } = useAuth();
   const router = useRouter();
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!email || !password) {
-      toast.error("Please fill in all fields");
-      return;
-    }
-    
-    setIsSubmitting(true);
-    
+  const {
+    register,
+    handleSubmit,
+    formState: { errors, isSubmitting },
+  } = useForm<LoginFormData>({
+    resolver: zodResolver(loginSchema),
+  });
+
+  const onSubmit = async (data: LoginFormData) => {
     try {
-      // Use the auth context's login function which handles redirection
-      await login(email, password);
-      
-      // Note: No need to set user or redirect here
-      // The auth provider will handle all of that
+      await login(data.email, data.password);      
     } catch (error) {
       console.error('Login error:', error);
       toast.error(error instanceof Error ? error.message : "Failed to login");
-      setIsSubmitting(false);
     }
   };
 
@@ -68,7 +60,7 @@ export default function LoginPage() {
         </div>
         
         <div className="mt-6 bg-white rounded-lg shadow-[0_8px_0_0_#333] border-2 border-[#333] p-6 relative transform hover:-translate-y-1 hover:shadow-[0_12px_0_0_#333] transition-all duration-200 overflow-y-auto max-h-[70vh]">
-          <form className="space-y-6" onSubmit={handleSubmit}>
+          <form className="space-y-6" onSubmit={handleSubmit(onSubmit)}>
             <div>
               <label
                 htmlFor="email"
@@ -79,16 +71,17 @@ export default function LoginPage() {
               <div className="mt-1 relative">
                 <Input
                   id="email"
-                  name="email"
                   type="email"
                   autoComplete="email"
-                  required
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="block w-full rounded-md border-2 border-[#333] shadow-[0_4px_0_0_#333] focus:shadow-[0_6px_0_0_#333] focus:border-[#333] transition-all duration-200 font-mono text-lg bg-white hover:bg-[#fafafa]"
+                  {...register("email")}
+                  className={`block w-full rounded-md border-2 shadow-[0_4px_0_0_#333] focus:shadow-[0_6px_0_0_#333] transition-all duration-200 font-mono text-lg bg-white hover:bg-[#fafafa] ${
+                    errors.email ? 'border-red-500' : 'border-[#333] focus:border-[#333]'
+                  }`}
                   placeholder="you@example.com"
                 />
-
+                {errors.email && (
+                  <p className="mt-1 text-sm text-red-600 font-mono">{errors.email.message}</p>
+                )}
               </div>
             </div>
 
@@ -102,16 +95,17 @@ export default function LoginPage() {
               <div className="mt-1 relative">
                 <Input
                   id="password"
-                  name="password"
                   type="password"
                   autoComplete="current-password"
-                  required
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="block w-full rounded-md border-2 border-[#333] shadow-[0_4px_0_0_#333] focus:shadow-[0_6px_0_0_#333] focus:border-[#333] transition-all duration-200 font-mono text-lg bg-white hover:bg-[#fafafa]"
+                  {...register("password")}
+                  className={`block w-full rounded-md border-2 shadow-[0_4px_0_0_#333] focus:shadow-[0_6px_0_0_#333] transition-all duration-200 font-mono text-lg bg-white hover:bg-[#fafafa] ${
+                    errors.password ? 'border-red-500' : 'border-[#333] focus:border-[#333]'
+                  }`}
                   placeholder="••••••••"
                 />
-
+                {errors.password && (
+                  <p className="mt-1 text-sm text-red-600 font-mono">{errors.password.message}</p>
+                )}
               </div>
             </div>
 
@@ -163,4 +157,6 @@ export default function LoginPage() {
       </div>
     </div>
   );
-}
+});
+
+export default LoginPage;

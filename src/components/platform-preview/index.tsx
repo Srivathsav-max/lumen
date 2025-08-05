@@ -10,7 +10,6 @@ export function PlatformPreviewSection() {
   const [cursorColors, setCursorColors] = React.useState(['#FF3366', '#FF6B3D']);
   const [cursorTooltip, setCursorTooltip] = React.useState('With this cursor you can interact with dashboard');
 
-  // Color pairs for random selection
   const colorPairs = [
     ['#FF3366', '#FF6B3D'], // Red-Orange
     ['#7C3AED', '#3B82F6'], // Purple-Blue

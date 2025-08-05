@@ -1,6 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, memo, useCallback, useMemo } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { testEmailSchema, type TestEmailFormData } from "@/lib/validation-schemas";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
@@ -13,24 +16,35 @@ import { Input } from "@/components/ui/input";
 // Import the SystemSetting interface from the API
 import { SystemSetting } from './api';
 
-export default function SettingsPage() {
+const SettingsPage = memo(function SettingsPage() {
   const { user } = useAuth();
   const [settings, setSettings] = useState<SystemSetting[]>([]);
   const [loading, setLoading] = useState(true);
   const [updating, setUpdating] = useState(false);
   const [sendingEmail, setSendingEmail] = useState(false);
   const [changingPassword, setChangingPassword] = useState(false);
-  const [testEmail, setTestEmail] = useState({
-    to: '',
-    subject: 'Test Email from Lumen',
-    message: 'This is a test email to verify the email service is working correctly.'
+
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+  } = useForm<TestEmailFormData>({
+    resolver: zodResolver(testEmailSchema),
+    defaultValues: {
+      to: '',
+      subject: 'Test Email from Lumen',
+      message: 'This is a test email to verify the email service is working correctly.'
+    }
   });
   // Password functionality moved to dedicated change-password page
 
   // No longer need to get token from cookies as the API client handles this
 
-  // Check if user is admin or developer
-  const isAdminOrDeveloper = user?.is_admin || user?.roles?.includes('admin') || user?.roles?.includes('developer');
+  // Check if user is admin or developer - memoized for performance
+  const isAdminOrDeveloper = useMemo(() => 
+    user?.is_admin || user?.roles?.includes('admin') || user?.roles?.includes('developer'),
+    [user?.is_admin, user?.roles]
+  );
 
   useEffect(() => {
     if (isAdminOrDeveloper) {
@@ -102,37 +116,14 @@ export default function SettingsPage() {
     }
   };
 
-  const handleTestEmailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    setTestEmail(prev => ({
-      ...prev,
-      [name]: value
-    }));
-  };
+
 
   // Password change functionality moved to dedicated change-password page
 
-  const sendTestEmail = async (): Promise<void> => {
-    // Validate email
-    if (!testEmail.to || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(testEmail.to)) {
-      toast.error('Please enter a valid email address');
-      return;
-    }
-
-    // Validate subject and message
-    if (!testEmail.subject.trim()) {
-      toast.error('Please enter a subject');
-      return;
-    }
-
-    if (!testEmail.message.trim()) {
-      toast.error('Please enter a message');
-      return;
-    }
-
+  const onSubmitTestEmail = async (data: TestEmailFormData) => {
     try {
       setSendingEmail(true);
-      const message = await settingsApi.sendTestEmail(testEmail);
+      const message = await settingsApi.sendTestEmail(data);
       toast.success(message || 'Test email sent successfully');
     } catch (error) {
       console.error('Error sending test email:', error);
@@ -289,7 +280,7 @@ export default function SettingsPage() {
             </div>
           </div>
           
-          <div className="space-y-4">
+          <form onSubmit={handleSubmit(onSubmitTestEmail)} className="space-y-4">
             <div>
               <p className="font-medium font-mono mb-2">Send Test Email</p>
               <div className="space-y-3">
@@ -297,37 +288,46 @@ export default function SettingsPage() {
                   <p className="text-sm text-gray-500 font-mono mb-1">Recipient Email</p>
                   <Input
                     type="email"
-                    name="to"
-                    value={testEmail.to}
-                    onChange={handleTestEmailChange}
+                    {...register("to")}
                     placeholder="recipient@example.com"
-                    className="w-full border-2 border-[#333] rounded-md p-2 font-mono focus:outline-none focus:ring-2 focus:ring-purple-300 focus:border-purple-500"
+                    className={`w-full border-2 border-[#333] rounded-md p-2 font-mono focus:outline-none focus:ring-2 focus:ring-purple-300 focus:border-purple-500 ${
+                      errors.to ? 'border-red-500' : ''
+                    }`}
                   />
+                  {errors.to && (
+                    <p className="mt-1 text-sm text-red-600 font-mono">{errors.to.message}</p>
+                  )}
                 </div>
                 <div>
                   <p className="text-sm text-gray-500 font-mono mb-1">Subject</p>
                   <Input
                     type="text"
-                    name="subject"
-                    value={testEmail.subject}
-                    onChange={handleTestEmailChange}
+                    {...register("subject")}
                     placeholder="Test Email Subject"
-                    className="w-full border-2 border-[#333] rounded-md p-2 font-mono focus:outline-none focus:ring-2 focus:ring-purple-300 focus:border-purple-500"
+                    className={`w-full border-2 border-[#333] rounded-md p-2 font-mono focus:outline-none focus:ring-2 focus:ring-purple-300 focus:border-purple-500 ${
+                      errors.subject ? 'border-red-500' : ''
+                    }`}
                   />
+                  {errors.subject && (
+                    <p className="mt-1 text-sm text-red-600 font-mono">{errors.subject.message}</p>
+                  )}
                 </div>
                 <div>
                   <p className="text-sm text-gray-500 font-mono mb-1">Message</p>
                   <Input
                     type="text"
-                    name="message"
-                    value={testEmail.message}
-                    onChange={handleTestEmailChange}
+                    {...register("message")}
                     placeholder="Test email message"
-                    className="w-full border-2 border-[#333] rounded-md p-2 font-mono focus:outline-none focus:ring-2 focus:ring-purple-300 focus:border-purple-500"
+                    className={`w-full border-2 border-[#333] rounded-md p-2 font-mono focus:outline-none focus:ring-2 focus:ring-purple-300 focus:border-purple-500 ${
+                      errors.message ? 'border-red-500' : ''
+                    }`}
                   />
+                  {errors.message && (
+                    <p className="mt-1 text-sm text-red-600 font-mono">{errors.message.message}</p>
+                  )}
                 </div>
                 <Button
-                  onClick={sendTestEmail}
+                  type="submit"
                   disabled={sendingEmail}
                   className="w-full font-mono border-2 border-[#333] shadow-[0_4px_0_0_#333] bg-purple-500 hover:bg-purple-600 text-white transform hover:-translate-y-1 hover:shadow-[0_6px_0_0_#333] transition-all duration-200"
                 >
@@ -335,14 +335,16 @@ export default function SettingsPage() {
                 </Button>
               </div>
             </div>
+          </form>
             
             <div className="flex items-center text-sm text-amber-600 font-mono">
               <AlertCircle className="h-4 w-4 mr-2" />
               <span>This will send a real email to the specified address</span>
             </div>
-          </div>
         </div>
       </div>
     </div>
   );
-}
+});
+
+export default SettingsPage;

@@ -1,6 +1,9 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, memo, useCallback } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { resetPasswordSchema, type ResetPasswordFormData } from "@/lib/validation-schemas";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import Link from "next/link";
@@ -9,13 +12,19 @@ import "@/styles/sketchy-elements.css";
 import { useRouter, useSearchParams } from "next/navigation";
 import * as api from "./api";
 
-export default function ResetPasswordClient() {
-  const [newPassword, setNewPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
+const ResetPasswordClient = memo(function ResetPasswordClient() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [resetComplete, setResetComplete] = useState(false);
   const [token, setToken] = useState("");
   const [tokenValid, setTokenValid] = useState(true);
+
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+  } = useForm<ResetPasswordFormData>({
+    resolver: zodResolver(resetPasswordSchema),
+  });
   
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -31,30 +40,11 @@ export default function ResetPasswordClient() {
     }
   }, [searchParams]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!newPassword || !confirmPassword) {
-      toast.error("Please fill in all fields");
-      return;
-    }
-    
-    // Validate password strength
-    if (newPassword.length < 8) {
-      toast.error("Password must be at least 8 characters long");
-      return;
-    }
-    
-    // Validate passwords match
-    if (newPassword !== confirmPassword) {
-      toast.error("Passwords do not match");
-      return;
-    }
-    
+  const onSubmit = useCallback(async (data: ResetPasswordFormData) => {
     setIsSubmitting(true);
     
     try {
-      const message = await api.resetPassword(token, newPassword);
+      const message = await api.resetPassword(token, data.password);
       toast.success(message || "Password has been reset successfully");
       setResetComplete(true);
     } catch (error) {
@@ -63,7 +53,7 @@ export default function ResetPasswordClient() {
     } finally {
       setIsSubmitting(false);
     }
-  };
+  }, [token]);
 
   return (
     <div className="flex min-h-screen flex-col items-center justify-center p-4 sm:p-6 lg:p-8 relative overflow-hidden sketchy-black-bg">
@@ -123,7 +113,7 @@ export default function ResetPasswordClient() {
               </div>
             </div>
           ) : (
-            <form className="space-y-6" onSubmit={handleSubmit}>
+            <form className="space-y-6" onSubmit={handleSubmit(onSubmit)}>
               <div>
                 <label
                   htmlFor="new-password"
@@ -134,14 +124,16 @@ export default function ResetPasswordClient() {
                 <div className="mt-1 relative">
                   <Input
                     id="new-password"
-                    name="new-password"
                     type="password"
-                    required
-                    value={newPassword}
-                    onChange={(e) => setNewPassword(e.target.value)}
-                    className="block w-full rounded-md border-2 border-[#333] shadow-[0_4px_0_0_#333] focus:shadow-[0_6px_0_0_#333] focus:border-[#333] transition-all duration-200 font-mono text-lg bg-white hover:bg-[#fafafa]"
+                    {...register("password")}
+                    className={`block w-full rounded-md border-2 shadow-[0_4px_0_0_#333] focus:shadow-[0_6px_0_0_#333] transition-all duration-200 font-mono text-lg bg-white hover:bg-[#fafafa] ${
+                      errors.password ? 'border-red-500' : 'border-[#333] focus:border-[#333]'
+                    }`}
                     placeholder="••••••••"
                   />
+                  {errors.password && (
+                    <p className="mt-1 text-sm text-red-600 font-mono">{errors.password.message}</p>
+                  )}
                 </div>
                 <p className="mt-2 text-sm text-gray-500 font-mono">
                   At least 8 characters
@@ -158,14 +150,16 @@ export default function ResetPasswordClient() {
                 <div className="mt-1 relative">
                   <Input
                     id="confirm-password"
-                    name="confirm-password"
                     type="password"
-                    required
-                    value={confirmPassword}
-                    onChange={(e) => setConfirmPassword(e.target.value)}
-                    className="block w-full rounded-md border-2 border-[#333] shadow-[0_4px_0_0_#333] focus:shadow-[0_6px_0_0_#333] focus:border-[#333] transition-all duration-200 font-mono text-lg bg-white hover:bg-[#fafafa]"
+                    {...register("confirmPassword")}
+                    className={`block w-full rounded-md border-2 shadow-[0_4px_0_0_#333] focus:shadow-[0_6px_0_0_#333] transition-all duration-200 font-mono text-lg bg-white hover:bg-[#fafafa] ${
+                      errors.confirmPassword ? 'border-red-500' : 'border-[#333] focus:border-[#333]'
+                    }`}
                     placeholder="••••••••"
                   />
+                  {errors.confirmPassword && (
+                    <p className="mt-1 text-sm text-red-600 font-mono">{errors.confirmPassword.message}</p>
+                  )}
                 </div>
               </div>
 
@@ -191,4 +185,6 @@ export default function ResetPasswordClient() {
       </div>
     </div>
   );
-}
+});
+
+export default ResetPasswordClient;

@@ -1,6 +1,8 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, memo, useCallback } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,89 +12,54 @@ import { AlertTriangle } from "lucide-react";
 import "@/styles/sketchy-elements.css";
 import { useRouter } from "next/navigation";
 import * as registerApi from "./api";
+import { registerSchema, type RegisterFormData } from "@/lib/validation-schemas";
 
 import SketchyInputDecorator from "@/components/ui/sketchy-input-decorator";
 
-export default function RegisterPage() {
-  const [formData, setFormData] = useState({
-    username: "",
-    email: "",
-    password: "",
-    confirmPassword: "",
-    first_name: "",
-    last_name: "",
-  });
-  const [isSubmitting, setIsSubmitting] = useState(false);
+const RegisterPage = memo(function RegisterPage() {
   const [registrationEnabled, setRegistrationEnabled] = useState<boolean | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const { setUser } = useAuth();
   const router = useRouter();
+
+  const {
+    register,
+    handleSubmit,
+    formState: { errors, isSubmitting },
+  } = useForm<RegisterFormData>({
+    resolver: zodResolver(registerSchema),
+  });
   
   // Check if registration is enabled when the page loads
-  useEffect(() => {
-    const checkRegistrationStatus = async () => {
-      try {
-        const enabled = await registerApi.isRegistrationEnabled();
-        setRegistrationEnabled(enabled);
-      } catch (error) {
-        console.error('Error checking registration status:', error);
-        setRegistrationEnabled(false); // Default to disabled on error
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    
-    checkRegistrationStatus();
+  const checkRegistrationStatus = useCallback(async () => {
+    try {
+      const enabled = await registerApi.isRegistrationEnabled();
+      setRegistrationEnabled(enabled);
+    } catch (error) {
+      console.error('Error checking registration status:', error);
+      setRegistrationEnabled(false);
+    } finally {
+      setIsLoading(false);
+    }
   }, []);
+  
+  useEffect(() => {
+    checkRegistrationStatus();
+  }, [checkRegistrationStatus]);
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    // Basic validation
-    if (
-      !formData.username ||
-      !formData.email ||
-      !formData.password ||
-      !formData.confirmPassword ||
-      !formData.first_name ||
-      !formData.last_name
-    ) {
-      toast.error("Please fill in all fields");
-      return;
-    }
-    
-    if (formData.password !== formData.confirmPassword) {
-      toast.error("Passwords do not match");
-      return;
-    }
-    
-    if (formData.password.length < 8) {
-      toast.error("Password must be at least 8 characters long");
-      return;
-    }
-    
-    setIsSubmitting(true);
-    
+  const onSubmit = useCallback(async (data: RegisterFormData) => {
     try {
       // Use the register API directly
-      const data = await registerApi.register({
-        username: formData.username,
-        email: formData.email,
-        password: formData.password,
-        first_name: formData.first_name,
-        last_name: formData.last_name,
+      const result = await registerApi.register({
+        username: data.username,
+        email: data.email,
+        password: data.password,
+        first_name: data.first_name,
+        last_name: data.last_name,
       });
       
       // Update the auth context with the user data
-      setUser(data.user);
+      setUser(result.user);
       
       // Show success message
       toast.success("Registration successful");
@@ -101,9 +68,8 @@ export default function RegisterPage() {
       router.push("/dashboard");
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Failed to register");
-      setIsSubmitting(false);
     }
-  };
+  }, [setUser, router]);
 
   return (
     <div className="flex min-h-screen flex-col items-center justify-center p-4 sm:p-6 lg:p-8 relative overflow-hidden sketchy-black-bg">
@@ -162,7 +128,7 @@ export default function RegisterPage() {
           </div>
         ) : registrationEnabled ? (
           <div className="mt-6 bg-white rounded-lg shadow-[0_8px_0_0_#333] border-2 border-[#333] p-6 relative transform hover:-translate-y-1 hover:shadow-[0_12px_0_0_#333] transition-all duration-200 overflow-y-auto max-h-[70vh]">
-            <form className="space-y-6" onSubmit={handleSubmit}>
+            <form className="space-y-6" onSubmit={handleSubmit(onSubmit)}>
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label
@@ -174,14 +140,16 @@ export default function RegisterPage() {
                 <div className="mt-1 relative">
                   <Input
                     id="first_name"
-                    name="first_name"
                     type="text"
                     autoComplete="given-name"
-                    required
-                    value={formData.first_name}
-                    onChange={handleChange}
-                    className="block w-full rounded-md border-2 border-[#333] shadow-[0_4px_0_0_#333] focus:shadow-[0_6px_0_0_#333] focus:border-[#333] transition-all duration-200 font-mono text-lg bg-white hover:bg-[#fafafa]"
+                    {...register("first_name")}
+                    className={`block w-full rounded-md border-2 shadow-[0_4px_0_0_#333] focus:shadow-[0_6px_0_0_#333] transition-all duration-200 font-mono text-lg bg-white hover:bg-[#fafafa] ${
+                      errors.first_name ? 'border-red-500' : 'border-[#333] focus:border-[#333]'
+                    }`}
                   />
+                  {errors.first_name && (
+                    <p className="mt-1 text-sm text-red-600 font-mono">{errors.first_name.message}</p>
+                  )}
                 </div>
               </div>
               
@@ -195,14 +163,16 @@ export default function RegisterPage() {
                 <div className="mt-1 relative">
                   <Input
                     id="last_name"
-                    name="last_name"
                     type="text"
                     autoComplete="family-name"
-                    required
-                    value={formData.last_name}
-                    onChange={handleChange}
-                    className="block w-full rounded-md border-2 border-[#333] shadow-[0_4px_0_0_#333] focus:shadow-[0_6px_0_0_#333] focus:border-[#333] transition-all duration-200 font-mono text-lg bg-white hover:bg-[#fafafa]"
+                    {...register("last_name")}
+                    className={`block w-full rounded-md border-2 shadow-[0_4px_0_0_#333] focus:shadow-[0_6px_0_0_#333] transition-all duration-200 font-mono text-lg bg-white hover:bg-[#fafafa] ${
+                      errors.last_name ? 'border-red-500' : 'border-[#333] focus:border-[#333]'
+                    }`}
                   />
+                  {errors.last_name && (
+                    <p className="mt-1 text-sm text-red-600 font-mono">{errors.last_name.message}</p>
+                  )}
                 </div>
               </div>
             </div>
@@ -217,14 +187,16 @@ export default function RegisterPage() {
               <div className="mt-1 relative">
                 <Input
                   id="username"
-                  name="username"
                   type="text"
                   autoComplete="username"
-                  required
-                  value={formData.username}
-                  onChange={handleChange}
-                  className="block w-full rounded-md border-2 border-[#333] shadow-[0_4px_0_0_#333] focus:shadow-[0_6px_0_0_#333] focus:border-[#333] transition-all duration-200 font-mono text-lg bg-white hover:bg-[#fafafa]"
+                  {...register("username")}
+                  className={`block w-full rounded-md border-2 shadow-[0_4px_0_0_#333] focus:shadow-[0_6px_0_0_#333] transition-all duration-200 font-mono text-lg bg-white hover:bg-[#fafafa] ${
+                    errors.username ? 'border-red-500' : 'border-[#333] focus:border-[#333]'
+                  }`}
                 />
+                {errors.username && (
+                  <p className="mt-1 text-sm text-red-600 font-mono">{errors.username.message}</p>
+                )}
 
               </div>
             </div>
@@ -239,15 +211,17 @@ export default function RegisterPage() {
               <div className="mt-1 relative">
                 <Input
                   id="email"
-                  name="email"
                   type="email"
                   autoComplete="email"
-                  required
-                  value={formData.email}
-                  onChange={handleChange}
-                  className="block w-full rounded-md border-2 border-[#333] shadow-[0_4px_0_0_#333] focus:shadow-[0_6px_0_0_#333] focus:border-[#333] transition-all duration-200 font-mono text-lg bg-white hover:bg-[#fafafa]"
+                  {...register("email")}
+                  className={`block w-full rounded-md border-2 shadow-[0_4px_0_0_#333] focus:shadow-[0_6px_0_0_#333] transition-all duration-200 font-mono text-lg bg-white hover:bg-[#fafafa] ${
+                    errors.email ? 'border-red-500' : 'border-[#333] focus:border-[#333]'
+                  }`}
                   placeholder="you@example.com"
                 />
+                {errors.email && (
+                  <p className="mt-1 text-sm text-red-600 font-mono">{errors.email.message}</p>
+                )}
 
               </div>
             </div>
@@ -262,15 +236,17 @@ export default function RegisterPage() {
               <div className="mt-1 relative">
                 <Input
                   id="password"
-                  name="password"
                   type="password"
                   autoComplete="new-password"
-                  required
-                  value={formData.password}
-                  onChange={handleChange}
-                  className="block w-full rounded-md border-2 border-[#333] shadow-[0_4px_0_0_#333] focus:shadow-[0_6px_0_0_#333] focus:border-[#333] transition-all duration-200 font-mono text-lg bg-white hover:bg-[#fafafa]"
+                  {...register("password")}
+                  className={`block w-full rounded-md border-2 shadow-[0_4px_0_0_#333] focus:shadow-[0_6px_0_0_#333] transition-all duration-200 font-mono text-lg bg-white hover:bg-[#fafafa] ${
+                    errors.password ? 'border-red-500' : 'border-[#333] focus:border-[#333]'
+                  }`}
                   placeholder="••••••••"
                 />
+                {errors.password && (
+                  <p className="mt-1 text-sm text-red-600 font-mono">{errors.password.message}</p>
+                )}
 
               </div>
               <p className="mt-1 font-mono text-sm text-[#666]">
@@ -288,15 +264,17 @@ export default function RegisterPage() {
               <div className="mt-1 relative">
                 <Input
                   id="confirmPassword"
-                  name="confirmPassword"
                   type="password"
                   autoComplete="new-password"
-                  required
-                  value={formData.confirmPassword}
-                  onChange={handleChange}
-                  className="block w-full rounded-md border-2 border-[#333] shadow-[0_4px_0_0_#333] focus:shadow-[0_6px_0_0_#333] focus:border-[#333] transition-all duration-200 font-mono text-lg bg-white hover:bg-[#fafafa]"
+                  {...register("confirmPassword")}
+                  className={`block w-full rounded-md border-2 shadow-[0_4px_0_0_#333] focus:shadow-[0_6px_0_0_#333] transition-all duration-200 font-mono text-lg bg-white hover:bg-[#fafafa] ${
+                    errors.confirmPassword ? 'border-red-500' : 'border-[#333] focus:border-[#333]'
+                  }`}
                   placeholder="••••••••"
                 />
+                {errors.confirmPassword && (
+                  <p className="mt-1 text-sm text-red-600 font-mono">{errors.confirmPassword.message}</p>
+                )}
 
               </div>
             </div>
@@ -323,4 +301,6 @@ export default function RegisterPage() {
       </div>
     </div>
   );
-}
+});
+
+export default RegisterPage;

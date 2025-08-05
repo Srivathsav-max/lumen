@@ -53,14 +53,6 @@ export function getAuthToken(): string | null {
     return cookieToken;
   }
 
-  // Check if we have user data - if so, we likely have an HTTP-only cookie
-  // Return a dummy token to indicate we should try to use the HTTP-only cookie
-  const userData = getUserData();
-  if (userData) {
-    console.log('No client-side token, but found user data - returning dummy token for HTTP-only cookie');
-    return 'http-only-cookie';
-  }
-
   console.log('No client-side auth token found');
   return null;
 }

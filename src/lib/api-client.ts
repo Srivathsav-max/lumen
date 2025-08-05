@@ -8,6 +8,7 @@ import { getAuthToken, getCsrfToken, generateCsrfToken, clearAuthCookies } from 
 
 // API base URL
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/api/v1';
+console.log('API_BASE_URL configured as:', API_BASE_URL);
 
 // Token refresh endpoint
 const TOKEN_REFRESH_ENDPOINT = '/auth/refresh';
@@ -184,6 +185,13 @@ export async function apiRequest<T = any>(
   }
 
   try {
+    console.log('=== API REQUEST ===');
+    console.log('URL:', url);
+    console.log('Method:', method);
+    console.log('Headers:', requestHeaders);
+    console.log('Body:', body);
+    console.log('Credentials:', credentials);
+    
     // Make the request
     let response = await fetch(url, {
       method,
@@ -191,14 +199,23 @@ export async function apiRequest<T = any>(
       body: body ? JSON.stringify(body) : undefined,
       credentials, // Include cookies in the request
     });
+    
+    console.log('=== API RESPONSE ===');
+    console.log('Status:', response.status);
+    console.log('StatusText:', response.statusText);
+    console.log('OK:', response.ok);
 
     // Parse response
     let data: T;
     const contentType = response.headers.get('content-type');
+    console.log('Response content-type:', contentType);
+    
     if (contentType && contentType.includes('application/json')) {
       data = await response.json();
+      console.log('Parsed JSON data:', data);
     } else {
       data = await response.text() as unknown as T;
+      console.log('Parsed text data:', data);
     }
 
     // Handle API errors
