@@ -46,6 +46,15 @@ export async function login(email: string, password: string) {
   console.log('Email:', email);
   
   const response = await api.post<{ 
+    data: {
+      access_token: string;
+      user: User;
+      refresh_token: string;
+      expires_in: number;
+      token_type: string;
+    };
+    message: string;
+  } | {
     token: string; 
     user: User; 
     message: string; 
@@ -65,11 +74,16 @@ export async function login(email: string, password: string) {
     throw new Error(response.error);
   }
   
-  // Handle the response data structure
-  const { token, user, permanent_token, expires_at } = response.data;
+  // Handle the response data structure - backend returns nested data
+  const responseData = 'data' in response.data ? response.data.data : response.data;
+  const token = 'access_token' in responseData ? responseData.access_token : responseData.token;
+  const { user } = responseData;
+  const permanent_token = 'refresh_token' in responseData ? responseData.refresh_token : responseData.permanent_token;
+  const expires_at = 'expires_in' in responseData ? Date.now() + (responseData.expires_in * 1000) : responseData.expires_at;
   
   // Log the response structure for debugging
   console.log('Login response data:', response.data);
+  console.log('Extracted data:', responseData);
   console.log('User:', user);
   console.log('Token received:', !!token);
   

@@ -19,24 +19,30 @@ const ENDPOINTS = {
  * Get the current user's profile
  */
 export async function getUserProfile() {
-  const response = await api.get<{ user: User }>(ENDPOINTS.PROFILE);
+  const response = await api.get<{ data: { user: User } } | { user: User }>(ENDPOINTS.PROFILE);
   
   if (response.error) {
     throw new Error(response.error);
   }
   
-  return response.data.user;
+  // Handle nested data structure
+  const responseData = 'data' in response.data ? response.data.data : response.data;
+  return responseData.user;
 }
 
 /**
  * Update the user's profile information
  */
 export async function updateUserProfile(userData: Partial<User>) {
-  const response = await api.put<{ user: User }>(ENDPOINTS.PROFILE, userData);
+  const response = await api.put<{ data: { user: User } } | { user: User }>(ENDPOINTS.PROFILE, userData);
   
   if (response.error) {
     throw new Error(response.error);
   }
+  
+  // Handle nested data structure
+  const responseData = 'data' in response.data ? response.data.data : response.data;
+  const user = responseData.user;
   
   // Update user data in cookies
   const currentUser = getUserData();
@@ -45,7 +51,7 @@ export async function updateUserProfile(userData: Partial<User>) {
     setUserData(updatedUser);
   }
   
-  return response.data.user;
+  return user;
 }
 
 /**

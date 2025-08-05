@@ -19,6 +19,15 @@ const ENDPOINTS = {
  */
 export async function register(userData: RegisterData) {
   const response = await api.post<{ 
+    data: {
+      access_token: string;
+      user: User;
+      refresh_token: string;
+      expires_in: number;
+      token_type: string;
+    };
+    message: string;
+  } | {
     token: string; 
     user: User; 
     permanent_token: string;
@@ -34,8 +43,12 @@ export async function register(userData: RegisterData) {
     throw new Error(response.error);
   }
   
-  // Handle the response data structure
-  const { token, user, permanent_token, expires_at } = response.data;
+  // Handle the response data structure - backend returns nested data
+  const responseData = 'data' in response.data ? response.data.data : response.data;
+  const token = 'access_token' in responseData ? responseData.access_token : responseData.token;
+  const { user } = responseData;
+  const permanent_token = 'refresh_token' in responseData ? responseData.refresh_token : responseData.permanent_token;
+  const expires_at = 'expires_in' in responseData ? Date.now() + (responseData.expires_in * 1000) : responseData.expires_at;
   
   // Store auth data in cookies
   setAuthCookies(token, user);
@@ -48,7 +61,7 @@ export async function register(userData: RegisterData) {
     sessionStorage.setItem('token_expires_at', expires_at.toString());
   }
   
-  return response.data;
+  return { token, user, permanent_token, expires_at };
 }
 
 /**

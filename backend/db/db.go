@@ -9,12 +9,12 @@ import (
 	_ "github.com/lib/pq" // PostgreSQL driver
 )
 
-// DB is a wrapper around sql.DB
+// DB is a wrapper around sql.DB - DEPRECATED: Use internal/database.Manager instead
 type DB struct {
 	*sql.DB
 }
 
-// New creates a new database connection
+// New creates a new database connection - DEPRECATED: Use container.Builder.WithDatabase() instead
 func New(cfg *config.DatabaseConfig) (*DB, error) {
 	dsn := cfg.GetDSN()
 	
