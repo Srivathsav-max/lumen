@@ -28,7 +28,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Trash2, Search } from "lucide-react";
-import { Spinner } from "@/components/ui/ios-spinner";
+import { Spinner } from "@/components/ui/spinner";
 import { WaitlistEntry, getWaitlistEntries, updateWaitlistEntry, deleteWaitlistEntry } from "./api";
 
 export function WaitlistTable() {

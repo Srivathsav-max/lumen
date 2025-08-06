@@ -47,6 +47,7 @@
     color: #111827;
     background-color: white;
     overflow-x: hidden;
+    height: 100vh;
   }
   .dark {
     --background: 0 0% 3.9%;
@@ -80,79 +81,105 @@
 }
 
 @layer components {
-  .sketchy-container {
-    background-color: rgb(var(--sketchy-bg));
-    border: 2px solid rgba(0, 0, 0, 0.7);
-    position: relative;
-    padding: 1.5rem;
-    border-radius: 0.75rem;
-    box-shadow: 5px 5px 0 0 rgba(0, 0, 0, 0.2);
-    backdrop-filter: blur(5px);
-  }
-
-  .sketchy-input {
-    background-color: rgba(255, 255, 255, 0.8);
-    border: 2px solid rgba(0, 0, 0, 0.5);
-    padding: 0.75rem 1rem;
-    width: 100%;
-    border-radius: 0.5rem;
-    font-family: 'Poppins', sans-serif;
-    font-size: 1rem;
-    font-weight: 400;
-    box-shadow: 3px 3px 0 0 rgba(0, 0, 0, 0.1);
+  .modern-container {
+    background: hsl(var(--background));
+    border: 1px solid hsl(var(--border));
+    border-radius: 8px;
+    box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
     transition: all 0.2s ease;
   }
 
-  .sketchy-input:focus {
-    background-color: white;
-    border-color: rgba(var(--primary), 0.8);
-    box-shadow: 3px 3px 0 0 rgba(var(--primary), 0.2);
+  .modern-container:hover {
+    box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+  }
+
+  .modern-input {
+    background: hsl(var(--background));
+    border: 1px solid hsl(var(--border));
+    border-radius: 6px;
+    padding: 8px 12px;
+    color: hsl(var(--foreground));
+    transition: all 0.2s ease;
+  }
+
+  .modern-input:focus {
     outline: none;
+    border-color: hsl(var(--ring));
+    box-shadow: 0 0 0 2px hsl(var(--ring) / 0.2);
   }
 
-  .sketchy-label {
-    font-family: 'Caveat', cursive;
-    font-size: 1.25rem;
+  .modern-label {
+    font-size: 14px;
+    font-weight: 500;
+    color: hsl(var(--foreground));
+  }
+
+  .modern-title {
+    font-size: 28px;
     font-weight: 600;
-    margin-bottom: 0.5rem;
-    display: block;
-    color: rgba(0, 0, 0, 0.8);
+    color: hsl(var(--foreground));
   }
 
-  .sketchy-title {
-    font-family: 'Caveat', cursive;
-    font-size: 2.5rem;
-    font-weight: 700;
-    text-align: center;
-    color: rgba(0, 0, 0, 0.8);
-    text-shadow: 2px 2px 0 rgba(var(--primary), 0.2);
-    letter-spacing: 0.5px;
+  .modern-subtitle {
+    font-size: 18px;
+    font-weight: 500;
+    color: hsl(var(--muted-foreground));
   }
 
-  .sketchy-subtitle {
-    font-family: 'Poppins', sans-serif;
-    font-size: 1.125rem;
-    font-weight: 400;
-    color: rgba(0, 0, 0, 0.6);
-  }
-
-  .sketchy-checkbox {
-    height: 1.25rem;
-    width: 1.25rem;
-    border: 2px solid rgba(0, 0, 0, 0.5);
-    border-radius: 0.25rem;
-    background-color: white;
-    box-shadow: 2px 2px 0 0 rgba(0, 0, 0, 0.1);
+  .modern-checkbox {
+    appearance: none;
+    width: 16px;
+    height: 16px;
+    border: 1px solid hsl(var(--border));
+    border-radius: 4px;
+    background: hsl(var(--background));
+    position: relative;
+    cursor: pointer;
     transition: all 0.2s ease;
   }
 
-  .sketchy-checkbox:checked {
-    background-color: rgba(var(--primary), 0.8);
-    border-color: rgba(var(--primary), 1);
+  .modern-checkbox:checked {
+    background: hsl(var(--primary));
+    border-color: hsl(var(--primary));
+  }
+
+  .modern-checkbox:checked::after {
+    content: '✓';
+    position: absolute;
+    top: -1px;
+    left: 1px;
+    color: hsl(var(--primary-foreground));
+    font-weight: bold;
+    font-size: 12px;
   }
 }
 
 @layer utilities {
+  .scrollable {
+    overflow-y: auto;
+    overflow-x: hidden;
+    scroll-behavior: smooth;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .scrollable::-webkit-scrollbar {
+    width: 8px;
+  }
+
+  .scrollable::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 4px;
+  }
+
+  .scrollable::-webkit-scrollbar-thumb {
+    background: #c1c1c1;
+    border-radius: 4px;
+  }
+
+  .scrollable::-webkit-scrollbar-thumb:hover {
+    background: #a8a8a8;
+  }
+
   .text-gradient {
     background-clip: text;
     color: transparent;
@@ -207,29 +234,29 @@
                 0 4px 12px -2px rgb(var(--primary) / 0.1);
   }
 
-  .sketchy-bg {
-    background-color: rgb(var(--sketchy-bg));
-    background-image: linear-gradient(120deg, rgba(var(--primary), 0.05) 0%, rgba(var(--accent), 0.05) 100%);
+  .modern-bg {
+    background: hsl(var(--background));
+    background-image: linear-gradient(120deg, hsl(var(--primary) / 0.05) 0%, hsl(var(--accent) / 0.05) 100%);
   }
 
-  .sketchy-border {
-    border: 2px solid rgba(0, 0, 0, 0.7);
-    border-radius: 0.75rem;
-    box-shadow: 5px 5px 0 0 rgba(0, 0, 0, 0.2);
+  .modern-border {
+    border: 1px solid hsl(var(--border));
+    border-radius: 8px;
+    box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
     transition: all 0.2s ease;
   }
 
-  .sketchy-border:hover {
-    transform: translateY(-2px);
-    box-shadow: 6px 6px 0 0 rgba(0, 0, 0, 0.15);
+  .modern-border:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
   }
 
-  .sketchy-text {
-    font-family: 'Caveat', cursive;
-  }
-
-  .sketchy-text-sans {
+  .modern-text {
     font-family: 'Poppins', sans-serif;
+  }
+
+  .modern-text-mono {
+    font-family: ui-monospace, SFMono-Regular, 'SF Mono', Consolas, 'Liberation Mono', Menlo, monospace;
   }
 }
 
@@ -296,3 +323,240 @@
 .spinner-blade:nth-child(10) { transform: rotate(270deg) translateY(-100%); animation-delay: -0.75s; }
 .spinner-blade:nth-child(11) { transform: rotate(300deg) translateY(-100%); animation-delay: -0.833s; }
 .spinner-blade:nth-child(12) { transform: rotate(330deg) translateY(-100%); animation-delay: -0.916s; }
+
+/* Fix for scrolling issues */
+.proper-appflowy-editor {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.proper-appflowy-editor .editor-content {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  scroll-behavior: smooth;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Ensure text selection works properly */
+.proper-appflowy-editor [contenteditable] {
+  user-select: text;
+  -webkit-user-select: text;
+  -moz-user-select: text;
+  -ms-user-select: text;
+  cursor: text;
+}
+
+/* Fix for mouse wheel scrolling */
+.proper-appflowy-editor .editor-content {
+  touch-action: pan-y;
+}
+
+/* Ensure proper scrollbar styling */
+.proper-appflowy-editor .editor-content::-webkit-scrollbar {
+  width: 8px;
+}
+
+.proper-appflowy-editor .editor-content::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 4px;
+}
+
+.proper-appflowy-editor .editor-content::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 4px;
+}
+
+.proper-appflowy-editor .editor-content::-webkit-scrollbar-thumb:hover {
+  background: #a8a8a8;
+}
+
+/* TipTap Editor Styles */
+.ProseMirror {
+  outline: none;
+  padding: 1rem;
+  min-height: 200px;
+}
+
+.ProseMirror p {
+  margin: 0.75rem 0;
+}
+
+.ProseMirror h1, .ProseMirror h2, .ProseMirror h3, .ProseMirror h4, .ProseMirror h5, .ProseMirror h6 {
+  line-height: 1.1;
+  margin-top: 1.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.ProseMirror h1 {
+  font-size: 2.25rem;
+  font-weight: 700;
+}
+
+.ProseMirror h2 {
+  font-size: 1.875rem;
+  font-weight: 600;
+}
+
+.ProseMirror h3 {
+  font-size: 1.5rem;
+  font-weight: 600;
+}
+
+.ProseMirror ul, .ProseMirror ol {
+  padding-left: 1.5rem;
+  margin: 0.75rem 0;
+}
+
+.ProseMirror li {
+  margin: 0.25rem 0;
+}
+
+.ProseMirror blockquote {
+  padding-left: 1rem;
+  border-left: 3px solid #e5e7eb;
+  color: #6b7280;
+  font-style: italic;
+  margin: 1rem 0;
+}
+
+.ProseMirror code {
+  background-color: #f3f4f6;
+  color: #374151;
+  padding: 0.125rem 0.25rem;
+  border-radius: 0.25rem;
+  font-size: 0.875rem;
+}
+
+.ProseMirror pre {
+  background-color: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 0.5rem;
+  padding: 1rem;
+  margin: 1rem 0;
+  overflow-x: auto;
+}
+
+.ProseMirror pre code {
+  background: none;
+  color: inherit;
+  padding: 0;
+}
+
+.ProseMirror a {
+  color: #3b82f6;
+  text-decoration: underline;
+}
+
+.ProseMirror a:hover {
+  color: #1d4ed8;
+}
+
+.ProseMirror mark {
+  background-color: #fef08a;
+  border-radius: 0.125rem;
+  padding: 0.125rem 0.25rem;
+}
+
+.ProseMirror img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 0.5rem;
+  margin: 1rem 0;
+}
+
+.ProseMirror .placeholder {
+  color: #9ca3af;
+  float: left;
+  height: 0;
+  pointer-events: none;
+}
+
+.ProseMirror ul[data-type="taskList"] {
+  list-style: none;
+  padding-left: 0;
+}
+
+.ProseMirror ul[data-type="taskList"] li {
+  display: flex;
+  align-items: flex-start;
+}
+
+.ProseMirror ul[data-type="taskList"] li > label {
+  margin-right: 0.5rem;
+  user-select: none;
+}
+
+.ProseMirror ul[data-type="taskList"] li > div {
+  flex: 1;
+}
+
+.ProseMirror ul[data-type="taskList"] input[type="checkbox"] {
+  cursor: pointer;
+}
+
+.ProseMirror ul[data-type="taskList"] li[data-checked="true"] > div {
+  text-decoration: line-through;
+  color: #6b7280;
+}
+
+/* Free-form Editor Styles */
+.ProseMirror.prose-lg {
+  font-size: 1.125rem;
+  line-height: 1.8;
+  max-width: none;
+}
+
+.ProseMirror.prose-lg p {
+  margin: 1.25rem 0;
+  color: #374151;
+}
+
+.ProseMirror.prose-lg h1 {
+  font-size: 2.5rem;
+  font-weight: 300;
+  margin-top: 3rem;
+  margin-bottom: 1rem;
+  color: #111827;
+}
+
+.ProseMirror.prose-lg h2 {
+  font-size: 2rem;
+  font-weight: 400;
+  margin-top: 2.5rem;
+  margin-bottom: 0.75rem;
+  color: #111827;
+}
+
+.ProseMirror.prose-lg h3 {
+  font-size: 1.5rem;
+  font-weight: 500;
+  margin-top: 2rem;
+  margin-bottom: 0.5rem;
+  color: #111827;
+}
+
+.ProseMirror.prose-lg ul,
+.ProseMirror.prose-lg ol {
+  margin: 1.5rem 0;
+  padding-left: 2rem;
+}
+
+.ProseMirror.prose-lg li {
+  margin: 0.5rem 0;
+}
+
+.ProseMirror.prose-lg blockquote {
+  font-size: 1.25rem;
+  font-style: italic;
+  border-left: 4px solid #e5e7eb;
+  padding-left: 2rem;
+  margin: 2rem 0;
+  color: #6b7280;
+}
+
+.ProseMirror.prose-lg .placeholder {
+  color: #9ca3af;
+  font-size: 1.125rem;
+}

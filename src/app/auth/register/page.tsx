@@ -6,20 +6,22 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Label } from "@/components/ui/label";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import Link from "next/link";
 import { toast } from "@/providers/notification-provider";
-import { AlertTriangle } from "lucide-react";
-import "@/styles/sketchy-elements.css";
+import { AlertTriangle, Eye, EyeOff, UserPlus } from "lucide-react";
 import { useRouter } from "next/navigation";
 import * as registerApi from "./api";
 import { registerSchema, type RegisterFormData } from "@/lib/validation-schemas";
-import { Spinner } from "@/components/ui/ios-spinner";
-
-import SketchyInputDecorator from "@/components/ui/sketchy-input-decorator";
+import { Spinner } from "@/components/ui/spinner";
 
 const RegisterPage = memo(function RegisterPage() {
   const [registrationEnabled, setRegistrationEnabled] = useState<boolean | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const { setUser } = useAuth();
   const router = useRouter();
 
@@ -73,231 +75,200 @@ const RegisterPage = memo(function RegisterPage() {
   }, [setUser, router]);
 
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center p-4 sm:p-6 lg:p-8 relative overflow-hidden sketchy-black-bg">
-      {/* Background grid */}
-      <div className="sketchy-grid" />
-      
-      <div className="w-full max-w-md space-y-6 relative">
-        <div className="text-center">
-          <h2 className="mt-4 text-4xl font-mono font-medium text-white relative">
-            Create Account
-            <div className="absolute -inset-1 bg-gradient-to-br from-[#333] to-[#666] -z-10 transform translate-y-1 rounded-lg opacity-10" />
-          </h2>
-          <p className="mt-2 text-center text-gray-300 font-mono text-lg">
+    <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+      <div className="w-full max-w-md">
+        <div className="text-center mb-8">
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">Create your account</h1>
+          <p className="text-gray-600">
             Already have an account?{" "}
             <Link
               href="/auth/login"
-              className="font-medium text-white hover:text-gray-300 transition-colors relative group"
+              className="text-blue-600 hover:text-blue-500 font-medium transition-colors"
             >
               Sign in
-              <span className="absolute bottom-0 left-0 w-full h-0.5 bg-white transform scale-x-0 group-hover:scale-x-100 transition-transform origin-left" />
             </Link>
           </p>
         </div>
-        
+
         {/* Registration disabled message */}
         {!isLoading && registrationEnabled === false && (
-          <div className="bg-yellow-100 border-2 border-[#333] rounded-lg p-4 shadow-[0_8px_0_0_#333] mb-4">
-            <div className="flex items-start">
-              <div className="flex-shrink-0">
-                <AlertTriangle className="h-6 w-6 text-yellow-600" />
-              </div>
-              <div className="ml-3">
-                <h3 className="text-lg font-bold font-mono text-[#333]">Registration Disabled</h3>
-                <div className="mt-2 text-sm font-mono text-[#333]">
-                  <p>
-                    New user registration is currently disabled. Please check back later or contact support for assistance.
+          <Alert className="mb-6 border-amber-200 bg-amber-50">
+            <AlertTriangle className="h-4 w-4 text-amber-600" />
+            <AlertDescription className="text-amber-800">
+              <div className="font-medium mb-2">Registration Disabled</div>
+              <p className="text-sm mb-3">
+                New user registration is currently disabled. Please check back later or contact support for assistance.
+              </p>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => window.location.href = '/auth/login'}
+                className="border-amber-300 text-amber-700 hover:bg-amber-100"
+              >
+                Go to Login
+              </Button>
+            </AlertDescription>
+          </Alert>
+        )}
+
+        {isLoading ? (
+          <Card className="shadow-sm border-gray-200">
+            <CardContent className="flex justify-center items-center h-40">
+              <Spinner size="lg" />
+            </CardContent>
+          </Card>
+        ) : registrationEnabled ? (
+          <Card className="shadow-sm border-gray-200">
+            <CardHeader className="space-y-1">
+              <CardTitle className="text-2xl font-semibold text-center">Sign up</CardTitle>
+              <CardDescription className="text-center">
+                Enter your information to create an account
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="first_name">First Name</Label>
+                    <Input
+                      id="first_name"
+                      type="text"
+                      placeholder="Enter first name"
+                      autoComplete="given-name"
+                      {...register("first_name")}
+                      className={errors.first_name ? "border-red-500" : ""}
+                    />
+                    {errors.first_name && (
+                      <p className="text-sm text-red-500">{errors.first_name.message}</p>
+                    )}
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="last_name">Last Name</Label>
+                    <Input
+                      id="last_name"
+                      type="text"
+                      placeholder="Enter last name"
+                      autoComplete="family-name"
+                      {...register("last_name")}
+                      className={errors.last_name ? "border-red-500" : ""}
+                    />
+                    {errors.last_name && (
+                      <p className="text-sm text-red-500">{errors.last_name.message}</p>
+                    )}
+                  </div>
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="username">Username</Label>
+                  <Input
+                    id="username"
+                    type="text"
+                    placeholder="Choose a username"
+                    autoComplete="username"
+                    {...register("username")}
+                    className={errors.username ? "border-red-500" : ""}
+                  />
+                  {errors.username && (
+                    <p className="text-sm text-red-500">{errors.username.message}</p>
+                  )}
+
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="email">Email</Label>
+                  <Input
+                    id="email"
+                    type="email"
+                    placeholder="Enter your email"
+                    autoComplete="email"
+                    {...register("email")}
+                    className={errors.email ? "border-red-500" : ""}
+                  />
+                  {errors.email && (
+                    <p className="text-sm text-red-500">{errors.email.message}</p>
+                  )}
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="password">Password</Label>
+                  <div className="relative">
+                    <Input
+                      id="password"
+                      type={showPassword ? "text" : "password"}
+                      placeholder="Create a password"
+                      autoComplete="new-password"
+                      {...register("password")}
+                      className={`pr-10 ${errors.password ? "border-red-500" : ""}`}
+                    />
+                    <button
+                      type="button"
+                      className="absolute inset-y-0 right-0 pr-3 flex items-center"
+                      onClick={() => setShowPassword(!showPassword)}
+                    >
+                      {showPassword ? (
+                        <EyeOff className="h-4 w-4 text-gray-400" />
+                      ) : (
+                        <Eye className="h-4 w-4 text-gray-400" />
+                      )}
+                    </button>
+                  </div>
+                  {errors.password && (
+                    <p className="text-sm text-red-500">{errors.password.message}</p>
+                  )}
+                  <p className="text-sm text-gray-500">
+                    Password must be at least 8 characters long
                   </p>
                 </div>
-                <div className="mt-4">
-                  <Button
-                    type="button"
-                    className="w-full flex justify-center py-2 px-4 border-2 border-[#333] rounded-md shadow-[0_4px_0_0_#333] text-md font-medium font-mono text-[#333] bg-white hover:bg-[#fafafa] transition-all duration-200 transform hover:-translate-y-1 hover:shadow-[0_6px_0_0_#333]"
-                    onClick={() => window.location.href = '/auth/login'}
-                  >
-                    Go to Login
-                  </Button>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-        
-        {isLoading ? (
-          <div className="mt-6 bg-white rounded-lg shadow-[0_8px_0_0_#333] border-2 border-[#333] p-6 flex justify-center items-center h-40">
-            <Spinner size="lg" />
-          </div>
-        ) : registrationEnabled ? (
-          <div className="mt-6 bg-white rounded-lg shadow-[0_8px_0_0_#333] border-2 border-[#333] p-6 relative transform hover:-translate-y-1 hover:shadow-[0_12px_0_0_#333] transition-all duration-200 overflow-y-auto max-h-[70vh]">
-            <form className="space-y-6" onSubmit={handleSubmit(onSubmit)}>
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label
-                  htmlFor="first_name"
-                  className="block font-mono text-lg font-medium text-[#333]"
-                >
-                  First Name
-                </label>
-                <div className="mt-1 relative">
-                  <Input
-                    id="first_name"
-                    type="text"
-                    autoComplete="given-name"
-                    {...register("first_name")}
-                    className={`block w-full rounded-md border-2 shadow-[0_4px_0_0_#333] focus:shadow-[0_6px_0_0_#333] transition-all duration-200 font-mono text-lg bg-white hover:bg-[#fafafa] ${
-                      errors.first_name ? 'border-red-500' : 'border-[#333] focus:border-[#333]'
-                    }`}
-                  />
-                  {errors.first_name && (
-                    <p className="mt-1 text-sm text-red-600 font-mono">{errors.first_name.message}</p>
-                  )}
-                </div>
-              </div>
-              
-              <div>
-                <label
-                  htmlFor="last_name"
-                  className="block font-mono text-lg font-medium text-[#333]"
-                >
-                  Last Name
-                </label>
-                <div className="mt-1 relative">
-                  <Input
-                    id="last_name"
-                    type="text"
-                    autoComplete="family-name"
-                    {...register("last_name")}
-                    className={`block w-full rounded-md border-2 shadow-[0_4px_0_0_#333] focus:shadow-[0_6px_0_0_#333] transition-all duration-200 font-mono text-lg bg-white hover:bg-[#fafafa] ${
-                      errors.last_name ? 'border-red-500' : 'border-[#333] focus:border-[#333]'
-                    }`}
-                  />
-                  {errors.last_name && (
-                    <p className="mt-1 text-sm text-red-600 font-mono">{errors.last_name.message}</p>
-                  )}
-                </div>
-              </div>
-            </div>
-            
-            <div>
-              <label
-                htmlFor="username"
-                className="block font-mono text-lg font-medium text-[#333]"
-              >
-                Username
-              </label>
-              <div className="mt-1 relative">
-                <Input
-                  id="username"
-                  type="text"
-                  autoComplete="username"
-                  {...register("username")}
-                  className={`block w-full rounded-md border-2 shadow-[0_4px_0_0_#333] focus:shadow-[0_6px_0_0_#333] transition-all duration-200 font-mono text-lg bg-white hover:bg-[#fafafa] ${
-                    errors.username ? 'border-red-500' : 'border-[#333] focus:border-[#333]'
-                  }`}
-                />
-                {errors.username && (
-                  <p className="mt-1 text-sm text-red-600 font-mono">{errors.username.message}</p>
-                )}
-
-              </div>
-            </div>
-
-            <div>
-              <label
-                htmlFor="email"
-                className="block font-mono text-lg font-medium text-[#333]"
-              >
-                Email address
-              </label>
-              <div className="mt-1 relative">
-                <Input
-                  id="email"
-                  type="email"
-                  autoComplete="email"
-                  {...register("email")}
-                  className={`block w-full rounded-md border-2 shadow-[0_4px_0_0_#333] focus:shadow-[0_6px_0_0_#333] transition-all duration-200 font-mono text-lg bg-white hover:bg-[#fafafa] ${
-                    errors.email ? 'border-red-500' : 'border-[#333] focus:border-[#333]'
-                  }`}
-                  placeholder="you@example.com"
-                />
-                {errors.email && (
-                  <p className="mt-1 text-sm text-red-600 font-mono">{errors.email.message}</p>
-                )}
-
-              </div>
-            </div>
-
-            <div>
-              <label
-                htmlFor="password"
-                className="block font-mono text-lg font-medium text-[#333]"
-              >
-                Password
-              </label>
-              <div className="mt-1 relative">
-                <Input
-                  id="password"
-                  type="password"
-                  autoComplete="new-password"
-                  {...register("password")}
-                  className={`block w-full rounded-md border-2 shadow-[0_4px_0_0_#333] focus:shadow-[0_6px_0_0_#333] transition-all duration-200 font-mono text-lg bg-white hover:bg-[#fafafa] ${
-                    errors.password ? 'border-red-500' : 'border-[#333] focus:border-[#333]'
-                  }`}
-                  placeholder="••••••••"
-                />
-                {errors.password && (
-                  <p className="mt-1 text-sm text-red-600 font-mono">{errors.password.message}</p>
-                )}
-
-              </div>
-              <p className="mt-1 font-mono text-sm text-[#666]">
-                Password must be at least 8 characters long
-              </p>
-            </div>
-            
-            <div>
-              <label
-                htmlFor="confirmPassword"
-                className="block font-mono text-lg font-medium text-[#333]"
-              >
-                Confirm Password
-              </label>
-              <div className="mt-1 relative">
-                <Input
-                  id="confirmPassword"
-                  type="password"
-                  autoComplete="new-password"
-                  {...register("confirmPassword")}
-                  className={`block w-full rounded-md border-2 shadow-[0_4px_0_0_#333] focus:shadow-[0_6px_0_0_#333] transition-all duration-200 font-mono text-lg bg-white hover:bg-[#fafafa] ${
-                    errors.confirmPassword ? 'border-red-500' : 'border-[#333] focus:border-[#333]'
-                  }`}
-                  placeholder="••••••••"
-                />
-                {errors.confirmPassword && (
-                  <p className="mt-1 text-sm text-red-600 font-mono">{errors.confirmPassword.message}</p>
-                )}
-
-              </div>
-            </div>
-
-            <div>
-              <Button
-                type="submit"
-                disabled={isSubmitting}
-                className="w-full flex justify-center py-3 px-4 border-2 border-[#333] rounded-md shadow-[0_8px_0_0_#333] text-lg font-medium font-mono text-[#333] bg-white hover:bg-[#fafafa] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#333] transition-all duration-200 transform hover:-translate-y-1 hover:shadow-[0_12px_0_0_#333] active:translate-y-1 active:shadow-[0_4px_0_0_#333]"
-              >
-                {isSubmitting ? (
-                  <div className="flex items-center">
-                    <Spinner size="sm" className="mr-2" />
-                    Creating account...
+                
+                <div className="space-y-2">
+                  <Label htmlFor="confirmPassword">Confirm Password</Label>
+                  <div className="relative">
+                    <Input
+                      id="confirmPassword"
+                      type={showConfirmPassword ? "text" : "password"}
+                      placeholder="Confirm your password"
+                      autoComplete="new-password"
+                      {...register("confirmPassword")}
+                      className={`pr-10 ${errors.confirmPassword ? "border-red-500" : ""}`}
+                    />
+                    <button
+                      type="button"
+                      className="absolute inset-y-0 right-0 pr-3 flex items-center"
+                      onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                    >
+                      {showConfirmPassword ? (
+                        <EyeOff className="h-4 w-4 text-gray-400" />
+                      ) : (
+                        <Eye className="h-4 w-4 text-gray-400" />
+                      )}
+                    </button>
                   </div>
-                ) : (
-                  "Create account"
-                )}
-              </Button>
-            </div>
-          </form>
-        </div>
+                  {errors.confirmPassword && (
+                    <p className="text-sm text-red-500">{errors.confirmPassword.message}</p>
+                  )}
+                </div>
+                
+                <Button
+                  type="submit"
+                  disabled={isSubmitting}
+                  className="w-full"
+                >
+                  {isSubmitting ? (
+                    <>
+                      <Spinner size="sm" className="mr-2" />
+                      Creating Account...
+                    </>
+                  ) : (
+                    <>
+                      <UserPlus className="mr-2 h-4 w-4" />
+                      Create Account
+                    </>
+                  )}
+                </Button>
+              </form>
+            </CardContent>
+          </Card>
         ) : null}
       </div>
     </div>

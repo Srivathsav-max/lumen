@@ -6,7 +6,7 @@ import { AuthProvider } from "@/providers/auth-provider";
 import { NotificationProvider, ToastProvider } from "@/providers/notification-provider";
 import { Suspense } from "react";
 import { PerformanceMonitorComponent } from "@/components/performance/performance-monitor";
-import { Spinner } from "@/components/ui/ios-spinner";
+import { Spinner } from "@/components/ui/spinner";
 
 const inter = Inter({ subsets: ["latin"] });
 

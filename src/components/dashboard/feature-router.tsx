@@ -5,13 +5,9 @@ import { useEffect, useState } from "react";
 // Define available features
 export type DashboardFeature = 
   | "home" 
-  | "analytics" 
-  | "calendar" 
-  | "courses" 
+  | "notes"
   | "settings"
-  | "profile"
-  | "notifications"
-  | "waitlist";
+  | "profile";
 
 interface FeatureRouterProps {
   feature: DashboardFeature;

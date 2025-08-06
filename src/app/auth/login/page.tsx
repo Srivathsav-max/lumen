@@ -5,18 +5,22 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
 import Link from "next/link";
 import { toast } from "@/providers/notification-provider";
-import "@/styles/sketchy-elements.css";
 import { useRouter } from "next/navigation";
-import * as loginApi from "./api";
 import { loginSchema, type LoginFormData } from "@/lib/validation-schemas";
 import { memo } from "react";
-import { Spinner } from "@/components/ui/ios-spinner";
+import { Spinner } from "@/components/ui/spinner";
+import { Eye, EyeOff, LogIn } from "lucide-react";
+import { useState } from "react";
 
 const LoginPage = memo(function LoginPage() {
   const { login } = useAuth();
   const router = useRouter();
+  const [showPassword, setShowPassword] = useState(false);
 
   const {
     register,
@@ -36,125 +40,108 @@ const LoginPage = memo(function LoginPage() {
   };
 
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center p-4 sm:p-6 lg:p-8 relative overflow-hidden sketchy-black-bg">
-      {/* Background grid */}
-      <div className="sketchy-grid" />
-      
-
-
-      <div className="w-full max-w-md space-y-6 relative">
-        <div className="text-center">
-          <h2 className="mt-4 text-4xl font-mono font-medium text-white relative">
-            Welcome Back
-            <div className="absolute -inset-1 bg-gradient-to-br from-[#333] to-[#666] -z-10 transform translate-y-1 rounded-lg opacity-10" />
-          </h2>
-          <p className="mt-2 text-center text-gray-300 font-mono text-lg">
-            Or{" "}
+    <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+      <div className="w-full max-w-md">
+        <div className="text-center mb-8">
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">Welcome back</h1>
+          <p className="text-gray-600">
+            Don&apos;t have an account?{" "}
             <Link
               href="/auth/register"
-              className="font-medium text-white hover:text-gray-300 transition-colors relative group"
+              className="text-blue-600 hover:text-blue-500 font-medium transition-colors"
             >
-              create a new account
-              <span className="absolute bottom-0 left-0 w-full h-0.5 bg-[#333] transform scale-x-0 group-hover:scale-x-100 transition-transform origin-left" />
+              Sign up
             </Link>
           </p>
         </div>
-        
-        <div className="mt-6 bg-white rounded-lg shadow-[0_8px_0_0_#333] border-2 border-[#333] p-6 relative transform hover:-translate-y-1 hover:shadow-[0_12px_0_0_#333] transition-all duration-200 overflow-y-auto max-h-[70vh]">
-          <form className="space-y-6" onSubmit={handleSubmit(onSubmit)}>
-            <div>
-              <label
-                htmlFor="email"
-                className="block font-mono text-lg font-medium text-[#333]"
-              >
-                Email address
-              </label>
-              <div className="mt-1 relative">
+
+        <Card className="shadow-sm border-gray-200">
+          <CardHeader className="space-y-1">
+            <CardTitle className="text-2xl font-semibold text-center">Sign in</CardTitle>
+            <CardDescription className="text-center">
+              Enter your email and password to access your account
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="email">Email</Label>
                 <Input
                   id="email"
                   type="email"
+                  placeholder="Enter your email"
                   autoComplete="email"
                   {...register("email")}
-                  className={`block w-full rounded-md border-2 shadow-[0_4px_0_0_#333] focus:shadow-[0_6px_0_0_#333] transition-all duration-200 font-mono text-lg bg-white hover:bg-[#fafafa] ${
-                    errors.email ? 'border-red-500' : 'border-[#333] focus:border-[#333]'
-                  }`}
-                  placeholder="you@example.com"
+                  className={errors.email ? "border-red-500" : ""}
                 />
                 {errors.email && (
-                  <p className="mt-1 text-sm text-red-600 font-mono">{errors.email.message}</p>
+                  <p className="text-sm text-red-500">{errors.email.message}</p>
                 )}
               </div>
-            </div>
 
-            <div>
-              <label
-                htmlFor="password"
-                className="block font-mono text-lg font-medium text-[#333]"
-              >
-                Password
-              </label>
-              <div className="mt-1 relative">
-                <Input
-                  id="password"
-                  type="password"
-                  autoComplete="current-password"
-                  {...register("password")}
-                  className={`block w-full rounded-md border-2 shadow-[0_4px_0_0_#333] focus:shadow-[0_6px_0_0_#333] transition-all duration-200 font-mono text-lg bg-white hover:bg-[#fafafa] ${
-                    errors.password ? 'border-red-500' : 'border-[#333] focus:border-[#333]'
-                  }`}
-                  placeholder="••••••••"
-                />
+              <div className="space-y-2">
+                <Label htmlFor="password">Password</Label>
+                <div className="relative">
+                  <Input
+                    id="password"
+                    type={showPassword ? "text" : "password"}
+                    placeholder="Enter your password"
+                    autoComplete="current-password"
+                    {...register("password")}
+                    className={`pr-10 ${errors.password ? "border-red-500" : ""}`}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                  >
+                    {showPassword ? (
+                      <EyeOff className="h-4 w-4" />
+                    ) : (
+                      <Eye className="h-4 w-4" />
+                    )}
+                  </button>
+                </div>
                 {errors.password && (
-                  <p className="mt-1 text-sm text-red-600 font-mono">{errors.password.message}</p>
+                  <p className="text-sm text-red-500">{errors.password.message}</p>
                 )}
               </div>
-            </div>
 
-            <div className="flex items-center justify-between">
-              <div className="flex items-center">
-                <input
-                  id="remember-me"
-                  name="remember-me"
-                  type="checkbox"
-                  className="h-5 w-5 rounded border-2 border-[#333] text-[#333] focus:ring-[#333] shadow-[0_2px_0_0_#333]"
-                />
-                <label
-                  htmlFor="remember-me"
-                  className="ml-2 block font-mono text-lg text-[#333]"
-                >
-                  Remember me
-                </label>
-              </div>
-
-              <div className="text-sm">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-2">
+                  <Checkbox id="remember" />
+                  <Label htmlFor="remember" className="text-sm font-normal">
+                    Remember me
+                  </Label>
+                </div>
                 <Link
                   href="/auth/forgot-password"
-                  className="font-mono text-lg font-medium text-[#333] hover:text-[#666] transition-colors relative group"
+                  className="text-sm text-blue-600 hover:text-blue-500 transition-colors"
                 >
                   Forgot password?
-                  <span className="absolute bottom-0 left-0 w-full h-0.5 bg-[#333] transform scale-x-0 group-hover:scale-x-100 transition-transform origin-left" />
                 </Link>
               </div>
-            </div>
 
-            <div>
               <Button
                 type="submit"
                 disabled={isSubmitting}
-                className="w-full flex justify-center py-3 px-4 border-2 border-[#333] rounded-md shadow-[0_8px_0_0_#333] text-lg font-medium font-mono text-[#333] bg-white hover:bg-[#fafafa] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#333] transition-all duration-200 transform hover:-translate-y-1 hover:shadow-[0_12px_0_0_#333] active:translate-y-1 active:shadow-[0_4px_0_0_#333]"
+                className="w-full bg-blue-600 hover:bg-blue-700 text-white"
               >
                 {isSubmitting ? (
-                  <div className="flex items-center">
+                  <>
                     <Spinner size="sm" className="mr-2" />
                     Signing in...
-                  </div>
+                  </>
                 ) : (
-                  "Sign in"
+                  <>
+                    <LogIn className="mr-2 h-4 w-4" />
+                    Sign in
+                  </>
                 )}
               </Button>
-            </div>
-          </form>
-        </div>
+            </form>
+          </CardContent>
+        </Card>
       </div>
     </div>
   );

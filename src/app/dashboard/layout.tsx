@@ -7,8 +7,8 @@ import { useState, useEffect } from "react";
 import { DashboardFeature, FeatureRouter } from "@/components/dashboard/feature-router";
 import { usePathname, useRouter } from "next/navigation";
 import { useAuth } from "@/hooks/use-auth";
-import { Spinner } from "@/components/ui/ios-spinner";
-import "@/styles/sketchy-elements.css";
+import { Spinner } from "@/components/ui/spinner";
+
 
 export default function DashboardLayout({
   children,
@@ -57,17 +57,17 @@ export default function DashboardLayout({
   }
   
   return (
-    <div className="flex h-screen bg-[#f5f5f5] overflow-hidden">
+    <div className="flex h-screen bg-[#f5f5f5]">
       {/* Sidebar */}
       <Sidebar />
       
       {/* Main content */}
-      <div className="flex-1 flex flex-col overflow-hidden">
+      <div className="flex-1 flex flex-col min-h-0">
         {/* Navbar */}
         <Navbar />
         
         {/* Page content */}
-        <main className="flex-1 overflow-y-auto p-4 md:p-6 bg-[#f5f5f5] sketchy-shapes">
+        <main className="flex-1 scrollable p-4 md:p-6 bg-gray-50">
           <FeatureRouter feature={currentFeature}>
             {children}
           </FeatureRouter>

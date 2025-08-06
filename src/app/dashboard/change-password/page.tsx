@@ -11,7 +11,10 @@ import { useRouter } from "next/navigation";
 import { KeyRound, AlertCircle, Shield, X } from "lucide-react";
 import * as api from "./api";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { Spinner } from "@/components/ui/ios-spinner";
+import { Spinner } from "@/components/ui/spinner";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Label } from "@/components/ui/label";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 // OTP Input component with individual boxes
 function OtpInput({ value, onChange, length = 6 }: { value: string; onChange: (value: string) => void; length?: number }) {
@@ -138,7 +141,7 @@ function OtpInput({ value, onChange, length = 6 }: { value: string; onChange: (v
           onChange={(e) => handleChange(e, index)}
           onKeyDown={(e) => handleKeyDown(e, index)}
           onFocus={(e) => e.target.select()}
-          className="w-12 h-14 text-center text-xl font-mono font-bold border-2 border-[#333] rounded-md shadow-[0_4px_0_0_#333] focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transform hover:-translate-y-1 hover:shadow-[0_6px_0_0_#333] transition-all duration-200"
+          className="w-12 h-14 text-center text-xl font-bold border-2 border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
         />
       ))}
     </div>
@@ -244,7 +247,10 @@ const ChangePasswordPage = memo(function ChangePasswordPage() {
 
   return (
     <div className="container mx-auto px-4 py-8">
-      <h1 className="text-2xl font-bold mb-6 font-mono text-[#333]">Security Settings</h1>
+      <div className="mb-8">
+        <h1 className="text-3xl font-bold text-gray-900">Security Settings</h1>
+        <p className="text-gray-600 mt-2">Manage your account security and password</p>
+      </div>
       
       {/* OTP Verification Dialog */}
       <Dialog open={otpDialogOpen} onOpenChange={(open) => {
@@ -252,7 +258,7 @@ const ChangePasswordPage = memo(function ChangePasswordPage() {
           setOtpDialogOpen(open);
         }
       }}>
-        <DialogContent className="sm:max-w-md border-2 border-[#333] shadow-[0_8px_0_0_#333] p-0 bg-white">
+        <DialogContent className="sm:max-w-md">
           <div className="absolute right-4 top-4">
             <button 
               onClick={() => setOtpDialogOpen(false)} 
@@ -263,10 +269,10 @@ const ChangePasswordPage = memo(function ChangePasswordPage() {
             </button>
           </div>
           
-          <DialogHeader className="px-6 pt-6">
-            <div className="text-center mb-2 font-mono font-bold text-xl text-[#333]">LUMEN</div>
-            <DialogTitle className="text-xl font-bold font-mono text-center text-[#333]">Verification Required</DialogTitle>
-            <DialogDescription className="text-center font-mono text-gray-600 mt-2">
+          <DialogHeader className="text-center">
+            <div className="mb-2 font-bold text-xl text-blue-600">LUMEN</div>
+            <DialogTitle className="text-xl font-bold">Verification Required</DialogTitle>
+            <DialogDescription className="text-gray-600 mt-2">
               Enter the 6-digit code sent to your email address
             </DialogDescription>
           </DialogHeader>
@@ -279,13 +285,13 @@ const ChangePasswordPage = memo(function ChangePasswordPage() {
                 length={6} 
               />
               
-              <p className="text-sm text-gray-500 font-mono">
+              <p className="text-sm text-gray-500">
                 Didn&apos;t receive the code?{" "}
                 <button 
                   type="button" 
                   onClick={requestOtp} 
                   disabled={isRequestingOtp}
-                  className="text-blue-600 hover:text-blue-800 underline font-mono"
+                  className="text-blue-600 hover:text-blue-800 underline"
                 >
                   {isRequestingOtp ? "Sending..." : "Resend"}
                 </button>
@@ -297,14 +303,15 @@ const ChangePasswordPage = memo(function ChangePasswordPage() {
                 type="button" 
                 onClick={() => setOtpDialogOpen(false)}
                 disabled={isSubmitting}
-                className="flex-1 font-mono border-2 border-[#333] shadow-[0_4px_0_0_#333] bg-white hover:bg-gray-100 text-[#333] transform hover:-translate-y-1 hover:shadow-[0_6px_0_0_#333] transition-all duration-200"
+                variant="outline"
+                className="flex-1"
               >
                 Cancel
               </Button>
               <Button 
                 type="submit"
                 disabled={otp.length !== 6 || isSubmitting}
-                className="flex-1 font-mono border-2 border-[#333] shadow-[0_4px_0_0_#333] bg-blue-500 hover:bg-blue-600 text-white transform hover:-translate-y-1 hover:shadow-[0_6px_0_0_#333] transition-all duration-200"
+                className="flex-1 bg-blue-600 hover:bg-blue-700"
               >
                 {isSubmitting ? (
                   <div className="flex items-center justify-center w-full">
@@ -320,101 +327,100 @@ const ChangePasswordPage = memo(function ChangePasswordPage() {
         </DialogContent>
       </Dialog>
       
-      <div className="max-w-2xl mx-auto space-y-8">
-        <div className="bg-white rounded-lg shadow-[0_8px_0_0_#333] border-2 border-[#333] p-6 relative transform hover:-translate-y-1 hover:shadow-[0_12px_0_0_#333] transition-all duration-200">
-          <div className="flex items-center mb-4">
-            <div className="bg-blue-100 p-3 rounded-md mr-4">
-              <KeyRound className="h-6 w-6 text-blue-600" />
+      <div className="max-w-2xl mx-auto">
+        <Card className="border-gray-200 shadow-sm">
+          <CardHeader>
+            <div className="flex items-center space-x-3">
+              <div className="p-2 bg-blue-50 rounded-lg">
+                <KeyRound className="h-5 w-5 text-blue-600" />
+              </div>
+              <div>
+                <CardTitle className="text-xl">Change Password</CardTitle>
+                <CardDescription>Update your account password</CardDescription>
+              </div>
             </div>
-            <div>
-              <h2 className="text-xl font-bold font-mono text-[#333]">Change Password</h2>
-              <p className="text-gray-600 font-mono text-sm">Update your account password</p>
-            </div>
-          </div>
-          
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-            <div>
-              <p className="text-sm text-gray-500 font-mono mb-1">Current Password</p>
-              <Input
-                id="current-password"
-                type="password"
-                {...register("currentPassword")}
-                className={`w-full border-2 border-[#333] rounded-md p-2 font-mono focus:outline-none focus:ring-2 focus:ring-blue-300 focus:border-blue-500 ${
-                  errors.currentPassword ? "border-red-500" : ""
-                }`}
-                placeholder="Enter your current password"
-              />
-              {errors.currentPassword && (
-                <p className="mt-1 text-sm text-red-600 font-mono">{errors.currentPassword.message}</p>
-              )}
-            </div>
-
-            <div>
-              <p className="text-sm text-gray-500 font-mono mb-1">New Password</p>
-              <Input
-                id="new-password"
-                type="password"
-                {...register("newPassword")}
-                className={`w-full border-2 border-[#333] rounded-md p-2 font-mono focus:outline-none focus:ring-2 focus:ring-blue-300 focus:border-blue-500 ${
-                  errors.newPassword ? "border-red-500" : ""
-                }`}
-                placeholder="Enter your new password"
-              />
-              {errors.newPassword && (
-                <p className="mt-1 text-sm text-red-600 font-mono">{errors.newPassword.message}</p>
-              )}
-            </div>
-
-            <div>
-              <p className="text-sm text-gray-500 font-mono mb-1">Confirm New Password</p>
-              <Input
-                id="confirm-password"
-                type="password"
-                {...register("confirmPassword")}
-                className={`w-full border-2 border-[#333] rounded-md p-2 font-mono focus:outline-none focus:ring-2 focus:ring-blue-300 focus:border-blue-500 ${
-                  errors.confirmPassword ? "border-red-500" : ""
-                }`}
-                placeholder="Confirm your new password"
-              />
-              {errors.confirmPassword && (
-                <p className="mt-1 text-sm text-red-600 font-mono">{errors.confirmPassword.message}</p>
-              )}
-            </div>
-            
-            <div className="flex items-center text-sm text-amber-600 font-mono mt-2">
-              <AlertCircle className="h-4 w-4 mr-2" />
-              <span>Password must be at least 8 characters long</span>
-            </div>
-
-            <div className="flex items-center justify-end space-x-4 pt-4">
-              <Button
-                type="button"
-                onClick={() => router.push("/dashboard/profile")}
-                className="font-mono border-2 border-[#333] shadow-[0_4px_0_0_#333] bg-white hover:bg-gray-100 text-[#333] transform hover:-translate-y-1 hover:shadow-[0_6px_0_0_#333] transition-all duration-200"
-              >
-                Cancel
-              </Button>
-              <Button
-                type="button"
-                onClick={requestOtp}
-                disabled={isRequestingOtp || Object.keys(errors).length > 0 || !watch("currentPassword") || !watch("newPassword") || !watch("confirmPassword")}
-                className="font-mono border-2 border-[#333] shadow-[0_4px_0_0_#333] bg-blue-500 hover:bg-blue-600 text-white transform hover:-translate-y-1 hover:shadow-[0_6px_0_0_#333] transition-all duration-200"
-              >
-                {isRequestingOtp ? (
-                  <div className="flex items-center">
-                    <Spinner size="sm" className="mr-2" />
-                    Sending OTP...
-                  </div>
-                ) : (
-                  <div className="flex items-center">
-                    <Shield className="h-4 w-4 mr-2" />
-                    Verify Password Change
-                  </div>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+              <div className="space-y-2">
+                <Label htmlFor="current-password">Current Password</Label>
+                <Input
+                  id="current-password"
+                  type="password"
+                  {...register("currentPassword")}
+                  className="border-gray-300 focus:border-blue-500 focus:ring-blue-500"
+                  placeholder="Enter your current password"
+                />
+                {errors.currentPassword && (
+                  <p className="text-sm text-red-600">{errors.currentPassword.message}</p>
                 )}
-              </Button>
-            </div>
-          </form>
-        </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="new-password">New Password</Label>
+                <Input
+                  id="new-password"
+                  type="password"
+                  {...register("newPassword")}
+                  className="border-gray-300 focus:border-blue-500 focus:ring-blue-500"
+                  placeholder="Enter your new password"
+                />
+                {errors.newPassword && (
+                  <p className="text-sm text-red-600">{errors.newPassword.message}</p>
+                )}
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="confirm-password">Confirm New Password</Label>
+                <Input
+                  id="confirm-password"
+                  type="password"
+                  {...register("confirmPassword")}
+                  className="border-gray-300 focus:border-blue-500 focus:ring-blue-500"
+                  placeholder="Confirm your new password"
+                />
+                {errors.confirmPassword && (
+                  <p className="text-sm text-red-600">{errors.confirmPassword.message}</p>
+                )}
+              </div>
+              
+              <Alert className="border-amber-200 bg-amber-50">
+                <AlertCircle className="h-4 w-4 text-amber-600" />
+                <AlertDescription className="text-amber-800">
+                  Password must be at least 8 characters long
+                </AlertDescription>
+              </Alert>
+
+              <div className="flex items-center justify-end space-x-4 pt-4">
+                <Button
+                  type="button"
+                  onClick={() => router.push("/dashboard/profile")}
+                  variant="outline"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="button"
+                  onClick={requestOtp}
+                  disabled={isRequestingOtp || Object.keys(errors).length > 0 || !watch("currentPassword") || !watch("newPassword") || !watch("confirmPassword")}
+                  className="bg-blue-600 hover:bg-blue-700"
+                >
+                  {isRequestingOtp ? (
+                    <>
+                      <Spinner className="mr-2" />
+                      Sending OTP...
+                    </>
+                  ) : (
+                    <>
+                      <Shield className="h-4 w-4 mr-2" />
+                      Verify Password Change
+                    </>
+                  )}
+                </Button>
+              </div>
+            </form>
+          </CardContent>
+        </Card>
       </div>
     </div>
   );

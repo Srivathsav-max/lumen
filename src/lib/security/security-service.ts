@@ -111,7 +111,7 @@ class SecurityService {
   // Request CSRF token from server
   private async requestCSRFToken(): Promise<void> {
     try {
-      const response = await fetch('http://localhost:8080/api/v1/security/csrf-token', {
+      const response = await fetch('/api/v1/security/csrf-token', {
         method: 'POST',
         credentials: 'include',
         headers: {
@@ -123,9 +123,12 @@ class SecurityService {
         const data = await response.json();
         this.csrfToken = data.csrf_token;
         console.log('CSRF token obtained successfully');
+      } else {
+        console.warn(`CSRF token request failed with status ${response.status}. This is expected if the backend server is not running.`);
       }
     } catch (error) {
-      console.error('Failed to obtain CSRF token:', error);
+      console.warn('Backend server appears to be offline. CSRF protection will be disabled until server is available:', error);
+      // Don't treat this as a critical error - the app should still work without CSRF if backend is down
     }
   }
 

@@ -7,12 +7,16 @@ import { testEmailSchema, type TestEmailFormData } from "@/lib/validation-schema
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { NotFound } from "@/components/ui/not-found";
-import { AlertCircle, Lock, Mail, Settings, Shield, Users, Wrench } from "lucide-react";
+import { AlertCircle, Lock, Mail, Settings, Shield, Users, Wrench, Send } from "lucide-react";
 import { toast } from "@/providers/notification-provider";
 import * as settingsApi from "./api";
 import { Input } from "@/components/ui/input";
-import { Spinner } from "@/components/ui/ios-spinner";
+import { Spinner } from "@/components/ui/spinner";
 
 // Import the SystemSetting interface from the API
 import { SystemSetting } from './api';
@@ -117,8 +121,6 @@ const SettingsPage = memo(function SettingsPage() {
     }
   };
 
-
-
   // Password change functionality moved to dedicated change-password page
 
   const onSubmitTestEmail = async (data: TestEmailFormData) => {
@@ -150,7 +152,7 @@ const SettingsPage = memo(function SettingsPage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64">
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <Spinner size="lg" />
       </div>
     );
@@ -160,189 +162,177 @@ const SettingsPage = memo(function SettingsPage() {
   const maintenanceMode = settings.find(s => s.key === 'maintenance_mode')?.value === 'true';
 
   return (
-    <div className="space-y-6">
-      {/* Welcome header */}
-      <div className="bg-white rounded-lg shadow-[0_8px_0_0_#333] border-2 border-[#333] p-6 relative transform hover:-translate-y-1 hover:shadow-[0_12px_0_0_#333] transition-all duration-200">
-        <div className="flex flex-col md:flex-row md:items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold font-mono text-[#333] mb-2">
-              System Settings
-            </h1>
-            <p className="text-gray-600 font-mono">
-              Manage platform-wide settings and configurations
-            </p>
-          </div>
-          <div className="mt-4 md:mt-0">
-            <Button className="border-2 border-[#333] shadow-[0_4px_0_0_#333] font-mono text-[#333] bg-white hover:bg-[#fafafa] transform hover:-translate-y-1 hover:shadow-[0_6px_0_0_#333] transition-all duration-200">
-              <Settings className="mr-2 h-4 w-4" />
-              Settings Guide
-            </Button>
-          </div>
-        </div>
-      </div>
+    <div className="min-h-screen bg-gray-50 p-6">
+      <div className="max-w-7xl mx-auto space-y-8">
 
-      {/* Settings Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {/* Registration Settings */}
-        <div className="bg-white rounded-lg shadow-[0_8px_0_0_#333] border-2 border-[#333] p-6 relative transform hover:-translate-y-1 hover:shadow-[0_12px_0_0_#333] transition-all duration-200">
-          <div className="flex items-center mb-4">
-            <div className="bg-blue-100 p-3 rounded-md mr-4">
-              <Users className="h-6 w-6 text-blue-600" />
-            </div>
-            <div>
-              <h2 className="text-xl font-bold font-mono text-[#333]">User Registration</h2>
-              <p className="text-gray-600 font-mono text-sm">Control new user sign-ups</p>
-            </div>
-          </div>
-          
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="font-medium font-mono">Allow New Registrations</p>
-                <p className="text-sm text-gray-500 font-mono">
-                  {registrationEnabled 
-                    ? "New users can create accounts" 
-                    : "New user registration is disabled"}
-                </p>
-              </div>
-              <Button
-                onClick={() => toggleRegistration(!registrationEnabled)}
-                disabled={updating}
-                className={`font-mono border-2 border-[#333] shadow-[0_4px_0_0_#333] transform hover:-translate-y-1 hover:shadow-[0_6px_0_0_#333] transition-all duration-200 ${
-                  registrationEnabled 
-                    ? "bg-red-500 hover:bg-red-600 text-white" 
-                    : "bg-green-500 hover:bg-green-600 text-white"
-                }`}
-              >
-                {registrationEnabled ? "Disable Registration" : "Enable Registration"}
-              </Button>
-            </div>
-            
-            <div className="flex items-center text-sm text-amber-600 font-mono">
-              <AlertCircle className="h-4 w-4 mr-2" />
-              <span>Changes take effect immediately</span>
-            </div>
-          </div>
-        </div>
-        
-        {/* Maintenance Mode Settings */}
-        <div className="bg-white rounded-lg shadow-[0_8px_0_0_#333] border-2 border-[#333] p-6 relative transform hover:-translate-y-1 hover:shadow-[0_12px_0_0_#333] transition-all duration-200">
-          <div className="flex items-center mb-4">
-            <div className="bg-yellow-100 p-3 rounded-md mr-4">
-              <Wrench className="h-6 w-6 text-yellow-600" />
-            </div>
-            <div>
-              <h2 className="text-xl font-bold font-mono text-[#333]">Maintenance Mode</h2>
-              <p className="text-gray-600 font-mono text-sm">Control system access</p>
-            </div>
-          </div>
-          
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="font-medium font-mono">Maintenance Mode</p>
-                <p className="text-sm text-gray-500 font-mono">
-                  {maintenanceMode 
-                    ? "Site is in maintenance mode" 
-                    : "Site is operating normally"}
-                </p>
-              </div>
-              <Button
-                onClick={() => updateSetting('maintenance_mode', String(!maintenanceMode))}
-                disabled={updating}
-                className={`font-mono border-2 border-[#333] shadow-[0_4px_0_0_#333] transform hover:-translate-y-1 hover:shadow-[0_6px_0_0_#333] transition-all duration-200 ${
-                  maintenanceMode 
-                    ? "bg-green-500 hover:bg-green-600 text-white" 
-                    : "bg-red-500 hover:bg-red-600 text-white"
-                }`}
-              >
-                {maintenanceMode ? "Disable Maintenance" : "Enable Maintenance"}
-              </Button>
-            </div>
-            
-            <div className="flex items-center text-sm text-amber-600 font-mono">
-              <Shield className="h-4 w-4 mr-2" />
-              <span>Only admins and developers can access in maintenance mode</span>
-            </div>
-          </div>
-        </div>
-        
 
-        
+        {/* Settings Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {/* Registration Settings */}
+          <Card className="border-gray-200 shadow-sm">
+            <CardHeader>
+              <div className="flex items-center space-x-3">
+                <div className="p-2 bg-blue-50 rounded-lg">
+                  <Users className="h-5 w-5 text-blue-600" />
+                </div>
+                <div>
+                  <CardTitle className="text-lg">User Registration</CardTitle>
+                  <CardDescription>Control new user sign-ups</CardDescription>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="space-y-1">
+                  <Label className="text-sm font-medium">Allow New Registrations</Label>
+                  <p className="text-sm text-gray-500">
+                    {registrationEnabled 
+                      ? "New users can create accounts" 
+                      : "New user registration is disabled"}
+                  </p>
+                </div>
+                <Switch
+                  checked={registrationEnabled}
+                  onCheckedChange={(checked) => toggleRegistration(checked)}
+                  disabled={updating}
+                />
+              </div>
+              
+              <Alert className="border-amber-200 bg-amber-50">
+                <AlertCircle className="h-4 w-4 text-amber-600" />
+                <AlertDescription className="text-amber-800">
+                  Changes take effect immediately
+                </AlertDescription>
+              </Alert>
+            </CardContent>
+          </Card>
+          
+          {/* Maintenance Mode Settings */}
+          <Card className="border-gray-200 shadow-sm">
+            <CardHeader>
+              <div className="flex items-center space-x-3">
+                <div className="p-2 bg-yellow-50 rounded-lg">
+                  <Wrench className="h-5 w-5 text-yellow-600" />
+                </div>
+                <div>
+                  <CardTitle className="text-lg">Maintenance Mode</CardTitle>
+                  <CardDescription>Control system access</CardDescription>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="space-y-1">
+                  <Label className="text-sm font-medium">Maintenance Mode</Label>
+                  <p className="text-sm text-gray-500">
+                    {maintenanceMode 
+                      ? "Site is in maintenance mode" 
+                      : "Site is operating normally"}
+                  </p>
+                </div>
+                <Switch
+                  checked={maintenanceMode}
+                  onCheckedChange={(checked) => updateSetting('maintenance_mode', String(checked))}
+                  disabled={updating}
+                />
+              </div>
+              
+              <Alert className="border-blue-200 bg-blue-50">
+                <Shield className="h-4 w-4 text-blue-600" />
+                <AlertDescription className="text-blue-800">
+                  Only admins and developers can access in maintenance mode
+                </AlertDescription>
+              </Alert>
+            </CardContent>
+          </Card>
+        </div>
+
         {/* Email Testing */}
-        <div className="bg-white rounded-lg shadow-[0_8px_0_0_#333] border-2 border-[#333] p-6 relative transform hover:-translate-y-1 hover:shadow-[0_12px_0_0_#333] transition-all duration-200">
-          <div className="flex items-center mb-4">
-            <div className="bg-purple-100 p-3 rounded-md mr-4">
-              <Mail className="h-6 w-6 text-purple-600" />
-            </div>
-            <div>
-              <h2 className="text-xl font-bold font-mono text-[#333]">Email Testing</h2>
-              <p className="text-gray-600 font-mono text-sm">Verify email functionality</p>
-            </div>
-          </div>
-          
-          <form onSubmit={handleSubmit(onSubmitTestEmail)} className="space-y-4">
-            <div>
-              <p className="font-medium font-mono mb-2">Send Test Email</p>
-              <div className="space-y-3">
-                <div>
-                  <p className="text-sm text-gray-500 font-mono mb-1">Recipient Email</p>
-                  <Input
-                    type="email"
-                    {...register("to")}
-                    placeholder="recipient@example.com"
-                    className={`w-full border-2 border-[#333] rounded-md p-2 font-mono focus:outline-none focus:ring-2 focus:ring-purple-300 focus:border-purple-500 ${
-                      errors.to ? 'border-red-500' : ''
-                    }`}
-                  />
-                  {errors.to && (
-                    <p className="mt-1 text-sm text-red-600 font-mono">{errors.to.message}</p>
-                  )}
+          <Card className="border-gray-200 shadow-sm md:col-span-2">
+            <CardHeader>
+              <div className="flex items-center space-x-3">
+                <div className="p-2 bg-green-50 rounded-lg">
+                  <Mail className="h-5 w-5 text-green-600" />
                 </div>
                 <div>
-                  <p className="text-sm text-gray-500 font-mono mb-1">Subject</p>
-                  <Input
-                    type="text"
-                    {...register("subject")}
-                    placeholder="Test Email Subject"
-                    className={`w-full border-2 border-[#333] rounded-md p-2 font-mono focus:outline-none focus:ring-2 focus:ring-purple-300 focus:border-purple-500 ${
-                      errors.subject ? 'border-red-500' : ''
-                    }`}
-                  />
-                  {errors.subject && (
-                    <p className="mt-1 text-sm text-red-600 font-mono">{errors.subject.message}</p>
-                  )}
+                  <CardTitle className="text-lg">Email Testing</CardTitle>
+                  <CardDescription>Test email configuration</CardDescription>
                 </div>
-                <div>
-                  <p className="text-sm text-gray-500 font-mono mb-1">Message</p>
-                  <Input
-                    type="text"
-                    {...register("message")}
-                    placeholder="Test email message"
-                    className={`w-full border-2 border-[#333] rounded-md p-2 font-mono focus:outline-none focus:ring-2 focus:ring-purple-300 focus:border-purple-500 ${
-                      errors.message ? 'border-red-500' : ''
-                    }`}
-                  />
-                  {errors.message && (
-                    <p className="mt-1 text-sm text-red-600 font-mono">{errors.message.message}</p>
-                  )}
+              </div>
+            </CardHeader>
+            <CardContent>
+              <form onSubmit={handleSubmit(onSubmitTestEmail)} className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="to">Recipient Email</Label>
+                    <Input
+                      id="to"
+                      type="email"
+                      placeholder="recipient@example.com"
+                      {...register("to")}
+                      className="border-gray-300 focus:border-green-500 focus:ring-green-500"
+                    />
+                    {errors.to && (
+                      <p className="text-red-500 text-sm">{errors.to.message}</p>
+                    )}
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="subject">Subject</Label>
+                    <Input
+                      id="subject"
+                      type="text"
+                      placeholder="Test Email Subject"
+                      {...register("subject")}
+                      className="border-gray-300 focus:border-green-500 focus:ring-green-500"
+                    />
+                    {errors.subject && (
+                      <p className="text-red-500 text-sm">{errors.subject.message}</p>
+                    )}
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="message">Message</Label>
+                    <Input
+                      id="message"
+                      type="text"
+                      placeholder="Test email message"
+                      {...register("message")}
+                      className="border-gray-300 focus:border-green-500 focus:ring-green-500"
+                    />
+                    {errors.message && (
+                      <p className="text-red-500 text-sm">{errors.message.message}</p>
+                    )}
+                  </div>
                 </div>
+                
                 <Button
                   type="submit"
                   disabled={sendingEmail}
-                  className="w-full font-mono border-2 border-[#333] shadow-[0_4px_0_0_#333] bg-purple-500 hover:bg-purple-600 text-white transform hover:-translate-y-1 hover:shadow-[0_6px_0_0_#333] transition-all duration-200"
+                  className="w-full md:w-auto bg-green-600 hover:bg-green-700 text-white"
                 >
-                  {sendingEmail ? 'Sending...' : 'Send Test Email'}
+                  {sendingEmail ? (
+                    <>
+                      <Spinner className="mr-2" />
+                      Sending...
+                    </>
+                  ) : (
+                    <>
+                      <Send className="mr-2 h-4 w-4" />
+                      Send Test Email
+                    </>
+                  )}
                 </Button>
-              </div>
-            </div>
-          </form>
-            
-            <div className="flex items-center text-sm text-amber-600 font-mono">
-              <AlertCircle className="h-4 w-4 mr-2" />
-              <span>This will send a real email to the specified address</span>
-            </div>
-        </div>
+                
+                <Alert className="border-amber-200 bg-amber-50">
+                  <AlertCircle className="h-4 w-4 text-amber-600" />
+                  <AlertDescription className="text-amber-800">
+                    This will send a real email to the specified address
+                  </AlertDescription>
+                </Alert>
+              </form>
+            </CardContent>
+          </Card>
       </div>
     </div>
   );

@@ -1,7 +1,7 @@
 "use client";
 
 import { lazy, Suspense, ComponentType } from 'react';
-import { Spinner } from '@/components/ui/ios-spinner';
+import { Spinner } from '@/components/ui/spinner';
 
 // Lazy loading wrapper with suspense
 export function withLazyLoading<T extends ComponentType<any>>(

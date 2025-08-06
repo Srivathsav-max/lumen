@@ -10,14 +10,14 @@ export function PlatformPreviewSection() {
   const [cursorColors, setCursorColors] = React.useState(['#FF3366', '#FF6B3D']);
   const [cursorTooltip, setCursorTooltip] = React.useState('With this cursor you can interact with dashboard');
 
-  const colorPairs = [
+  const colorPairs = React.useMemo(() => [
     ['#FF3366', '#FF6B3D'], // Red-Orange
     ['#7C3AED', '#3B82F6'], // Purple-Blue
     ['#10B981', '#34D399'], // Green-Teal
     ['#F59E0B', '#FBBF24'], // Yellow-Amber
     ['#EC4899', '#F472B6'], // Pink-Rose
     ['#6366F1', '#818CF8'], // Indigo-Purple
-  ];
+  ], []);
 
   const getElementTooltip = (element: HTMLElement): string => {
     if (element.closest('button')) return 'Click this button';
@@ -66,7 +66,7 @@ export function PlatformPreviewSection() {
         section.removeEventListener('mouseleave', handleMouseLeave as EventListener);
       }
     };
-  }, []);
+  }, [colorPairs]);
 
   return (
     <section className="py-24 relative platform-preview-wrapper">

@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lumen Recorder</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <!-- Xbox-Style Overlay Bar -->
+    <div class="xbox-overlay">
+        <!-- Left Section: Logo & Status -->
+        <div class="overlay-left">
+            <div class="app-logo">
+                <div class="logo-icon"></div>
+                <span class="logo-text">Lumen</span>
+            </div>
+            <div class="status-section">
+                <div class="status-indicator" id="status-indicator">
+                    <div class="status-dot"></div>
+                    <span class="status-text" id="status-text">Ready</span>
+                </div>
+                <div class="recording-timer" id="recording-timer">00:00:00</div>
+            </div>
+        </div>
+
+        <!-- Center Section: Main Controls -->
+        <div class="overlay-center">
+            <div class="main-controls">
+                <button class="xbox-btn record-btn" id="record-btn" title="Start Recording">
+                    <svg width="20" height="20" viewBox="0 0 24 24">
+                        <circle cx="12" cy="12" r="8" fill="currentColor"/>
+                    </svg>
+                </button>
+                <button class="xbox-btn pause-btn" id="pause-btn" title="Pause" disabled>
+                    <svg width="20" height="20" viewBox="0 0 24 24">
+                        <rect x="8" y="6" width="2" height="12" fill="currentColor"/>
+                        <rect x="14" y="6" width="2" height="12" fill="currentColor"/>
+                    </svg>
+                </button>
+                <button class="xbox-btn stop-btn" id="stop-btn" title="Stop" disabled>
+                    <svg width="20" height="20" viewBox="0 0 24 24">
+                        <rect x="6" y="6" width="12" height="12" fill="currentColor"/>
+                    </svg>
+                </button>
+            </div>
+        </div>
+
+        <!-- Right Section: Settings & Actions -->
+        <div class="overlay-right">
+            <div class="quick-settings">
+                <button class="xbox-btn settings-btn" id="settings-btn" title="Settings">
+                    <svg width="18" height="18" viewBox="0 0 24 24">
+                        <path d="M12 15a3 3 0 100-6 3 3 0 000 6z" fill="currentColor"/>
+                        <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z" fill="currentColor"/>
+                    </svg>
+                </button>
+                <button class="xbox-btn minimize-btn" id="minimize-btn" title="Minimize">
+                    <svg width="18" height="18" viewBox="0 0 24 24">
+                        <path d="M6 12h12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                    </svg>
+                </button>
+                <button class="xbox-btn close-btn" id="close-btn" title="Close">
+                    <svg width="18" height="18" viewBox="0 0 24 24">
+                        <path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                    </svg>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content Area -->
+    <div class="main-content">
+        <!-- Audio Visualizer -->
+        <div class="audio-visualizer-container">
+            <canvas id="audio-canvas" width="800" height="120"></canvas>
+            <div class="visualizer-overlay">
+                <div class="frequency-labels">
+                    <span>Low</span>
+                    <span>Mid</span>
+                    <span>High</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Expandable Settings Panel -->
+        <div class="settings-panel" id="settings-panel">
+            <div class="settings-header">
+                <h3>Recording Settings</h3>
+                <button class="panel-toggle" id="panel-toggle">
+                    <svg width="16" height="16" viewBox="0 0 24 24">
+                        <path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                </button>
+            </div>
+            <div class="settings-content">
+                <div class="settings-grid">
+                    <div class="setting-group">
+                        <label for="audio-source">Audio Source</label>
+                        <select id="audio-source" class="xbox-select">
+                            <option value="default">Default Microphone</option>
+                        </select>
+                    </div>
+                    <div class="setting-group">
+                        <label for="video-source">Video Source</label>
+                        <select id="video-source" class="xbox-select">
+                            <option value="screen">Screen Recording</option>
+                            <option value="camera">Camera</option>
+                            <option value="both">Screen + Camera</option>
+                        </select>
+                    </div>
+                    <div class="setting-group">
+                        <label for="quality">Quality</label>
+                        <select id="quality" class="xbox-select">
+                            <option value="high">High (1080p)</option>
+                            <option value="medium">Medium (720p)</option>
+                            <option value="low">Low (480p)</option>
+                        </select>
+                    </div>
+                    <div class="setting-group">
+                        <label for="fps">Frame Rate</label>
+                        <select id="fps" class="xbox-select">
+                            <option value="60">60 FPS</option>
+                            <option value="30" selected>30 FPS</option>
+                            <option value="24">24 FPS</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="advanced-settings">
+                    <div class="setting-toggle">
+                        <label for="auto-save">Auto-save recordings</label>
+                        <input type="checkbox" id="auto-save" class="xbox-toggle" checked>
+                    </div>
+                    <div class="setting-toggle">
+                        <label for="show-cursor">Show cursor in recording</label>
+                        <input type="checkbox" id="show-cursor" class="xbox-toggle" checked>
+                    </div>
+                    <div class="setting-toggle">
+                        <label for="system-audio">Include system audio</label>
+                        <input type="checkbox" id="system-audio" class="xbox-toggle">
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Recent Recordings Panel -->
+        <div class="recent-panel" id="recent-panel">
+            <div class="recent-header">
+                <h3>Recent Recordings</h3>
+                <button class="xbox-btn-small" id="open-folder-btn" title="Open Recordings Folder">
+                    <svg width="14" height="14" viewBox="0 0 24 24">
+                        <path d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" stroke="currentColor" stroke-width="2" fill="none"/>
+                    </svg>
+                </button>
+            </div>
+            <div class="recent-recordings" id="recent-recordings">
+                <div class="empty-state">
+                    <svg width="48" height="48" viewBox="0 0 24 24" fill="none">
+                        <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="1.5"/>
+                        <path d="M8 12l2 2 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                    <p>No recordings yet</p>
+                    <p class="empty-subtitle">Your recordings will appear here</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Recording Interface -->
+        <div class="recording-interface" id="recording-interface">
+
+        </div>
+
+        <!-- Processing Interface -->
+        <div class="processing-interface hidden" id="processing-interface">
+            <div class="processing-status">
+                <div class="processing-animation">
+                    <div class="processing-spinner"></div>
+                    <div class="processing-bars">
+                        <div class="bar"></div>
+                        <div class="bar"></div>
+                        <div class="bar"></div>
+                        <div class="bar"></div>
+                        <div class="bar"></div>
+                    </div>
+                </div>
+                <h3>Processing Recording</h3>
+                <p>Generating AI summary and insights...</p>
+                <div class="progress-container">
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="progress-fill"></div>
+                    </div>
+                    <span class="progress-text">0%</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Summary Interface -->
+        <div class="summary-interface hidden" id="summary-interface">
+            <div class="summary-header">
+                <div class="summary-title">
+                    <h2>Recording Complete</h2>
+                    <div class="summary-meta">
+                        <span class="duration">Duration: <span id="summary-duration">00:00:00</span></span>
+                        <span class="file-size">Size: <span id="summary-size">0 MB</span></span>
+                    </div>
+                </div>
+                <div class="summary-actions">
+                    <button class="xbox-btn action-btn" id="export-btn">
+                        <svg width="16" height="16" viewBox="0 0 24 24">
+                            <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                        Export
+                    </button>
+                    <button class="xbox-btn action-btn" id="share-btn">
+                        <svg width="16" height="16" viewBox="0 0 24 24">
+                            <path d="M4 12v8a2 2 0 002 2h12a2 2 0 002-2v-8M16 6l-4-4-4 4M12 2v13" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                        Share
+                    </button>
+                    <button class="xbox-btn action-btn primary" id="new-recording-btn">
+                        <svg width="16" height="16" viewBox="0 0 24 24">
+                            <circle cx="12" cy="12" r="8" fill="currentColor"/>
+                        </svg>
+                        New Recording
+                    </button>
+                </div>
+            </div>
+            <div class="summary-content">
+                <div class="summary-grid">
+                    <div class="summary-card">
+                        <div class="card-header">
+                            <h3>Key Insights</h3>
+                            <div class="card-icon">
+                                <svg width="20" height="20" viewBox="0 0 24 24">
+                                    <path d="M9 11H7l3-7 3 7h-2l1 7-3-7z" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+                                </svg>
+                            </div>
+                        </div>
+                        <div class="key-points" id="key-points">
+                            <!-- Key points will be populated here -->
+                        </div>
+                    </div>
+                    <div class="summary-card">
+                        <div class="card-header">
+                            <h3>Transcript</h3>
+                            <div class="card-icon">
+                                <svg width="20" height="20" viewBox="0 0 24 24">
+                                    <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+                                    <polyline points="14,2 14,8 20,8" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+                                </svg>
+                            </div>
+                        </div>
+                        <div class="transcript" id="transcript">
+                            <!-- Transcript will be populated here -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Advanced Settings Modal -->
+    <div class="xbox-modal hidden" id="settings-modal">
+        <div class="modal-backdrop"></div>
+        <div class="modal-container">
+            <div class="modal-header">
+                <h2>Advanced Settings</h2>
+                <button class="modal-close" id="settings-close">
+                    <svg width="20" height="20" viewBox="0 0 24 24">
+                        <path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                    </svg>
+                </button>
+            </div>
+            <div class="modal-content">
+                <div class="settings-tabs">
+                    <button class="tab-btn active" data-tab="recording">Recording</button>
+                    <button class="tab-btn" data-tab="ai">AI & Processing</button>
+                    <button class="tab-btn" data-tab="storage">Storage</button>
+                </div>
+                <div class="tab-content">
+                    <div class="tab-panel active" id="recording-tab">
+                        <div class="setting-row">
+                            <div class="setting-info">
+                                <label>Default Quality</label>
+                                <p>Set the default recording quality for new sessions</p>
+                            </div>
+                            <select class="xbox-select">
+                                <option value="high">High (1080p)</option>
+                                <option value="medium" selected>Medium (720p)</option>
+                                <option value="low">Low (480p)</option>
+                            </select>
+                        </div>
+                        <div class="setting-row">
+                            <div class="setting-info">
+                                <label>Hotkeys</label>
+                                <p>Enable global hotkeys for recording control</p>
+                            </div>
+                            <input type="checkbox" class="xbox-toggle" checked>
+                        </div>
+                    </div>
+                    <div class="tab-panel" id="ai-tab">
+                        <div class="setting-row">
+                            <div class="setting-info">
+                                <label>Auto-generate Summary</label>
+                                <p>Automatically create AI summary after recording</p>
+                            </div>
+                            <input type="checkbox" class="xbox-toggle" checked>
+                        </div>
+                        <div class="setting-row">
+                            <div class="setting-info">
+                                <label>Summary Language</label>
+                                <p>Language for AI-generated summaries</p>
+                            </div>
+                            <select class="xbox-select">
+                                <option value="en">English</option>
+                                <option value="es">Spanish</option>
+                                <option value="fr">French</option>
+                                <option value="de">German</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="tab-panel" id="storage-tab">
+                        <div class="setting-row">
+                            <div class="setting-info">
+                                <label>Save Location</label>
+                                <p>Default folder for saving recordings</p>
+                            </div>
+                            <div class="file-input-group">
+                                <input type="text" class="xbox-input" placeholder="Choose folder..." readonly>
+                                <button class="xbox-btn">Browse</button>
+                            </div>
+                        </div>
+                        <div class="setting-row">
+                            <div class="setting-info">
+                                <label>Auto-cleanup</label>
+                                <p>Automatically delete recordings older than 30 days</p>
+                            </div>
+                            <input type="checkbox" class="xbox-toggle">
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="../../dist/renderer/app.js"></script>
+</body>
+</html>

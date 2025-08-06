@@ -135,7 +135,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return () => {
       cleanupTokenRefreshService();
     };
-  }, []);
+  }, []); // Empty dependency array since this should only run once on mount
 
   // Login function - uses login handler
   const handleLogin = async (email: string, password: string) => {

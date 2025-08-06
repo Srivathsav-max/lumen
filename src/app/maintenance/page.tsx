@@ -2,6 +2,8 @@
 
 import { Wrench, ShieldAlert, LogOut } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import * as loginApi from '@/app/auth/login/api';
@@ -42,7 +44,7 @@ export default function MaintenancePage() {
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="text-center">Loading...</div>
+        <div className="text-center text-gray-600">Loading...</div>
       </div>
     );
   }
@@ -50,57 +52,64 @@ export default function MaintenancePage() {
   // Maintenance page UI (similar to MaintenanceWrapper component)
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50 p-4">
-      <div className="max-w-md w-full bg-white rounded-lg shadow-[0_8px_0_0_#333] border-2 border-[#333] p-8 text-center">
-        <div className="flex justify-center mb-6">
-          <div className="bg-amber-100 p-4 rounded-full">
-            <Wrench className="h-12 w-12 text-amber-600" />
-          </div>
-        </div>
-        
-        <h1 className="text-2xl font-bold font-mono text-[#333] mb-2">
-          Maintenance in Progress
-        </h1>
-        
-        <p className="text-gray-600 font-mono mb-6">
-          We&apos;re currently performing scheduled maintenance on our platform. 
-          We&apos;ll be back online shortly. Thank you for your patience!
-        </p>
-        
-        <div className="flex items-center justify-center text-sm text-amber-600 font-mono mb-6">
-          <ShieldAlert className="h-4 w-4 mr-2" />
-          <span>Only administrators can access the platform during maintenance.</span>
-        </div>
-        
-        <div className="space-y-4">
-          {user ? (
-            <Button
-              onClick={logout}
-              className="w-full bg-white text-[#333] border-2 border-[#333] shadow-[0_4px_0_0_#333] hover:shadow-[0_6px_0_0_#333] hover:-translate-y-1 transition-all duration-200 font-mono flex items-center justify-center"
-            >
-              <LogOut className="h-4 w-4 mr-2" />
-              Logout
-            </Button>
-          ) : (
-            <Button
-              asChild
-              className="w-full bg-white text-[#333] border-2 border-[#333] shadow-[0_4px_0_0_#333] hover:shadow-[0_6px_0_0_#333] hover:-translate-y-1 transition-all duration-200 font-mono"
-            >
-              <Link href="/auth/login">
-                Administrator Login
-              </Link>
-            </Button>
-          )}
+      <div className="max-w-md w-full">
+        <Card className="border-gray-200 shadow-lg">
+          <CardHeader className="text-center">
+            <div className="flex justify-center mb-4">
+              <div className="p-4 bg-amber-50 rounded-full">
+                <Wrench className="h-12 w-12 text-amber-600" />
+              </div>
+            </div>
+            <CardTitle className="text-2xl font-bold text-gray-900">
+              Maintenance in Progress
+            </CardTitle>
+            <CardDescription className="text-gray-600 mt-2">
+              We&apos;re currently performing scheduled maintenance on our platform. 
+              We&apos;ll be back online shortly. Thank you for your patience!
+            </CardDescription>
+          </CardHeader>
           
-          <Button
-            asChild
-            variant="outline"
-            className="w-full border-2 border-[#333] shadow-[0_4px_0_0_#333] hover:shadow-[0_6px_0_0_#333] hover:-translate-y-1 transition-all duration-200 font-mono"
-          >
-            <Link href="/waitlist">
-              Join Our Waitlist
-            </Link>
-          </Button>
-        </div>
+          <CardContent className="space-y-6">
+            <Alert className="border-amber-200 bg-amber-50">
+              <ShieldAlert className="h-4 w-4 text-amber-600" />
+              <AlertDescription className="text-amber-800">
+                Only administrators can access the platform during maintenance.
+              </AlertDescription>
+            </Alert>
+            
+            <div className="space-y-3">
+              {user ? (
+                <Button
+                  onClick={logout}
+                  variant="outline"
+                  className="w-full"
+                >
+                  <LogOut className="h-4 w-4 mr-2" />
+                  Logout
+                </Button>
+              ) : (
+                <Button
+                  asChild
+                  className="w-full bg-blue-600 hover:bg-blue-700"
+                >
+                  <Link href="/auth/login">
+                    Administrator Login
+                  </Link>
+                </Button>
+              )}
+              
+              <Button
+                asChild
+                variant="outline"
+                className="w-full"
+              >
+                <Link href="/waitlist">
+                  Join Our Waitlist
+                </Link>
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
       </div>
     </div>
   );
