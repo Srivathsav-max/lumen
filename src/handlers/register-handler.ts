@@ -3,7 +3,7 @@
  * Contains the logic for handling user registration
  */
 
-import { toast } from '@/providers/notification-provider';
+// Toast notifications handled by components
 import { User, RegisterData } from '@/providers/auth-provider';
 import * as registerApi from '@/app/auth/register/api';
 // Using any type for router to avoid type issues
@@ -48,14 +48,14 @@ export async function handleRegister(
     setToken(data.token);
     setUser(data.user);
     setLastValidated(Date.now());
-    toast.success('Registration successful');
+    // Success notification handled by component
     
     // Redirect to user dashboard as new users will have free role
     setTimeout(() => {
-      router.push('/dashboard/user');
+      router.push('/dashboard');
     }, 300);
   } catch (error) {
-    toast.error(error instanceof Error ? error.message : 'Registration failed');
+    // Error notification handled by component
     throw error;
   } finally {
     setIsLoading(false);

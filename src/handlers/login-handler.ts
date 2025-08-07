@@ -7,7 +7,6 @@
 // Import types
 import { User } from '@/providers/auth-provider';
 import * as loginApi from '@/app/auth/login/api';
-import { toast } from '@/providers/notification-provider';
 
 /**
  * Handle user login
@@ -54,21 +53,20 @@ export async function handleLogin(
         data.user.roles.includes('developer')
       ));
     
-    // Show success message
-    toast.success('Login successful');
+    // Success notification handled by component
     
     // Redirect based on user role and maintenance status
     if (isMaintenanceActive && !canBypassMaintenance) {
       console.log('Redirecting to maintenance page');
       router.replace('/maintenance');
-      toast.info('System is currently in maintenance mode. Only administrators can access the dashboard.');
+      // Maintenance notification handled by component
     } else {
       // Normal login flow - all users go to main dashboard
       console.log('Redirecting to dashboard, user:', data.user.username);
       router.replace('/dashboard');
     }
   } catch (error) {
-    toast.error(error instanceof Error ? error.message : 'Login failed');
+    // Error notification handled by component
     throw error;
   } finally {
     setIsLoading(false);

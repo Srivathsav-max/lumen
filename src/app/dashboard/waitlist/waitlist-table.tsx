@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { toast } from "@/providers/notification-provider";
+import { useToast } from "@/hooks/use-toast";
 import {
   Table,
   TableBody,
@@ -32,6 +32,7 @@ import { Spinner } from "@/components/ui/ios-spinner";
 import { WaitlistEntry, getWaitlistEntries, updateWaitlistEntry, deleteWaitlistEntry } from "./api";
 
 export function WaitlistTable() {
+  const { toast } = useToast();
   const [entries, setEntries] = useState<WaitlistEntry[]>([]);
   const [filteredEntries, setFilteredEntries] = useState<WaitlistEntry[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
@@ -59,7 +60,11 @@ export function WaitlistTable() {
       }
     } catch (error) {
       console.error('Error fetching waitlist entries:', error);
-      toast.error(error instanceof Error ? error.message : 'Failed to fetch waitlist entries');
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : 'Failed to fetch waitlist entries',
+        variant: "destructive",
+      });
       setEntries([]);
     } finally {
       setLoading(false);
@@ -103,14 +108,21 @@ export function WaitlistTable() {
         notes: editNotes,
       });
       
-      toast.success('Waitlist entry updated successfully');
+      toast({
+        title: "Success",
+        description: "Waitlist entry updated successfully",
+      });
       setIsEditDialogOpen(false);
       
       // Refresh the waitlist entries
       fetchWaitlistEntries();
     } catch (error) {
       console.error('Error updating waitlist entry:', error);
-      toast.error(error instanceof Error ? error.message : 'Failed to update waitlist entry');
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : 'Failed to update waitlist entry',
+        variant: "destructive",
+      });
     } finally {
       setIsUpdating(false);
     }
@@ -124,13 +136,20 @@ export function WaitlistTable() {
       // Use the API module function
       await deleteWaitlistEntry(id);
       
-      toast.success('Waitlist entry deleted successfully');
+      toast({
+        title: "Success", 
+        description: "Waitlist entry deleted successfully",
+      });
       
       // Refresh the waitlist entries
       fetchWaitlistEntries();
     } catch (error) {
       console.error('Error deleting waitlist entry:', error);
-      toast.error(error instanceof Error ? error.message : 'Failed to delete waitlist entry');
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : 'Failed to delete waitlist entry',
+        variant: "destructive", 
+      });
     } finally {
       setIsDeleting(false);
       setDeleteId(null);
@@ -161,13 +180,13 @@ export function WaitlistTable() {
             placeholder="Search by email, name, or status..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-8 border-2 border-[#333] shadow-[0_4px_0_0_#333] focus:shadow-[0_6px_0_0_#333] focus:border-[#333] transition-all duration-200 font-mono"
+            className="pl-8"
           />
         </div>
         <Button
           onClick={fetchWaitlistEntries}
           disabled={loading}
-          className="bg-white text-[#333] border-2 border-[#333] shadow-[0_4px_0_0_#333] hover:shadow-[0_6px_0_0_#333] hover:-translate-y-1 transition-all duration-200 font-mono"
+          variant="outline"
         >
           {loading ? (
             <>
@@ -185,29 +204,29 @@ export function WaitlistTable() {
           <Spinner size="md" />
         </div>
       ) : filteredEntries.length === 0 ? (
-        <div className="text-center py-8 border-2 border-[#333] rounded-lg">
-          <p className="text-lg font-mono text-[#333]">No waitlist entries found</p>
+        <div className="text-center py-8 border rounded-lg bg-muted">
+          <p className="text-muted-foreground">No waitlist entries found</p>
         </div>
       ) : (
-        <div className="border-2 border-[#333] rounded-lg overflow-hidden shadow-[0_4px_0_0_#333]">
+        <div className="border rounded-lg overflow-hidden">
           <Table>
-            <TableHeader className="bg-[#f5f5f5]">
-              <TableRow className="border-b-2 border-[#333]">
-                <TableHead className="font-mono font-bold text-[#333]">Email</TableHead>
-                <TableHead className="font-mono font-bold text-[#333]">Name</TableHead>
-                <TableHead className="font-mono font-bold text-[#333]">Status</TableHead>
-                <TableHead className="font-mono font-bold text-[#333]">Created</TableHead>
-                <TableHead className="font-mono font-bold text-[#333]">Notes</TableHead>
-                <TableHead className="font-mono font-bold text-[#333]">Actions</TableHead>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Email</TableHead>
+                <TableHead>Name</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>Created</TableHead>
+                <TableHead>Notes</TableHead>
+                <TableHead>Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {filteredEntries.map((entry) => (
-                <TableRow key={entry.id} className="border-b border-[#333] last:border-b-0">
-                  <TableCell className="font-mono">{entry.email}</TableCell>
-                  <TableCell className="font-mono">{entry.name || 'N/A'}</TableCell>
-                  <TableCell className="font-mono">
-                    <span className={`inline-block px-2 py-1 rounded-full text-xs font-bold ${
+                <TableRow key={entry.id}>
+                  <TableCell>{entry.email}</TableCell>
+                  <TableCell>{entry.name || 'N/A'}</TableCell>
+                  <TableCell>
+                    <span className={`inline-block px-2 py-1 rounded-full text-xs font-semibold ${
                       entry.status === 'approved' 
                         ? 'bg-green-100 text-green-800' 
                         : entry.status === 'rejected'
@@ -217,8 +236,8 @@ export function WaitlistTable() {
                       {entry.status.charAt(0).toUpperCase() + entry.status.slice(1)}
                     </span>
                   </TableCell>
-                  <TableCell className="font-mono">{formatDate(entry.created_at)}</TableCell>
-                  <TableCell className="font-mono max-w-[200px] truncate">
+                  <TableCell>{formatDate(entry.created_at)}</TableCell>
+                  <TableCell className="max-w-[200px] truncate">
                     {entry.notes || 'N/A'}
                   </TableCell>
                   <TableCell>
@@ -227,7 +246,6 @@ export function WaitlistTable() {
                         variant="outline" 
                         size="sm"
                         onClick={() => handleEdit(entry)}
-                        className="border-2 border-[#333] shadow-[0_2px_0_0_#333] hover:shadow-[0_4px_0_0_#333] hover:-translate-y-1 transition-all duration-200 font-mono"
                       >
                         Edit
                       </Button>
@@ -236,7 +254,6 @@ export function WaitlistTable() {
                         size="sm"
                         onClick={() => handleDelete(entry.id)}
                         disabled={isDeleting && deleteId === entry.id}
-                        className="border-2 border-red-600 shadow-[0_2px_0_0_#333] hover:shadow-[0_4px_0_0_#333] hover:-translate-y-1 transition-all duration-200 font-mono"
                       >
                         {isDeleting && deleteId === entry.id ? (
                           <Spinner size="sm" />
@@ -254,38 +271,36 @@ export function WaitlistTable() {
       )}
       
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-        <DialogContent className="bg-white border-2 border-[#333] shadow-[0_8px_0_0_#333] rounded-lg">
+        <DialogContent>
           <DialogHeader>
-            <DialogTitle className="text-2xl font-bold font-mono text-[#333]">
-              Edit Waitlist Entry
-            </DialogTitle>
+            <DialogTitle>Edit Waitlist Entry</DialogTitle>
           </DialogHeader>
           
           <div className="space-y-4 py-4">
             <div className="space-y-2">
-              <label className="text-sm font-mono font-medium text-[#333]">
+              <label className="text-sm font-medium">
                 Status
               </label>
               <Select value={editStatus} onValueChange={setEditStatus}>
-                <SelectTrigger className="border-2 border-[#333] shadow-[0_4px_0_0_#333] focus:shadow-[0_6px_0_0_#333] focus:border-[#333] transition-all duration-200 font-mono">
+                <SelectTrigger>
                   <SelectValue placeholder="Select status" />
                 </SelectTrigger>
-                <SelectContent className="bg-white border-2 border-[#333] shadow-[0_4px_0_0_#333]">
-                  <SelectItem value="pending" className="font-mono">Pending</SelectItem>
-                  <SelectItem value="approved" className="font-mono">Approved</SelectItem>
-                  <SelectItem value="rejected" className="font-mono">Rejected</SelectItem>
+                <SelectContent>
+                  <SelectItem value="pending">Pending</SelectItem>
+                  <SelectItem value="approved">Approved</SelectItem>
+                  <SelectItem value="rejected">Rejected</SelectItem>
                 </SelectContent>
               </Select>
             </div>
             
             <div className="space-y-2">
-              <label className="text-sm font-mono font-medium text-[#333]">
+              <label className="text-sm font-medium">
                 Notes
               </label>
               <Textarea
                 value={editNotes}
                 onChange={(e) => setEditNotes(e.target.value)}
-                className="border-2 border-[#333] shadow-[0_4px_0_0_#333] focus:shadow-[0_6px_0_0_#333] focus:border-[#333] transition-all duration-200 font-mono min-h-[100px]"
+                className="min-h-[100px]"
                 placeholder="Add any notes about this entry..."
               />
             </div>
@@ -295,14 +310,12 @@ export function WaitlistTable() {
             <Button
               variant="outline"
               onClick={() => setIsEditDialogOpen(false)}
-              className="border-2 border-[#333] shadow-[0_4px_0_0_#333] hover:shadow-[0_6px_0_0_#333] hover:-translate-y-1 transition-all duration-200 font-mono"
             >
               Cancel
             </Button>
             <Button
               onClick={handleUpdate}
               disabled={isUpdating}
-              className="bg-white text-[#333] border-2 border-[#333] shadow-[0_4px_0_0_#333] hover:shadow-[0_6px_0_0_#333] hover:-translate-y-1 transition-all duration-200 font-mono"
             >
               {isUpdating ? (
                 <>

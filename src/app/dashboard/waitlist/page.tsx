@@ -1,17 +1,33 @@
 "use client";
 
 import { WaitlistTable } from "./waitlist-table";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Users } from "lucide-react";
 
 export default function WaitlistPage() {
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold font-mono text-[#333]">Waitlist Management</h1>
+      <div>
+        <h1 className="text-3xl font-semibold">Waitlist Management</h1>
+        <p className="text-muted-foreground">
+          Manage user waitlist entries and approvals.
+        </p>
       </div>
       
-      <div className="bg-white rounded-lg shadow-[0_4px_0_0_#333] border-2 border-[#333] p-6">
-        <WaitlistTable />
-      </div>
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Users className="h-5 w-5" />
+            Waitlist Entries
+          </CardTitle>
+          <CardDescription>
+            View and manage all waitlist applications.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <WaitlistTable />
+        </CardContent>
+      </Card>
     </div>
   );
 } 

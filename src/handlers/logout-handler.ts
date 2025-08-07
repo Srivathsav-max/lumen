@@ -3,7 +3,7 @@
  * Contains the logic for handling user logout
  */
 
-import { toast } from '@/providers/notification-provider';
+// Toast notifications handled by components
 import { api } from '@/lib/api-client';
 import { clearAuthCookies } from '@/lib/cookies';
 // Using any type for router to avoid type issues
@@ -36,7 +36,7 @@ export async function handleLogout(
     setToken(null);
     setUser(null);
     setLastValidated(0);
-    toast.success('Logged out successfully');
+    // Success notification handled by component
     
     // Use router instead of window.location for better Next.js integration
     router.push('/auth/login');
@@ -51,7 +51,7 @@ export async function handleLogout(
     setUser(null);
     setLastValidated(0);
     
-    toast.error('Error during logout. Please try again.');
+    // Error notification handled by component
     
     // Redirect anyway
     router.push('/auth/login');
