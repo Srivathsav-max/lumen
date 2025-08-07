@@ -14,7 +14,8 @@ import {
   User,
   GalleryVerticalEnd,
   ChevronUp,
-  User2
+  User2,
+  FileText
 } from "lucide-react";
 
 import {
@@ -50,6 +51,11 @@ const navigationItems = [
     title: "Home",
     url: "/dashboard",
     icon: Home,
+  },
+  {
+    title: "Notes",
+    url: "/dashboard/notes",
+    icon: FileText,
   },
 ];
 
