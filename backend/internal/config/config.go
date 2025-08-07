@@ -154,10 +154,18 @@ func (l *EnvConfigLoader) Validate(config *Config) error {
 
 func (c *DatabaseConfig) GetDSN() string {
 	if c.URL != "" {
+		// For local development, disable prepared statements to avoid caching issues
+		if !strings.Contains(c.URL, "?") {
+			return c.URL + "?prefer_simple_protocol=true"
+		}
+		if !strings.Contains(c.URL, "prefer_simple_protocol") {
+			return c.URL + "&prefer_simple_protocol=true"
+		}
 		return c.URL
 	}
 
-	return fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=%s",
+	// For local development, disable prepared statements to avoid caching issues
+	return fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=%s prefer_simple_protocol=true",
 		c.Host, c.Port, c.User, c.Password, c.DBName, c.SSLMode)
 }
 

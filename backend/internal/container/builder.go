@@ -81,12 +81,24 @@ func (b *Builder) WithRepositories() (*Builder, error) {
 	waitlistRepo := postgres.NewWaitlistRepository(dbManager, b.container.Logger)
 	systemSettingsRepo := postgres.NewSystemSettingsRepository(dbManager, b.container.Logger)
 
+	// Notes System Repositories
+	workspaceRepo := postgres.NewWorkspaceRepository(dbManager, b.container.Logger)
+	pageRepo := postgres.NewPageRepository(dbManager, b.container.Logger)
+	blockRepo := postgres.NewBlockRepository(dbManager, b.container.Logger)
+	commentRepo := postgres.NewCommentRepository(dbManager, b.container.Logger)
+
 	b.container.SetUserRepository(userRepo)
 	b.container.SetRoleRepository(roleRepo)
 	b.container.SetTokenRepository(tokenRepo)
 	b.container.SetVerificationTokenRepository(verificationTokenRepo)
 	b.container.SetWaitlistRepository(waitlistRepo)
 	b.container.SetSystemSettingsRepository(systemSettingsRepo)
+
+	// Set Notes System Repositories
+	b.container.SetWorkspaceRepository(workspaceRepo)
+	b.container.SetPageRepository(pageRepo)
+	b.container.SetBlockRepository(blockRepo)
+	b.container.SetCommentRepository(commentRepo)
 
 	return b, nil
 }
@@ -149,6 +161,21 @@ func (b *Builder) WithServices() (*Builder, error) {
 		b.container.Logger,
 	)
 
+	// Notes System Services
+	workspaceService := services.NewWorkspaceService(
+		b.container.WorkspaceRepository,
+		b.container.UserRepository,
+		b.container.Logger,
+	)
+
+	pageService := services.NewPageService(
+		b.container.PageRepository,
+		b.container.BlockRepository,
+		b.container.WorkspaceRepository,
+		b.container.UserRepository,
+		b.container.Logger,
+	)
+
 	b.container.SetEmailService(emailService)
 	b.container.SetVerificationTokenService(verificationTokenService)
 	b.container.SetUserService(userService)
@@ -156,6 +183,10 @@ func (b *Builder) WithServices() (*Builder, error) {
 	b.container.SetRoleService(roleService)
 	b.container.SetWaitlistService(waitlistService)
 	b.container.SetSystemSettingsService(systemSettingsService)
+
+	// Set Notes System Services
+	b.container.SetWorkspaceService(workspaceService)
+	b.container.SetPageService(pageService)
 
 	return b, nil
 }
@@ -212,10 +243,18 @@ func (b *Builder) createDatabaseConnection() (*sql.DB, error) {
 		return nil, fmt.Errorf("failed to open database connection: %w", err)
 	}
 
-	db.SetMaxOpenConns(cfg.Database.MaxOpenConns)
-	db.SetMaxIdleConns(cfg.Database.MaxIdleConns)
-	db.SetConnMaxLifetime(time.Duration(cfg.Database.ConnMaxLifetime) * time.Minute)
-	db.SetConnMaxIdleTime(time.Duration(cfg.Database.ConnMaxIdleTime) * time.Minute)
+	// For local development, use more aggressive connection cycling to avoid prepared statement caching
+	if cfg.IsDevelopment() {
+		db.SetMaxOpenConns(1)                   // Force single connection to avoid caching conflicts
+		db.SetMaxIdleConns(0)                   // Don't keep idle connections
+		db.SetConnMaxLifetime(1 * time.Minute)  // Short connection lifetime
+		db.SetConnMaxIdleTime(30 * time.Second) // Very short idle time
+	} else {
+		db.SetMaxOpenConns(cfg.Database.MaxOpenConns)
+		db.SetMaxIdleConns(cfg.Database.MaxIdleConns)
+		db.SetConnMaxLifetime(time.Duration(cfg.Database.ConnMaxLifetime) * time.Minute)
+		db.SetConnMaxIdleTime(time.Duration(cfg.Database.ConnMaxIdleTime) * time.Minute)
+	}
 
 	if err := db.Ping(); err != nil {
 		db.Close()

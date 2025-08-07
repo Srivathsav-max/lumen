@@ -247,3 +247,15 @@ func ValidateSetSettingRequest(v *Validator, req *SetSettingRequest) error {
 
 	return nil
 }
+
+// Global validator instance
+var globalValidator *Validator
+
+func init() {
+	globalValidator = NewValidator()
+}
+
+// Helper function to validate structs
+func validateStruct(s interface{}) error {
+	return globalValidator.ValidateStruct(s)
+}

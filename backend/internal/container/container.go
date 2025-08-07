@@ -22,6 +22,12 @@ type Container struct {
 	VerificationTokenRepository repository.VerificationTokenRepository
 	WaitlistRepository          repository.WaitlistRepository
 	SystemSettingsRepository    repository.SystemSettingsRepository
+	
+	// Notes System Repositories
+	WorkspaceRepository repository.WorkspaceRepository
+	PageRepository      repository.PageRepository
+	BlockRepository     repository.BlockRepository
+	CommentRepository   repository.CommentRepository
 
 	UserService              services.UserService
 	AuthService              services.AuthService
@@ -30,6 +36,10 @@ type Container struct {
 	RoleService              services.RoleService
 	WaitlistService          services.WaitlistService
 	SystemSettingsService    services.SystemSettingsService
+	
+	// Notes System Services
+	WorkspaceService services.WorkspaceService
+	PageService      services.PageService
 
 	SecurityMiddleware *security.SecurityMiddleware
 }
@@ -130,6 +140,32 @@ func (c *Container) SetVerificationTokenService(service services.VerificationTok
 	c.VerificationTokenService = service
 }
 
+// Notes System Repository Setters
+func (c *Container) SetWorkspaceRepository(repo repository.WorkspaceRepository) {
+	c.WorkspaceRepository = repo
+}
+
+func (c *Container) SetPageRepository(repo repository.PageRepository) {
+	c.PageRepository = repo
+}
+
+func (c *Container) SetBlockRepository(repo repository.BlockRepository) {
+	c.BlockRepository = repo
+}
+
+func (c *Container) SetCommentRepository(repo repository.CommentRepository) {
+	c.CommentRepository = repo
+}
+
+// Notes System Service Setters
+func (c *Container) SetWorkspaceService(service services.WorkspaceService) {
+	c.WorkspaceService = service
+}
+
+func (c *Container) SetPageService(service services.PageService) {
+	c.PageService = service
+}
+
 func (c *Container) GetUserRepository() repository.UserRepository {
 	return c.UserRepository
 }
@@ -176,6 +212,32 @@ func (c *Container) GetWaitlistService() services.WaitlistService {
 
 func (c *Container) GetSystemSettingsService() services.SystemSettingsService {
 	return c.SystemSettingsService
+}
+
+// Notes System Repository Getters
+func (c *Container) GetWorkspaceRepository() repository.WorkspaceRepository {
+	return c.WorkspaceRepository
+}
+
+func (c *Container) GetPageRepository() repository.PageRepository {
+	return c.PageRepository
+}
+
+func (c *Container) GetBlockRepository() repository.BlockRepository {
+	return c.BlockRepository
+}
+
+func (c *Container) GetCommentRepository() repository.CommentRepository {
+	return c.CommentRepository
+}
+
+// Notes System Service Getters
+func (c *Container) GetWorkspaceService() services.WorkspaceService {
+	return c.WorkspaceService
+}
+
+func (c *Container) GetPageService() services.PageService {
+	return c.PageService
 }
 
 func (c *Container) Validate() error {

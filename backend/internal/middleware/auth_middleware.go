@@ -18,11 +18,10 @@ func AuthMiddleware(authService services.AuthService, logger *slog.Logger) gin.H
 
 		token := extractToken(c)
 		if token == "" {
-			logger.Debug("Authentication token not provided",
-				"request_id", requestID,
+			logger.Warn("JWT token not found - authentication failed",
 				"path", c.Request.URL.Path,
 				"method", c.Request.Method,
-				"ip", c.ClientIP(),
+				"has_cookies", len(c.Request.Cookies()) > 0,
 			)
 			handleAuthError(c, errors.NewAuthenticationError("Authentication token is required"))
 			return
@@ -206,26 +205,32 @@ func OptionalAuthMiddleware(authService services.AuthService, logger *slog.Logge
 }
 
 func extractToken(c *gin.Context) string {
+	// First try to get token from cookie
 	if token, err := c.Cookie(constants.AccessTokenCookieName); err == nil && token != "" {
 		return token
 	}
 
+	// Then try Authorization header
 	authHeader := c.GetHeader("Authorization")
-	if authHeader == "" {
-		return ""
+	if authHeader != "" {
+		parts := strings.Split(authHeader, " ")
+		if len(parts) == 2 && parts[0] == "Bearer" {
+			return parts[1]
+		}
 	}
 
-	parts := strings.Split(authHeader, " ")
-	if len(parts) != 2 || parts[0] != "Bearer" {
-		return ""
-	}
-
-	return parts[1]
+	return ""
 }
 
 func clearAuthCookies(c *gin.Context) {
-	c.SetCookie("access_token", "", -1, "/", "", true, true)
-	c.SetCookie("refresh_token", "", -1, "/", "", true, true)
+	// For local development, don't require secure cookies
+	isSecure := c.Request.Header.Get("X-Forwarded-Proto") == "https" || c.Request.TLS != nil
+
+	c.SetCookie(constants.AccessTokenCookieName, "", -1, "/", "", isSecure, true)
+	c.SetCookie(constants.RefreshTokenCookieName, "", -1, "/", "", isSecure, true)
+	c.SetCookie(constants.SessionIDCookieName, "", -1, "/", "", isSecure, true)
+	c.SetCookie(constants.UserIDCookieName, "", -1, "/", "", isSecure, false)
+	c.SetCookie(constants.UserRolesCookieName, "", -1, "/", "", isSecure, false)
 }
 
 func handleAuthError(c *gin.Context, err error) {

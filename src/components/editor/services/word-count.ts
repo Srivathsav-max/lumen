@@ -44,14 +44,21 @@ export class WordCountService {
    */
   private setupEventListeners(): void {
     // Listen to editor changes
-    this.editor.isReady.then(() => {
-      // Initial count
-      this.updateCounts();
-
-      // EditorJS doesn't have a direct onChange method
-      // We'll use a polling approach or rely on external triggers
-      // The component using this service should call updateCounts manually
-    });
+    const maybeIsReady: any = (this.editor as any)?.isReady;
+    if (maybeIsReady && typeof maybeIsReady.then === "function") {
+      maybeIsReady.then(() => {
+        // Initial count
+        this.updateCounts();
+        // EditorJS doesn't have a direct onChange method
+        // We'll use external triggers to call updateCounts manually
+      }).catch(() => {
+        // Even if isReady rejects, attempt an initial count later
+        setTimeout(() => this.updateCounts(), 0);
+      });
+    } else {
+      // Fallback: schedule an initial update in next tick
+      setTimeout(() => this.updateCounts(), 0);
+    }
   }
 
   /**
@@ -78,6 +85,9 @@ export class WordCountService {
    */
   public async getDocumentCounters(): Promise<Counters> {
     try {
+      if (!this.editor || typeof (this.editor as any).save !== "function") {
+        return { wordCount: 0, charCount: 0 };
+      }
       const data = await this.editor.save();
       return this.calculateCounters(data);
     } catch (error) {

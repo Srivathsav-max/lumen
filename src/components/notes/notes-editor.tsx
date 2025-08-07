@@ -10,6 +10,30 @@ import { FloatingWordCount, type FloatingWordCountRef } from "./floating-word-co
 import { NotesSettingsMenu } from "./notes-settings-menu";
 import { ExportMenu } from "@/components/editor/export-menu/export-menu";
 import { FindReplaceWidget } from "@/components/editor/find-replace/find-replace-widget";
+import { NotesAPI, WorkspaceManager, type Page, type Workspace } from "@/app/dashboard/notes/api";
+
+// Helper function to sanitize content and remove HTML entities
+const sanitizeContent = (data: any): any => {
+  if (!data || !data.blocks) return data;
+  
+  return {
+    ...data,
+    blocks: data.blocks.map((block: any) => {
+      if (block.data && typeof block.data.text === 'string') {
+        // Remove HTML entities like &nbsp;, &amp;, etc.
+        block.data.text = block.data.text
+          .replace(/&nbsp;/g, ' ')
+          .replace(/&amp;/g, '&')
+          .replace(/&lt;/g, '<')
+          .replace(/&gt;/g, '>')
+          .replace(/&quot;/g, '"')
+          .replace(/&#39;/g, "'")
+          .trim();
+      }
+      return block;
+    })
+  };
+};
 
 // Dynamically import the EditorCore component to avoid SSR issues
 const EditorCore = dynamic(
@@ -27,39 +51,242 @@ export function NotesEditor() {
   const [isClient, setIsClient] = useState(false);
   const [isFindReplaceOpen, setIsFindReplaceOpen] = useState(false);
   const [notesTitle, setNotesTitle] = useState("");
+  const [currentPage, setCurrentPage] = useState<Page | null>(null);
+  const [currentWorkspace, setCurrentWorkspace] = useState<Workspace | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
+  const [isEmptyState, setIsEmptyState] = useState(false);
   
   // Export menu functionality
   const exportMenuRef = useRef<any>(null);
+  
+  // Auto-save timeout
+  const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Ensure we're on the client side
+  // Initialize editor with workspace and page data
   useEffect(() => {
     setIsClient(true);
+    initializeEditor();
     
-    // Load saved data from localStorage on mount
-    const savedData = localStorage.getItem('lumen-notes-data');
-    if (savedData) {
+    // Cleanup timeout on unmount
+    return () => {
+      if (saveTimeoutRef.current) {
+        clearTimeout(saveTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  const initializeEditor = async () => {
+    try {
+      setIsLoading(true);
+      
+      // Ensure we have a default workspace
+      const workspace = await WorkspaceManager.ensureDefaultWorkspace();
+      setCurrentWorkspace(workspace);
+
+      // Try to load current page for this workspace; do not auto-create
+      await loadCurrentPageIfAny(workspace.id);
+      
+    } catch (error) {
+      console.error('Failed to initialize editor:', error);
+      // Fallback to empty editor
+      setData(undefined);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const loadCurrentPageIfAny = async (workspaceId: number) => {
+    try {
+      // Try to get the current page from localStorage or create a new one
+      const pageIdKey = `lumen-current-page-${workspaceId}`;
+      const savedPageId = localStorage.getItem(pageIdKey);
+      
+      let page: Page | null = null;
+      
+      if (savedPageId) {
+        try {
+          page = await NotesAPI.getPage(savedPageId, true);
+        } catch (error) {
+          console.log('Saved page not found.');
+        }
+      }
+
+      if (!page) {
+        // No page selected; show empty state
+        setCurrentPage(null);
+        setNotesTitle("");
+        setData(undefined);
+        setIsEmptyState(true);
+        return;
+      }
+
+      setCurrentPage(page);
+      setNotesTitle(page.title);
+      
+      // Convert blocks to EditorJS format
+      if (page.blocks && page.blocks.length > 0) {
+        const editorData = NotesAPI.formatEditorJSContent(
+          page.blocks.map(block => ({
+            id: block.id,
+            type: block.block_type,
+            data: block.block_data
+          }))
+        );
+        // Sanitize content to remove HTML entities
+        const sanitizedData = sanitizeContent(editorData);
+        setData(sanitizedData);
+      } else {
+        setData(undefined);
+      }
+      setIsEmptyState(false);
+      
+    } catch (error) {
+      console.error('Failed to load or create page:', error);
+      throw error;
+    }
+  };
+
+  // Listen for page selection events from the sidebar to update the editor without reload
+  useEffect(() => {
+    const handlePageSelected = async (event: Event) => {
+      const customEvent = event as CustomEvent<{ workspaceId: number; pageId: string }>;
+      const { workspaceId, pageId } = customEvent.detail || ({} as any);
+      if (!workspaceId || !pageId) return;
       try {
-        const parsedData = JSON.parse(savedData);
-        setData(parsedData);
+        setIsLoading(true);
+        // Persist selection
+        localStorage.setItem(`lumen-current-page-${workspaceId}`, pageId);
+        // Fetch page with blocks
+        const page = await NotesAPI.getPage(pageId, true);
+        setCurrentPage(page);
+        setNotesTitle(page.title || "Untitled");
+        // Prepare editor data
+        if (page.blocks && page.blocks.length > 0) {
+          const editorData = NotesAPI.formatEditorJSContent(
+            page.blocks.map(block => ({
+              id: block.id,
+              type: block.block_type,
+              data: block.block_data
+            }))
+          );
+          const sanitizedData = sanitizeContent(editorData);
+          setData(sanitizedData);
+          // If editor instance exists, render immediately
+          if (editorRef.current) {
+            await editorRef.current.clear();
+            await editorRef.current.render(sanitizedData as any);
+          }
+        } else {
+          setData(undefined);
+          if (editorRef.current) {
+            await editorRef.current.clear();
+          }
+        }
+        setIsEmptyState(false);
       } catch (error) {
-        console.error('Failed to parse saved notes data:', error);
+        console.error('Failed to switch page:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    const handleNotesCleared = async () => {
+      try {
+        setCurrentPage(null);
+        setNotesTitle("");
+        setData(undefined);
+        setIsEmptyState(true);
+        if (editorRef.current) {
+          await editorRef.current.clear();
+        }
+      } catch (_) {}
+    };
+
+    if (typeof window !== 'undefined') {
+      window.addEventListener('lumen:notes-page-selected', handlePageSelected as EventListener);
+      window.addEventListener('lumen:notes-cleared', handleNotesCleared as EventListener);
+    }
+    return () => {
+      if (typeof window !== 'undefined') {
+        window.removeEventListener('lumen:notes-page-selected', handlePageSelected as EventListener);
+        window.removeEventListener('lumen:notes-cleared', handleNotesCleared as EventListener);
+      }
+    };
+  }, []);
+
+  const handleCreateFromEmpty = useCallback(async () => {
+    if (!currentWorkspace) return;
+    try {
+      setIsLoading(true);
+      const newPage = await NotesAPI.createPage({
+        title: "Untitled",
+        workspace_id: currentWorkspace.id,
+      });
+      localStorage.setItem(`lumen-current-page-${currentWorkspace.id}`, newPage.id);
+      // Notify sidebar and self
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('lumen:notes-page-created', {
+          detail: { workspaceId: currentWorkspace.id, page: newPage }
+        }));
+        window.dispatchEvent(new CustomEvent('lumen:notes-page-selected', {
+          detail: { workspaceId: currentWorkspace.id, pageId: newPage.id }
+        }));
+      }
+    } catch (error) {
+      console.error('Failed to create note from empty state:', error);
+      alert('Failed to create note. Please try again.');
+    } finally {
+      setIsLoading(false);
+    }
+  }, [currentWorkspace]);
+
+  const saveHandler = useCallback(async (output: OutputData) => {
+    if (!currentPage) return;
+    
+    // Debounce saves to avoid too many API calls
+    if (saveTimeoutRef.current) {
+      clearTimeout(saveTimeoutRef.current);
+    }
+
+    saveTimeoutRef.current = setTimeout(async () => {
+      try {
+        setIsSaving(true);
+        
+        await NotesAPI.savePageContent(currentPage.id, {
+          title: notesTitle || "Untitled",
+          content: output
+        });
+        
+        console.log('Notes saved to backend');
+      } catch (error) {
+        console.error('Failed to save notes:', error);
+        // Fallback to localStorage if API fails
+        localStorage.setItem(`lumen-notes-backup-${currentPage.id}`, JSON.stringify(output));
+      } finally {
+        setIsSaving(false);
+      }
+    }, 1000); // Debounce by 1 second
+  }, [currentPage, notesTitle]);
+
+  const handleImport = useCallback(async (importedData: OutputData) => {
+    // Update the local state with imported data (sanitize first)
+    const sanitizedData = sanitizeContent(importedData);
+    setData(sanitizedData);
+    
+    if (currentPage) {
+      try {
+        await NotesAPI.savePageContent(currentPage.id, {
+          title: notesTitle || "Untitled",
+          content: sanitizedData
+        });
+        console.log('Notes imported and saved to backend');
+      } catch (error) {
+        console.error('Failed to save imported data:', error);
+        // Fallback to localStorage
+        localStorage.setItem(`lumen-notes-backup-${currentPage.id}`, JSON.stringify(sanitizedData));
       }
     }
-  }, []);
-
-  const saveHandler = useCallback((output: OutputData) => {
-    // Save to localStorage for now (no backend needed)
-    localStorage.setItem('lumen-notes-data', JSON.stringify(output));
-    console.log('Notes saved to localStorage');
-  }, []);
-
-  const handleImport = useCallback((importedData: OutputData) => {
-    // Update the local state with imported data
-    setData(importedData);
-    // Save to localStorage
-    localStorage.setItem('lumen-notes-data', JSON.stringify(importedData));
-    console.log('Notes imported and saved');
-  }, []);
+  }, [currentPage, notesTitle]);
 
   // Get current title for exports
   const getCurrentTitle = useCallback(() => {
@@ -174,6 +401,25 @@ export function NotesEditor() {
     }
   }, [saveHandler]);
 
+  const handleTitleChange = useCallback(async (newTitle: string) => {
+    setNotesTitle(newTitle);
+    
+    if (currentPage && newTitle !== currentPage.title) {
+      if (saveTimeoutRef.current) {
+        clearTimeout(saveTimeoutRef.current);
+      }
+
+      saveTimeoutRef.current = setTimeout(async () => {
+        try {
+          await NotesAPI.updatePage(currentPage.id, { title: newTitle });
+          setCurrentPage({ ...currentPage, title: newTitle });
+        } catch (error) {
+          console.error('Failed to save title:', error);
+        }
+      }, 1000);
+    }
+  }, [currentPage]);
+
   // Handle keyboard shortcuts
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -192,9 +438,26 @@ export function NotesEditor() {
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, [isFindReplaceOpen]);
 
-  // Don't render anything on server side
-  if (!isClient) {
+  // Don't render anything on server side or while loading
+  if (!isClient || isLoading) {
     return <EditorLoading />;
+  }
+
+  if (isEmptyState) {
+    return (
+      <div className="h-full flex items-center justify-center">
+        <div className="text-center max-w-md">
+          <div className="text-2xl font-semibold mb-2">No notes yet</div>
+          <p className="text-muted-foreground mb-4">Create your first note to get started.</p>
+          <button
+            onClick={handleCreateFromEmpty}
+            className="inline-flex items-center px-3 py-2 rounded-md bg-primary text-primary-foreground hover:opacity-90"
+          >
+            + Create note
+          </button>
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -204,9 +467,15 @@ export function NotesEditor() {
         <div className="flex-1">
           <NotesTitle
             initialTitle={notesTitle}
-            onTitleChange={setNotesTitle}
+            onTitleChange={handleTitleChange}
             placeholder="Untitled"
           />
+          {isSaving && (
+            <div className="text-xs text-gray-500 mt-1 flex items-center">
+              <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-gray-500 mr-1"></div>
+              Saving...
+            </div>
+          )}
         </div>
         <div className="ml-4 mt-2">
           <NotesSettingsMenu

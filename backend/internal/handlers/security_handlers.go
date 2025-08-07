@@ -22,7 +22,7 @@ func (h *SecurityHandlers) GetCSRFToken(c *gin.Context) {
 	sessionID := c.GetString("session_id")
 
 	var userID int64
-	if userIDValue, exists := c.Get("user_id"); exists {
+	if userIDValue, exists := c.Get("userID"); exists {
 		if uid, ok := userIDValue.(int64); ok {
 			userID = uid
 		}

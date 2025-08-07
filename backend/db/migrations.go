@@ -51,12 +51,12 @@ func fixDirtyMigration(m *migrate.Migrate) error {
 
 	if dirty {
 		log.Printf("Database is in dirty state at version %d. Attempting to fix...", version)
-		
+
 		// Force the version to clean the dirty state
 		if err := m.Force(int(version)); err != nil {
 			return fmt.Errorf("could not force migration version %d: %w", version, err)
 		}
-		
+
 		log.Printf("Successfully cleaned dirty state for version %d", version)
 	}
 
