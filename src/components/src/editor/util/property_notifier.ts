@@ -1,12 +1,22 @@
-export type PropertyListener<T> = (value: T) => void;
+// Property value notifier implementation for TypeScript
+export type ChangeListener = () => void;
 
-/// A simple property notifier that can notify listeners when a value changes
-export class PropertyNotifier<T> {
+export interface ValueListenable<T> {
+  readonly value: T;
+  addListener(listener: ChangeListener): void;
+  removeListener(listener: ChangeListener): void;
+}
+
+/**
+ * PropertyValueNotifier is similar to ValueNotifier but will notify listeners
+ * even when the value is the same as the previous value.
+ */
+export class PropertyValueNotifier<T> implements ValueListenable<T> {
   private _value: T;
-  private _listeners: Set<PropertyListener<T>> = new Set();
+  private _listeners: Set<ChangeListener> = new Set();
 
-  constructor(initialValue: T) {
-    this._value = initialValue;
+  constructor(value: T) {
+    this._value = value;
   }
 
   get value(): T {
@@ -14,50 +24,29 @@ export class PropertyNotifier<T> {
   }
 
   set value(newValue: T) {
-    if (this._value !== newValue) {
-      this._value = newValue;
-      this.notifyListeners();
-    }
+    this._value = newValue;
+    this.notifyListeners();
   }
 
-  /// Add a listener that will be called when the value changes
-  addListener(listener: PropertyListener<T>): void {
+  addListener(listener: ChangeListener): void {
     this._listeners.add(listener);
   }
 
-  /// Remove a listener
-  removeListener(listener: PropertyListener<T>): void {
+  removeListener(listener: ChangeListener): void {
     this._listeners.delete(listener);
   }
 
-  /// Remove all listeners
-  removeAllListeners(): void {
-    this._listeners.clear();
-  }
-
-  /// Notify all listeners of the current value
-  notifyListeners(): void {
+  protected notifyListeners(): void {
     for (const listener of this._listeners) {
       try {
-        listener(this._value);
+        listener();
       } catch (error) {
-        console.error('Error in PropertyNotifier listener:', error);
+        console.error('Error in PropertyValueNotifier listener:', error);
       }
     }
   }
 
-  /// Dispose of this notifier and remove all listeners
   dispose(): void {
     this._listeners.clear();
-  }
-
-  /// Get the number of listeners
-  get listenerCount(): number {
-    return this._listeners.size;
-  }
-
-  /// Check if there are any listeners
-  get hasListeners(): boolean {
-    return this._listeners.size > 0;
   }
 }
