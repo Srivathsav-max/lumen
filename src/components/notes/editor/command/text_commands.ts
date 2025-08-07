@@ -374,6 +374,9 @@ class NodeExtensionsImpl {
 
 // Text transaction implementation
 class TextTransactionImpl {
+  // We use this map to cache the delta waiting to be composed.
+  static readonly _composeMap = new Map<Node, Delta[]>();
+
   static insertText(
     transaction: Transaction,
     node: Node,
@@ -385,8 +388,6 @@ class TextTransactionImpl {
       sliceAttributes?: boolean;
     } = {}
   ): void {
-    // Implementation would be similar to the original TextTransaction.insertText
-    // This is a simplified version
     const { attributes, toggledAttributes, sliceAttributes = true } = options;
     
     const delta = node.delta;
@@ -412,7 +413,9 @@ class TextTransactionImpl {
     insert.retain(index);
     insert.insert(text, newAttributes);
 
-    // Add to compose map (simplified)
+    // Add to compose map like the real TextTransaction does
+    this.addDeltaToComposeMap(transaction, node, insert);
+
     transaction.afterSelection = Selection.collapsed(
       new Position({ path: node.path, offset: index + text.length })
     );
@@ -439,6 +442,9 @@ class TextTransactionImpl {
     deleteOp.retain(index);
     deleteOp.delete(length);
 
+    // Add to compose map like the real TextTransaction does
+    this.addDeltaToComposeMap(transaction, node, deleteOp);
+
     transaction.afterSelection = Selection.collapsed(
       new Position({ path: node.path, offset: index })
     );
@@ -460,6 +466,15 @@ class TextTransactionImpl {
     format.retain(index);
     format.retain(length, attributes);
 
-    // Implementation would add to compose map
+    // Add to compose map like the real TextTransaction does
+    this.addDeltaToComposeMap(transaction, node, format);
+  }
+
+  static addDeltaToComposeMap(transaction: Transaction, node: Node, delta: Delta): void {
+    transaction.markNeedsComposing = true;
+    if (!this._composeMap.has(node)) {
+      this._composeMap.set(node, []);
+    }
+    this._composeMap.get(node)!.push(delta);
   }
 }

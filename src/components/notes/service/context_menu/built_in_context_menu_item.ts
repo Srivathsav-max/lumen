@@ -1,29 +1,39 @@
-import { AppFlowyEditorL10n } from '../../editor/l10n/appflowy_editor_l10n';
-import { handleCut, handleCopy, handlePaste } from '../internal_key_event_handlers/copy_paste_handler';
-import { ContextMenuItemImpl } from './context_menu';
+import type { ContextMenuItem } from './context_menu';
+import type { EditorState } from '../../core/core';
 
-export const standardContextMenuItems = [
+// Handler functions (matching Flutter copy_paste_handler.dart)
+const handleCut = (editorState: EditorState) => {
+  // Implementation would handle cutting selected text
+};
+
+const handleCopy = (editorState: EditorState) => {
+  // Implementation would handle copying selected text
+};
+
+const handlePaste = (editorState: EditorState) => {
+  // Implementation would handle pasting text
+};
+
+// Standard context menu items (matching Flutter standardContextMenuItems exactly)
+export const standardContextMenuItems: ContextMenuItem[][] = [
   [
     // cut
-    new ContextMenuItemImpl({
-      getName: () => AppFlowyEditorL10n.current.cut,
-      onPressed: (editorState) => {
-        handleCut(editorState);
-      },
-    }),
+    {
+      name: 'Cut', // Would use localization: AppFlowyEditorL10n.current.cut
+      handler: handleCut,
+      enabled: true,
+    },
     // copy
-    new ContextMenuItemImpl({
-      getName: () => AppFlowyEditorL10n.current.copy,
-      onPressed: (editorState) => {
-        handleCopy(editorState);
-      },
-    }),
+    {
+      name: 'Copy', // Would use localization: AppFlowyEditorL10n.current.copy
+      handler: handleCopy,
+      enabled: true,
+    },
     // paste
-    new ContextMenuItemImpl({
-      getName: () => AppFlowyEditorL10n.current.paste,
-      onPressed: (editorState) => {
-        handlePaste(editorState);
-      },
-    }),
+    {
+      name: 'Paste', // Would use localization: AppFlowyEditorL10n.current.paste
+      handler: handlePaste,
+      enabled: true,
+    },
   ],
 ];

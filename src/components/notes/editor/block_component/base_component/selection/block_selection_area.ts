@@ -1,10 +1,10 @@
-import { Node, EditorState, Selection, SelectionType } from '../../../../core/editor_state';
-import { Component, ComponentChild } from '../../../../core/component';
+import { Node, EditorState, Selection, SelectionType } from '@/notes-core/editor_state';
+import { Component, ComponentChild } from '@/notes-core/component';
 import { SelectableMixin } from '../mixins';
 import { SelectionAreaPaint } from './selection_area_painter';
-import { Cursor } from '../../../../render/selection/cursor';
-import { MobileSelectionDragMode, selectionDragModeKey } from '../../../../service/selection/mobile_selection_service';
-import { deepEqual } from '../../../../core/utils';
+import { Cursor } from '@/notes/render/selection/cursor';
+import { MobileSelectionDragMode, selectionDragModeKey } from '@/notes-editor/editor_component/service/selection/mobile_selection_service';
+import { deepEqual } from '@/notes-core/utils';
 
 export enum BlockSelectionType {
   cursor = 'cursor',

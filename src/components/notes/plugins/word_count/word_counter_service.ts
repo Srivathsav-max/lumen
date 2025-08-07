@@ -1,4 +1,7 @@
 // Word counter service for tracking word and character counts in the editor
+// Import TransactionTime from the canonical location
+import { TransactionTime } from '../../core/transform/transaction';
+
 export interface EditorState {
   document: Document;
   selection: Selection | null;
@@ -39,10 +42,8 @@ export interface Delta {
 
 export type EditorTransactionValue = [TransactionTime, any];
 
-export enum TransactionTime {
-  before = 'before',
-  after = 'after'
-}
+// Export TransactionTime for convenience
+export { TransactionTime };
 
 // Word regex that matches all non-whitespace characters
 const _wordRegex = /\S+/g;

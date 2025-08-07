@@ -1,5 +1,5 @@
-import { EditorState } from '../../editor/editor_state';
-import { MobileSelectionService, MobileSelectionDragMode } from '../../service/selection/mobile_selection_service';
+import { EditorState } from '@/notes-core/editor_state';
+import { MobileSelectionService, MobileSelectionDragMode } from '@/notes-editor/editor_component/service/selection/mobile_selection_service';
 
 export enum HandleType {
   none = 'none',

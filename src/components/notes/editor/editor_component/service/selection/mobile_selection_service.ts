@@ -1,22 +1,22 @@
-import { StatefulWidget, State, Widget, BuildContext, Key, Color, Size, ValueNotifier, WidgetsBindingObserver, Stack, Clip, ValueListenableBuilder, SizedBox, RenderBox, Timer, Offset, Rect, Colors } from '../../../../flutter/widgets';
-import { EditorState } from '../../../editor_state';
-import { Selection } from '../../../selection';
-import { Node } from '../../../node';
-import { Position } from '../../../selection/position';
-import { AppFlowySelectionService, SelectionGestureInterceptor } from '../../../service/selection_service';
+import { StatefulWidget, State, Widget, BuildContext, Key, Color, Size, ValueNotifier, WidgetsBindingObserver, Stack, Clip, ValueListenableBuilder, SizedBox, RenderBox, Timer, Offset, Rect, Colors } from '@/notes/flutter/widgets';
+import { EditorState } from '@/notes-core/editor_state';
+import { Selection } from '@/notes-core/location/selection';
+import { Node } from '@/notes-core/document/node';
+import { Position } from '@/notes-core/location/position';
+import { AppFlowySelectionService, SelectionGestureInterceptor } from '../selection_service';
 import { MobileMagnifier } from './mobile_magnifier';
-import { PlatformExtension } from '../../../util/platform_extension';
-import { MobileBasicHandle } from '../../../../render/selection/mobile_basic_handle';
-import { MobileCollapsedHandle } from '../../../../render/selection/mobile_collapsed_handle';
-import { MobileSelectionHandle, HandleType } from '../../../../render/selection/mobile_selection_handle';
-import { MobileSelectionGestureDetector } from '../../../../service/selection/mobile_selection_gesture';
-import { SelectionUpdateReason } from '../../../selection/selection_update_reason';
-import { SelectionType } from '../../../selection/selection_type';
-import { AppFlowyEditorLog } from '../../../log';
+import { PlatformExtension } from '@/notes-editor/util/platform_extension';
+import { MobileBasicHandle } from '@/notes/render/selection/mobile_basic_handle';
+import { MobileCollapsedHandle } from '@/notes/render/selection/mobile_collapsed_handle';
+import { MobileSelectionHandle, HandleType } from '@/notes/render/selection/mobile_selection_handle';
+import { MobileSelectionGestureDetector } from '@/notes/service/selection/mobile_selection_gesture';
+import { SelectionUpdateReason } from '@/notes-core/editor_state'; // This should be exported from editor_state
+import { SelectionType } from '@/notes-core/editor_state'; // This should be exported from editor_state
+import { AppFlowyEditorLog } from '@/notes/infra/log';
 import { EditorScrollController } from '../scroll/editor_scroll_controller';
-import { HapticFeedback } from '../../../../flutter/services';
-import { DragAreaBuilder, DragTargetNodeInterceptor, DropTargetRenderData } from '../../../service/drag_target';
-import { StreamController } from '../../../../dart/async';
+import { HapticFeedback } from '@/notes/flutter/services';
+import { DragAreaBuilder, DragTargetNodeInterceptor, DropTargetRenderData } from '@/notes/service/drag_target';
+import { StreamController } from '@/notes/dart/async';
 
 /// only used in mobile
 ///
@@ -349,23 +349,34 @@ class MobileSelectionServiceWidgetState extends State<MobileSelectionServiceWidg
       if (!selection.isCollapsed) {
         // updates selection area.
         AppFlowyEditorLog.selection.debug('update cursor area, ' + selection.toString());
-        this._updateSelectionAreas(selection);
+        // Schedule selection area update after layout for proper positioning
+        requestAnimationFrame(() => {
+          if (this.mounted) {
+            this._updateSelectionAreas(selection);
+          }
+        });
       }
     }
 
     this.currentSelection.value = selection;
-    this.editorState.updateSelectionWithReason(
-      selection,
-      SelectionUpdateReason.uiEvent,
-      {
-        customSelectionType: SelectionType.inline,
-        extraInfo: {
-          [selectionDragModeKey]: this.dragMode,
-          selectionExtraInfoDoNotAttachTextService:
-            this.dragMode === MobileSelectionDragMode.cursor,
-        },
+    
+    // Schedule editor state update after current frame to ensure proper timing
+    requestAnimationFrame(() => {
+      if (this.mounted) {
+        this.editorState.updateSelectionWithReason(
+          selection,
+          SelectionUpdateReason.uiEvent,
+          {
+            customSelectionType: SelectionType.inline,
+            extraInfo: {
+              [selectionDragModeKey]: this.dragMode,
+              selectionExtraInfoDoNotAttachTextService:
+                this.dragMode === MobileSelectionDragMode.cursor,
+            },
+          }
+        );
       }
-    );
+    });
   }
 
   clearSelection(): void {
@@ -427,9 +438,12 @@ class MobileSelectionServiceWidgetState extends State<MobileSelectionServiceWidg
   private _updateSelection(): void {
     const selection = this.editorState.selection;
 
-    // WidgetsBinding.instance.addPostFrameCallback(() => {
-    //   if (this.mounted) this.selectionNotifierAfterLayout.value = selection;
-    // });
+    // Schedule selection update after layout to ensure proper positioning
+    requestAnimationFrame(() => {
+      if (this.mounted) {
+        this.selectionNotifierAfterLayout.value = selection;
+      }
+    });
 
     if (this.currentSelection.value !== selection) {
       this.clearSelection();
@@ -440,11 +454,14 @@ class MobileSelectionServiceWidgetState extends State<MobileSelectionServiceWidg
       if (!selection.isCollapsed) {
         // updates selection area.
         AppFlowyEditorLog.selection.debug('update cursor area, ' + selection.toString());
-        // WidgetsBinding.instance.addPostFrameCallback(() => {
-        //   this.selectionRects.length = 0;
-        //   this._clearSelection();
-        //   this._updateSelectionAreas(selection);
-        // });
+        // Schedule selection area update after layout to ensure proper rect calculations
+        requestAnimationFrame(() => {
+          if (this.mounted) {
+            this.selectionRects.length = 0;
+            this._clearSelection();
+            this._updateSelectionAreas(selection);
+          }
+        });
       }
     }
   }
@@ -855,12 +872,28 @@ class MobileSelectionServiceWidgetState extends State<MobileSelectionServiceWidg
         newSelection,
         { shiftWithBaseOffset: true }
       );
+      
+      // Add bounds checking and coordinate validation
       for (const rect of rects) {
+        // Validate rect dimensions and coordinates
+        if (!rect || rect.width <= 0 || rect.height <= 0 || 
+            !isFinite(rect.left) || !isFinite(rect.top) ||
+            !isFinite(rect.width) || !isFinite(rect.height)) {
+          continue;
+        }
+        
         const selectionRect = selectable.transformRectToGlobal(
           rect,
           { shiftWithBaseOffset: true }
         );
-        this.selectionRects.push(selectionRect);
+        
+        // Additional validation for transformed rect
+        if (selectionRect && 
+            isFinite(selectionRect.left) && isFinite(selectionRect.top) &&
+            isFinite(selectionRect.width) && isFinite(selectionRect.height) &&
+            selectionRect.width > 0 && selectionRect.height > 0) {
+          this.selectionRects.push(selectionRect);
+        }
       }
     }
   }

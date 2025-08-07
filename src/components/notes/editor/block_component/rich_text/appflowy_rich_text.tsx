@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
-import { Node, EditorState, Position, Selection, TextInsert, Attributes } from '../../../core';
-import { SelectableMixin } from './default_selectable_mixin';
-import { BlockSelectionContainer } from '../base_component/selection/block_selection_container';
+import { Node, EditorState, Position, Selection, TextInsert, Attributes } from '@/notes-core';
+import { SelectableMixin } from '../base_component/mixins';
+import { BlockSelectionContainer } from '@/notes-editor/block_component/base_component/selection/block_selection_container';
 import { AppFlowyRichTextKeys } from './appflowy_rich_text_keys';
-import { TextStyleConfiguration } from '../base_component/text_style_configuration';
+import { TextStyleConfiguration } from '@/notes-editor/block_component/base_component/text_style_configuration';
 
 export type TextSpanDecoratorForAttribute = (
   context: React.Context<any>,

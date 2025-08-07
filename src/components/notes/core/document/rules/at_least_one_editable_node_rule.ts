@@ -1,4 +1,5 @@
-import { DocumentRule, EditorState, EditorTransactionValue, TransactionTime } from './document_rule';
+import { DocumentRule } from './document_rule';
+import { EditorState, EditorTransactionValue, TransactionTime } from '../../core';
 import { paragraphNode } from '../node';
 import { Position } from '../../location/position';
 import { Selection } from '../../location/selection';
@@ -16,7 +17,7 @@ export class AtLeastOneEditableNodeRule extends DocumentRule {
     value: EditorTransactionValue;
   }): boolean {
     const { editorState, value } = options;
-    const time = value[0];
+    const time = value.time;
     
     if (time !== TransactionTime.after) {
       return false;
@@ -38,7 +39,7 @@ export class AtLeastOneEditableNodeRule extends DocumentRule {
     
     // Set selection to the beginning of the new paragraph
     transaction.afterSelection = Selection.collapsed(
-      new Position({ path: [0] })
+      new Position({ path: [0], offset: 0 })
     );
     
     editorState.apply(transaction);

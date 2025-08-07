@@ -39,7 +39,7 @@ export function diffNodes(oldNode: Node, newNode: Node): Operation[] {
   }
 
   // Identify deletions
-  for (const [id, oldChild] of oldChildrenById) {
+  for (const [id, oldChild] of Array.from(oldChildrenById)) {
     if (!newChildrenById.has(id)) {
       operations.push(new DeleteOperation(oldChild.path, [oldChild]));
     }

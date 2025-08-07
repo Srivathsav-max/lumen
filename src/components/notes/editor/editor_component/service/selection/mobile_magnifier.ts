@@ -1,4 +1,4 @@
-import { StatelessWidget, Widget, BuildContext, Key, Size, Offset, Positioned, Rect, IgnorePointer, RawMagnifier, MagnifierDecoration, RoundedRectangleBorder, BorderRadius, Radius, BoxShadow, ColoredBox, Color } from '../../../../flutter/widgets';
+import { StatelessWidget, Widget, BuildContext, Key, Size, Offset, Positioned, Rect, IgnorePointer, RawMagnifier, MagnifierDecoration, RoundedRectangleBorder, BorderRadius, Radius, BoxShadow, ColoredBox, Color } from '@/notes/flutter/widgets';
 
 export class MobileMagnifier extends StatelessWidget {
   readonly size: Size;

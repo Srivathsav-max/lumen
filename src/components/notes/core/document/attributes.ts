@@ -71,7 +71,7 @@ export function diffAttributes(
 
   const allKeys = new Set([...Object.keys(from), ...Object.keys(to)]);
   
-  for (const key of allKeys) {
+  for (const key of Array.from(allKeys)) {
     if (from[key] !== to[key]) {
       attributes[key] = to.hasOwnProperty(key) ? to[key] : null;
     }

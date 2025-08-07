@@ -36,19 +36,28 @@ export class Cursor {
 
   private createElement(): HTMLElement {
     const container = document.createElement('div');
+    
+    // Apply bounds checking and coordinate validation during creation
+    const left = Math.max(0, Math.round(this.props.rect.left));
+    const top = Math.max(0, Math.round(this.props.rect.top));
+    const width = Math.max(1, Math.round(this.props.rect.width));
+    const height = Math.max(1, Math.round(this.props.rect.height));
+    
     container.style.cssText = `
       position: absolute;
-      left: ${this.props.rect.left}px;
-      top: ${this.props.rect.top}px;
-      width: ${this.props.rect.width}px;
-      height: ${this.props.rect.height}px;
+      left: ${left}px;
+      top: ${top}px;
+      width: ${width}px;
+      height: ${height}px;
       pointer-events: none;
-      z-index: 100;
+      z-index: 1000;
+      transform-origin: top left;
+      will-change: transform;
     `;
 
     const cursor = this.buildCursor();
     container.appendChild(cursor);
-
+    
     return container;
   }
 
@@ -170,12 +179,37 @@ export class Cursor {
    * Update cursor position and size
    */
   updateRect(newRect: Rect): void {
-    this.props.rect = newRect;
+    // Validate rect coordinates and dimensions
+    if (!newRect || !isFinite(newRect.left) || !isFinite(newRect.top) ||
+        !isFinite(newRect.width) || !isFinite(newRect.height)) {
+      console.warn('Invalid cursor rect provided:', newRect);
+      return;
+    }
     
-    this.element.style.left = `${newRect.left}px`;
-    this.element.style.top = `${newRect.top}px`;
-    this.element.style.width = `${newRect.width}px`;
-    this.element.style.height = `${newRect.height}px`;
+    // Apply bounds checking to prevent negative or invalid positions
+    const left = Math.max(0, Math.round(newRect.left));
+    const top = Math.max(0, Math.round(newRect.top));
+    const width = Math.max(1, Math.round(newRect.width));
+    const height = Math.max(1, Math.round(newRect.height));
+    
+    // Additional bounds checking for viewport constraints
+    const maxLeft = Math.max(0, window.innerWidth - width);
+    const maxTop = Math.max(0, window.innerHeight - height);
+    
+    const clampedLeft = Math.min(left, maxLeft);
+    const clampedTop = Math.min(top, maxTop);
+    
+    this.props.rect = {
+      left: clampedLeft,
+      top: clampedTop,
+      width: width,
+      height: height
+    };
+    
+    this.element.style.left = `${clampedLeft}px`;
+    this.element.style.top = `${clampedTop}px`;
+    this.element.style.width = `${width}px`;
+    this.element.style.height = `${height}px`;
     
     this.updateCursor();
   }

@@ -81,6 +81,7 @@ export abstract class TextOperation {
     return this.length === 0;
   }
   
+  abstract equals(other: TextOperation): boolean;
   abstract toJson(): Record<string, any>;
 }
 
@@ -388,8 +389,8 @@ export class Delta {
         const thisOp = thisIter.next(length);
         const otherOp = otherIter.next(length);
         const attributes = composeAttributes(
-          thisOp.attributes,
-          otherOp.attributes,
+          thisOp.attributes || undefined,
+          otherOp.attributes || undefined,
           { keepNull: thisOp instanceof TextRetain }
         );
 
@@ -472,7 +473,7 @@ export class Delta {
           } else if (op instanceof TextRetain && op.attributes) {
             inverted.retain(
               baseOp.length,
-              invertAttributes(baseOp.attributes, op.attributes) || undefined
+              invertAttributes(baseOp.attributes || undefined, op.attributes || undefined) || undefined
             );
           }
         }
@@ -487,6 +488,17 @@ export class Delta {
 
   toJson(): any[] {
     return this.operations.map(op => op.toJson());
+  }
+
+  hashCode(): number {
+    let hash = 0;
+    const str = JSON.stringify(this.toJson());
+    for (let i = 0; i < str.length; i++) {
+      const char = str.charCodeAt(i);
+      hash = ((hash << 5) - hash) + char;
+      hash = hash & hash; // Convert to 32bit integer
+    }
+    return hash;
   }
 
   toPlainText(): string {

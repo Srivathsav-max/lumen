@@ -46,7 +46,7 @@ export interface Offset {
 
 export class PositionExtension {
   /**
-   * Move cursor horizontally (left/right)
+   * Move cursor horizontally (left/right) with improved bounds checking
    */
   static moveHorizontal(
     position: Position,
@@ -63,6 +63,7 @@ export class PositionExtension {
       return null;
     }
 
+    // Handle movement to previous/next node boundaries
     if (forward && position.offset === 0) {
       const previousEnd = node.previous?.selectable?.end();
       if (previousEnd) {
@@ -72,7 +73,10 @@ export class PositionExtension {
     } else if (!forward) {
       const end = node.selectable?.end();
       if (end && position.offset >= end.offset) {
-        return node.next?.selectable?.start();
+        const nextStart = node.next?.selectable?.start();
+        if (nextStart) {
+          return nextStart;
+        }
       }
     }
 
@@ -80,11 +84,16 @@ export class PositionExtension {
       case SelectionRange.character:
         const delta = node.delta;
         if (delta) {
+          const newOffset = forward
+            ? delta.prevRunePosition(position.offset)
+            : delta.nextRunePosition(position.offset);
+          
+          // Ensure offset is within valid bounds
+          const clampedOffset = Math.max(0, Math.min(newOffset, delta.length));
+          
           return {
             path: position.path,
-            offset: forward
-              ? delta.prevRunePosition(position.offset)
-              : delta.nextRunePosition(position.offset)
+            offset: clampedOffset
           };
         }
         return { path: position.path, offset: position.offset };
@@ -92,15 +101,23 @@ export class PositionExtension {
       case SelectionRange.word:
         const wordDelta = node.delta;
         if (wordDelta) {
+          const targetPosition = {
+            path: position.path,
+            offset: forward
+              ? wordDelta.prevRunePosition(position.offset)
+              : position.offset
+          };
+          
           const result = forward
-            ? node.selectable?.getWordBoundaryInPosition({
-                path: position.path,
-                offset: wordDelta.prevRunePosition(position.offset)
-              })
+            ? node.selectable?.getWordBoundaryInPosition(targetPosition)
             : node.selectable?.getWordBoundaryInPosition(position);
           
           if (result) {
-            return forward ? result.start : result.end;
+            const resultPosition = forward ? result.start : result.end;
+            // Ensure the result position is valid
+            if (resultPosition && resultPosition.offset >= 0 && resultPosition.offset <= wordDelta.length) {
+              return resultPosition;
+            }
           }
         }
         return { path: position.path, offset: position.offset };
@@ -108,7 +125,7 @@ export class PositionExtension {
   }
 
   /**
-   * Move cursor vertically (up/down)
+   * Move cursor vertically (up/down) with improved coordinate handling
    */
   static moveVertical(
     position: Position,
@@ -132,6 +149,7 @@ export class PositionExtension {
       return null;
     }
 
+    // Find the appropriate caret rect based on selection direction
     const caretRect = rects.reduce((current: Rect, next: Rect) => {
       if (editorSelection.isBackward) {
         return current.bottom > next.bottom ? current : next;
@@ -139,14 +157,14 @@ export class PositionExtension {
       return current.top <= next.top ? current : next;
     });
 
-    // The offset of outermost part of the caret
+    // Calculate the offset of outermost part of the caret with proper coordinate handling
     const caretOffset: Offset = editorSelection.isBackward
       ? upwards
-        ? caretRect.topRight
-        : caretRect.bottomRight
+        ? { dx: caretRect.topRight.dx, dy: caretRect.topRight.dy }
+        : { dx: caretRect.bottomRight.dx, dy: caretRect.bottomRight.dy }
       : upwards
-        ? caretRect.topLeft
-        : caretRect.bottomLeft;
+        ? { dx: caretRect.topLeft.dx, dy: caretRect.topLeft.dy }
+        : { dx: caretRect.bottomLeft.dx, dy: caretRect.bottomLeft.dy };
 
     const nodeConfig = editorState.service.rendererService
       .blockComponentBuilder(node.type)?.configuration;
@@ -159,15 +177,15 @@ export class PositionExtension {
     const padding = nodeConfig.padding(node);
     const nodeRect = nodeSelectable.getBlockRect();
     const nodeHeight = nodeRect.height;
-    const textHeight = nodeHeight - padding.vertical;
+    const textHeight = nodeHeight - (padding.vertical || 0);
     const caretHeight = caretRect.height;
 
-    // Minimum (acceptable) font size
+    // Minimum font size for search precision
     const minFontSize = 1.0;
-    const remainingMultilineHeight = textHeight - caretHeight;
+    const remainingMultilineHeight = Math.max(0, textHeight - caretHeight);
 
-    // Linear search for a new position
-    let newOffset = caretOffset;
+    // Linear search for a new position with bounds checking
+    let newOffset = { ...caretOffset };
     let newPosition: Position | null = null;
     
     for (let y = minFontSize; y < remainingMultilineHeight + minFontSize; y += minFontSize) {
@@ -175,6 +193,11 @@ export class PositionExtension {
         dx: caretOffset.dx,
         dy: caretOffset.dy + (upwards ? -y : y)
       };
+
+      // Ensure coordinates are within valid bounds
+      if (newOffset.dy < 0 || newOffset.dx < 0) {
+        continue;
+      }
 
       newPosition = editorState.service.selectionService.getPositionInOffset(newOffset);
 
@@ -184,20 +207,21 @@ export class PositionExtension {
     }
 
     // Handle case where no new position found in multiline
-    const globalVerticalPadding = editorState.editorStyle.padding.vertical;
+    const globalVerticalPadding = editorState.editorStyle.padding?.vertical || 0;
     const maxSkip = upwards
-      ? padding.top + globalVerticalPadding
-      : padding.bottom + globalVerticalPadding;
+      ? (padding.top || 0) + globalVerticalPadding
+      : (padding.bottom || 0) + globalVerticalPadding;
 
     newOffset = {
       dx: newOffset.dx,
       dy: newOffset.dy + (upwards ? -maxSkip : maxSkip)
     };
 
+    // Clamp coordinates to valid bounds
     const nodeHeightOffset = nodeRenderBox.localToGlobal({ dx: 0, dy: nodeHeight });
     newOffset = {
-      dx: newOffset.dx,
-      dy: Math.min(newOffset.dy, nodeHeightOffset.dy)
+      dx: Math.max(0, newOffset.dx),
+      dy: Math.max(0, Math.min(newOffset.dy, nodeHeightOffset.dy))
     };
 
     newPosition = editorState.service.selectionService.getPositionInOffset(newOffset);

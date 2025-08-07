@@ -1,4 +1,4 @@
-import { EditorState } from '../../editor/editor_state';
+import { EditorState } from '@/notes-core/editor_state';
 import { MobileBasicHandle, HandleType, DragHandle } from './mobile_basic_handle';
 
 interface MobileCollapsedHandleProps {

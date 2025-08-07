@@ -1,6 +1,6 @@
 import { Attributes, composeAttributes } from './attributes';
 import { Path } from './path';
-import { Delta } from './text_delta';
+import { Delta, TextInsert } from './text_delta';
 
 export abstract class NodeExternalValues {
   constructor() {}
@@ -35,7 +35,7 @@ export class Node {
   public parent: Node | null = null;
 
   /// The children of the node.
-  private _children: Node[] = [];
+  protected _children: Node[] = [];
   private _cacheChildren: Node[] | null = null;
 
   /// The attributes of the node.
@@ -293,6 +293,18 @@ export class Node {
     return map;
   }
 
+  /// Returns a hash code for the node.
+  hashCode(): number {
+    let hash = 0;
+    const str = JSON.stringify(this.toJson());
+    for (let i = 0; i < str.length; i++) {
+      const char = str.charCodeAt(i);
+      hash = ((hash << 5) - hash) + char;
+      hash = hash & hash; // Convert to 32bit integer
+    }
+    return hash;
+  }
+
   /// Copy the node
   ///
   /// If the parameters are not provided, the original value will be used.
@@ -384,7 +396,7 @@ export class TextNode extends Node {
 
   static empty(attributes?: Attributes): TextNode {
     return new TextNode({
-      delta: new Delta([{ insert: '' }]),
+      delta: new Delta([new TextInsert('')]),
       attributes: attributes || {},
     });
   }

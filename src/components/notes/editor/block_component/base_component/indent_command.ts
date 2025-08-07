@@ -10,19 +10,6 @@ export const indentableBlockTypes = new Set([
   ParagraphBlockKeys.type,
 ]);
 
-/// Indent the current block
-///
-/// - support
-///   - desktop
-///   - web
-///
-export const indentCommand: CommandShortcutEvent = new CommandShortcutEvent({
-  key: 'indent',
-  getDescription: () => AppFlowyEditorL10n.current.cmdIndent,
-  command: 'tab',
-  handler: _indentCommandHandler,
-});
-
 export function isIndentable(editorState: EditorState): boolean {
   const selection = editorState.selection;
   if (!selection) {
@@ -53,6 +40,7 @@ export function isIndentable(editorState: EditorState): boolean {
   return true;
 }
 
+// Handler function declared before it's used
 const _indentCommandHandler: CommandShortcutEventHandler = (editorState: EditorState) => {
   const selection = editorState.selection?.normalized;
 
@@ -91,3 +79,16 @@ const _indentCommandHandler: CommandShortcutEventHandler = (editorState: EditorS
 
   return KeyEventResult.handled;
 };
+
+/// Indent the current block
+///
+/// - support
+///   - desktop
+///   - web
+///
+export const indentCommand: CommandShortcutEvent = new CommandShortcutEvent({
+  key: 'indent',
+  getDescription: () => AppFlowyEditorL10n.current.cmdIndent,
+  command: 'tab',
+  handler: _indentCommandHandler,
+});

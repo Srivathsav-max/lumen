@@ -1,5 +1,5 @@
-// Note: These types would need to be imported from the appropriate modules
-// For now, I'll define placeholder interfaces
+// Import TransactionTime from the canonical location
+import { TransactionTime } from '../../transform/transaction';
 
 export interface EditorState {
   document: any;
@@ -14,10 +14,8 @@ export interface EditorTransactionValue {
   1?: any;
 }
 
-export enum TransactionTime {
-  before = 'before',
-  after = 'after'
-}
+// Export TransactionTime for convenience
+export { TransactionTime };
 
 export abstract class DocumentRule {
   constructor() {}

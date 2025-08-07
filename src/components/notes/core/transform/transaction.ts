@@ -13,6 +13,11 @@ export enum SelectionType {
   inline = 'inline'
 }
 
+export enum TransactionTime {
+  before = 'before',
+  after = 'after'
+}
+
 export enum SelectionUpdateReason {
   uiEvent = 'uiEvent',
   transaction = 'transaction'
@@ -215,12 +220,12 @@ export class Transaction {
       return;
     }
     
-    for (const [node, deltaQueue] of TextTransaction._composeMap.entries()) {
+    for (const [node, deltaQueue] of Array.from(TextTransaction._composeMap.entries())) {
       if (!node.delta) {
         continue;
       }
       
-      const composed = deltaQueue.reduce((p, e) => p.compose(e), node.delta);
+      const composed = deltaQueue.reduce((p: any, e: any) => p.compose(e), node.delta);
       
       // Assert that composed delta only contains TextInsert operations
       // (This would be a runtime check in TypeScript)

@@ -18,7 +18,12 @@
       }
     ],
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": ["./src/*"],
+      "@/components/*": ["./src/components/*"],
+      "@/notes-core": ["./src/components/notes/core"],
+      "@/notes-core/*": ["./src/components/notes/core/*"],
+      "@/notes-editor/*": ["./src/components/notes/editor/*"],
+      "@/notes/*": ["./src/components/notes/*"]
     }
   },
   "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],

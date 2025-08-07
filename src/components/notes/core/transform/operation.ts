@@ -11,7 +11,7 @@ export abstract class Operation {
     this.path = path;
   }
 
-  static fromJson(): Operation {
+  static fromJson(json: Record<string, any>): Operation {
     throw new Error('Not implemented');
   }
 

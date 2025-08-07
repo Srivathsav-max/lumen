@@ -136,7 +136,7 @@ export class Document {
     }
     
     while (target && length > 0) {
-      const next = target.next;
+      const next: any = target.next;
       target.unlink();
       target = next;
       length--;

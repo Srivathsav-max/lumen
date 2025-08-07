@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { EditorState, Selection, SelectionType, SelectionUpdateReason } from '../../../../core';
+import { MobileSelectionDragMode, selectionDragModeKey } from '../../../editor_component/service/selection/mobile_selection_service';
 
 const selectionExtraInfoDisableFloatingToolbar = 'disableFloatingToolbar';
 
@@ -179,6 +180,14 @@ export const MobileFloatingToolbar: React.FC<MobileFloatingToolbarProps> = ({
       setPrevSelection(selection);
     } else {
       clear();
+      
+      const dragMode = editorState.selectionExtraInfo?.[selectionDragModeKey];
+      if ([
+        MobileSelectionDragMode.leftSelectionHandle,
+        MobileSelectionDragMode.rightSelectionHandle,
+      ].includes(dragMode)) {
+        return;
+      }
       
       if (editorState.selectionExtraInfo?.[selectionExtraInfoDisableFloatingToolbar] !== true) {
         showAfterDelay();
