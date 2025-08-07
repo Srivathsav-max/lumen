@@ -1,0 +1,122 @@
+/* Text Color Inline Tool Styles */
+
+/* Colored text */
+.ce-text-color {
+  /* Color applied via inline style */
+}
+
+/* Color palette menu */
+.ce-text-color-palette {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  padding: 8px;
+  background: var(--color-background-secondary);
+  border-radius: 6px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  max-width: 200px;
+}
+
+/* Color option buttons */
+.ce-text-color-option {
+  width: 24px;
+  height: 24px;
+  border: 2px solid transparent;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  position: relative;
+}
+
+.ce-text-color-option:hover {
+  border-color: var(--color-text-primary);
+  transform: scale(1.1);
+}
+
+.ce-text-color-option:active {
+  transform: scale(0.95);
+}
+
+/* Remove color button */
+.ce-text-color-remove {
+  width: 24px;
+  height: 24px;
+  border: 2px solid var(--color-border);
+  border-radius: 4px;
+  background: var(--color-background-primary);
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: bold;
+}
+
+.ce-text-color-remove:hover {
+  border-color: var(--color-text-primary);
+  background: var(--color-background-secondary);
+  color: var(--color-text-primary);
+  transform: scale(1.1);
+}
+
+.ce-text-color-remove:active {
+  transform: scale(0.95);
+}
+
+/* Toolbar button active state */
+.ce-inline-tool--text-color.ce-inline-tool--active {
+  background: var(--color-background-secondary);
+}
+
+/* Dark mode adjustments */
+.dark .ce-text-color-palette {
+  background: var(--color-background-secondary);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.dark .ce-text-color-option:hover {
+  border-color: var(--color-text-primary);
+}
+
+.dark .ce-text-color-remove {
+  border-color: var(--color-border);
+  background: var(--color-background-primary);
+  color: var(--color-text-secondary);
+}
+
+.dark .ce-text-color-remove:hover {
+  border-color: var(--color-text-primary);
+  background: var(--color-background-secondary);
+  color: var(--color-text-primary);
+}
+
+/* Animation for color palette appearance */
+.ce-text-color-palette {
+  animation: fadeInScale 0.2s ease-out;
+}
+
+@keyframes fadeInScale {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .ce-text-color-palette {
+    max-width: 160px;
+  }
+  
+  .ce-text-color-option,
+  .ce-text-color-remove {
+    width: 20px;
+    height: 20px;
+  }
+}

@@ -9,6 +9,10 @@ import Checklist from "@editorjs/checklist";
 
 import ParagraphBlock, { type ParagraphConfig } from "./block-tool/paragraph/index";
 import HeadingBlock, { type HeadingConfig } from "./block-tool/heading/index";
+import QuoteBlock from "./block-tool/quote/index";
+import ImageBlock from "./block-tool/image/index";
+import CodeBlock from "./block-tool/code/index";
+import TableBlock from "./block-tool/table/index";
 
 import AlignmentTune from "./block-tune/alignment/index";
 import { BoldInlineTool } from "./inline-tool/bold/index";
@@ -16,6 +20,8 @@ import { ItalicInlineTool } from "./inline-tool/italic/index";
 import { UnderlineInlineTool } from "./inline-tool/underline/index";
 import { CodeInlineTool } from "./inline-tool/inline-code/index";
 import { StrikethroughInlineTool } from "./inline-tool/strikethrough/index";
+import { HighlighterInlineTool } from "./inline-tool/highlighter/index";
+import { TextColorInlineTool } from "./inline-tool/text-color/index";
 import DividerBlock from "./block-tool/divider/index";
 import ListBlock from "./block-tool/list/index";
 
@@ -23,7 +29,7 @@ export const tools: EditorConfig["tools"] = {
   alignment: AlignmentTune,
   paragraph: {
     class: ParagraphBlock as unknown as BlockToolConstructable,
-    inlineToolbar: ["bold", "italic", "underline", "inlineCode", "strikethrough"],
+    inlineToolbar: ["bold", "italic", "underline", "inlineCode", "strikethrough", "textColor", "highlighter"],
     config: { 
       preserveBlank: true,
       placeholder: "Start writing your notes... Press tab or click + to add blocks"
@@ -32,13 +38,48 @@ export const tools: EditorConfig["tools"] = {
   },
   heading: {
     class: HeadingBlock as unknown as BlockToolConstructable,
-    inlineToolbar: ["italic", "underline", "strikethrough"],
+    inlineToolbar: ["italic", "underline", "strikethrough", "textColor", "highlighter"],
     config: { defaultLevel: 2 } as ToolConfig<HeadingConfig>,
     tunes: ["alignment"],
   },
+  quote: {
+    class: QuoteBlock as unknown as BlockToolConstructable,
+    inlineToolbar: ["bold", "italic", "underline", "inlineCode", "strikethrough", "textColor", "highlighter"],
+    config: {
+      quotePlaceholder: "Enter a quote",
+      captionPlaceholder: "Quote's author",
+    },
+  },
+  image: {
+    class: ImageBlock as unknown as BlockToolConstructable,
+    config: {
+      endpoints: {
+        byFile: "/api/upload", // You'll need to implement this endpoint
+        byUrl: "/api/upload-by-url", // You'll need to implement this endpoint
+      },
+      field: "image",
+      types: "image/*",
+      captionPlaceholder: "Caption",
+      buttonContent: "Select an Image",
+    },
+  },
+  code: {
+    class: CodeBlock as unknown as BlockToolConstructable,
+    config: {
+      placeholder: "Enter code...",
+    },
+  },
+  table: {
+    class: TableBlock as unknown as BlockToolConstructable,
+    config: {
+      rows: 2,
+      cols: 2,
+      withHeadings: false,
+    },
+  },
   checklist: {
     class: Checklist,
-    inlineToolbar: ["bold", "italic", "underline", "inlineCode", "strikethrough"],
+    inlineToolbar: ["bold", "italic", "underline", "inlineCode", "strikethrough", "textColor", "highlighter"],
     toolbox: {
       title: "To-do list",
       icon: `
@@ -48,7 +89,7 @@ export const tools: EditorConfig["tools"] = {
   },
   list: {
     class: ListBlock as unknown as BlockToolConstructable,
-    inlineToolbar: ["bold", "italic", "underline", "inlineCode", "strikethrough"],
+    inlineToolbar: ["bold", "italic", "underline", "inlineCode", "strikethrough", "textColor", "highlighter"],
   },
   divider: DividerBlock,
   bold: BoldInlineTool,
@@ -56,4 +97,6 @@ export const tools: EditorConfig["tools"] = {
   underline: UnderlineInlineTool,
   strikethrough: StrikethroughInlineTool,
   inlineCode: CodeInlineTool,
+  textColor: TextColorInlineTool,
+  highlighter: HighlighterInlineTool,
 };
