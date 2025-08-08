@@ -426,7 +426,7 @@ func (h *AuthHandlers) RevokeToken(c *gin.Context) {
 }
 
 func (h *AuthHandlers) Logout(c *gin.Context) {
-	userID, exists := c.Get("user_id")
+	userID, exists := c.Get("userID")
 	if !exists {
 		c.Error(errors.NewAuthenticationError("User not authenticated"))
 		return
@@ -695,6 +695,9 @@ func (h *AuthHandlers) setSecureAuthCookiesWithoutCSRF(c *gin.Context, accessTok
 }
 
 func (h *AuthHandlers) setRefreshTokenCookies(c *gin.Context, accessToken string, refreshToken string) {
+	// For local development, don't require secure cookies
+	isSecure := h.securityConfig.Session.SecureCookie && (c.Request.Header.Get("X-Forwarded-Proto") == "https" || c.Request.TLS != nil)
+
 	claims, err := h.jwtService.ValidateToken(accessToken, c.Request)
 	if err == nil {
 		rolesJson := strings.Join(claims.Roles, ",")
@@ -704,7 +707,7 @@ func (h *AuthHandlers) setRefreshTokenCookies(c *gin.Context, accessToken string
 			int(h.securityConfig.JWT.AccessTokenDuration.Seconds()),
 			"/",
 			"",
-			h.securityConfig.Session.SecureCookie,
+			isSecure,
 			false,
 		)
 
@@ -714,7 +717,7 @@ func (h *AuthHandlers) setRefreshTokenCookies(c *gin.Context, accessToken string
 			int(h.securityConfig.JWT.AccessTokenDuration.Seconds()),
 			"/",
 			"",
-			h.securityConfig.Session.SecureCookie,
+			isSecure,
 			false,
 		)
 
@@ -724,7 +727,7 @@ func (h *AuthHandlers) setRefreshTokenCookies(c *gin.Context, accessToken string
 			int(h.securityConfig.Session.Timeout.Seconds()),
 			"/",
 			"",
-			h.securityConfig.Session.SecureCookie,
+			isSecure,
 			true,
 		)
 	}
@@ -735,7 +738,7 @@ func (h *AuthHandlers) setRefreshTokenCookies(c *gin.Context, accessToken string
 		int(h.securityConfig.JWT.AccessTokenDuration.Seconds()),
 		"/",
 		"",
-		h.securityConfig.Session.SecureCookie,
+		isSecure,
 		true,
 	)
 
@@ -745,7 +748,7 @@ func (h *AuthHandlers) setRefreshTokenCookies(c *gin.Context, accessToken string
 		int(h.securityConfig.JWT.RefreshTokenDuration.Seconds()),
 		"/",
 		"",
-		h.securityConfig.Session.SecureCookie,
+		isSecure,
 		true,
 	)
 }
@@ -757,18 +760,17 @@ func (h *AuthHandlers) setRefreshTokenCookiesWithCSRF(c *gin.Context, accessToke
 }
 
 func (h *AuthHandlers) clearSecureAuthCookies(c *gin.Context) {
-	c.SetCookie(constants.AccessTokenCookieName, "", -1, "/", "", h.securityConfig.Session.SecureCookie, true)
+	// For local development, don't require secure cookies
+	isSecure := h.securityConfig.Session.SecureCookie && (c.Request.Header.Get("X-Forwarded-Proto") == "https" || c.Request.TLS != nil)
 
-	c.SetCookie(constants.RefreshTokenCookieName, "", -1, "/", "", h.securityConfig.Session.SecureCookie, true)
+	c.SetCookie(constants.AccessTokenCookieName, "", -1, "/", "", isSecure, true)
+	c.SetCookie(constants.RefreshTokenCookieName, "", -1, "/", "", isSecure, true)
+	c.SetCookie(constants.SessionIDCookieName, "", -1, "/", "", isSecure, true)
+	c.SetCookie(constants.UserRolesCookieName, "", -1, "/", "", isSecure, false)
+	c.SetCookie(constants.UserIDCookieName, "", -1, "/", "", isSecure, false)
+	c.SetCookie("fingerprint", "", -1, "/", "", isSecure, true)
 
 	h.csrfService.ClearCSRFCookie(c.Writer)
-
-	c.SetCookie(constants.SessionIDCookieName, "", -1, "/", "", h.securityConfig.Session.SecureCookie, true)
-
-	c.SetCookie(constants.UserRolesCookieName, "", -1, "/", "", h.securityConfig.Session.SecureCookie, false)
-	c.SetCookie(constants.UserIDCookieName, "", -1, "/", "", h.securityConfig.Session.SecureCookie, false)
-
-	c.SetCookie("fingerprint", "", -1, "/", "", h.securityConfig.Session.SecureCookie, true)
 }
 
 func contains(roles []string, role string) bool {

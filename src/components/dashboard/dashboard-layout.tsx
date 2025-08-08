@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import Sidebar from "./sidebar";
+// Legacy import removed; using AppSidebar elsewhere
 import { DashboardFeature, FeatureRouter } from "./feature-router";
 
 interface DashboardLayoutProps {
@@ -18,11 +18,8 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
 
   return (
     <div className="flex h-screen bg-gray-100">
-      <Sidebar onNavigate={navigateToFeature} />
       <main className="flex-1 overflow-y-auto p-6">
-        <FeatureRouter feature={currentFeature}>
-          {children}
-        </FeatureRouter>
+        <FeatureRouter feature={currentFeature}>{children}</FeatureRouter>
       </main>
     </div>
   );

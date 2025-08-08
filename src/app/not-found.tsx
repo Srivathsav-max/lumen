@@ -4,8 +4,6 @@ import Link from "next/link";
 import { useState, useEffect } from "react";
 import { BackgroundBeams } from "@/components/ui/background-beams";
 import { Navbar } from "@/components/ui/navbar";
-import { FooterSection } from "@/components/sections/footer";
-
 export default function NotFound() {
   // Words that will be scrambled/unscrambled
   const [textState, setTextState] = useState({
@@ -71,7 +69,6 @@ export default function NotFound() {
         </div>
         <BackgroundBeams />
       </main>
-      <FooterSection />
     </div>
   );
 }

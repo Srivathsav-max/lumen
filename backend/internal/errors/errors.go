@@ -22,7 +22,7 @@ const (
 type AppError struct {
 	Code       ErrorCategory `json:"code"`
 	Message    string        `json:"message"`
-	Details    string        `json:"details,omitempty"`
+	Details    interface{}   `json:"details,omitempty"`
 	StatusCode int           `json:"-"`
 	Timestamp  time.Time     `json:"timestamp"`
 	RequestID  string        `json:"request_id,omitempty"`
@@ -30,8 +30,8 @@ type AppError struct {
 }
 
 func (e *AppError) Error() string {
-	if e.Details != "" {
-		return fmt.Sprintf("%s: %s - %s", e.Code, e.Message, e.Details)
+	if e.Details != nil {
+		return fmt.Sprintf("%s: %s - %v", e.Code, e.Message, e.Details)
 	}
 	return fmt.Sprintf("%s: %s", e.Code, e.Message)
 }
@@ -40,7 +40,7 @@ func (e *AppError) Unwrap() error {
 	return e.Cause
 }
 
-func NewAppError(category ErrorCategory, message, details string, statusCode int) *AppError {
+func NewAppError(category ErrorCategory, message string, details interface{}, statusCode int) *AppError {
 	return &AppError{
 		Code:       category,
 		Message:    message,
@@ -60,12 +60,17 @@ func (e *AppError) WithCause(cause error) *AppError {
 	return e
 }
 
+func (e *AppError) WithDetails(details interface{}) *AppError {
+	e.Details = details
+	return e
+}
+
 func NewValidationError(message, details string) *AppError {
 	return NewAppError(ValidationError, message, details, http.StatusBadRequest)
 }
 
 func NewNotFoundError(resource string) *AppError {
-	return NewAppError(NotFoundError, fmt.Sprintf("%s not found", resource), "", http.StatusNotFound)
+	return NewAppError(NotFoundError, fmt.Sprintf("%s not found", resource), nil, http.StatusNotFound)
 }
 
 func NewConflictError(message, details string) *AppError {
@@ -73,19 +78,19 @@ func NewConflictError(message, details string) *AppError {
 }
 
 func NewAuthenticationError(message string) *AppError {
-	return NewAppError(AuthenticationError, message, "", http.StatusUnauthorized)
+	return NewAppError(AuthenticationError, message, nil, http.StatusUnauthorized)
 }
 
 func NewAuthorizationError(message string) *AppError {
-	return NewAppError(AuthorizationError, message, "", http.StatusForbidden)
+	return NewAppError(AuthorizationError, message, nil, http.StatusForbidden)
 }
 
 func NewInternalError(message string) *AppError {
-	return NewAppError(InternalError, message, "", http.StatusInternalServerError)
+	return NewAppError(InternalError, message, nil, http.StatusInternalServerError)
 }
 
 func NewDatabaseError(message string, cause error) *AppError {
-	return NewAppError(DatabaseError, message, "", http.StatusInternalServerError).WithCause(cause)
+	return NewAppError(DatabaseError, message, nil, http.StatusInternalServerError).WithCause(cause)
 }
 
 func NewExternalServiceError(service, message string) *AppError {

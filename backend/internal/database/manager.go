@@ -12,6 +12,7 @@ import (
 
 type Manager interface {
 	GetDB() *sql.DB
+	GetConnection() *sql.DB
 	BeginTx(ctx context.Context) (*sql.Tx, error)
 	WithTransaction(ctx context.Context, fn func(*sql.Tx) error) error
 	Health() error
@@ -31,6 +32,10 @@ func NewPostgresManager(db *sql.DB, logger *slog.Logger) *PostgresManager {
 }
 
 func (m *PostgresManager) GetDB() *sql.DB {
+	return m.db
+}
+
+func (m *PostgresManager) GetConnection() *sql.DB {
 	return m.db
 }
 

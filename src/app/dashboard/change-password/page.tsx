@@ -6,9 +6,11 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { changePasswordSchema, type ChangePasswordFormData } from "@/lib/validation-schemas";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { toast } from "@/providers/notification-provider";
+import { Label } from "@/components/ui/label";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { useToast } from "@/hooks/use-toast";
 import { useRouter } from "next/navigation";
-import { KeyRound, AlertCircle, Shield, X } from "lucide-react";
+import { KeyRound, AlertCircle, Shield, ArrowLeft, Eye, EyeOff } from "lucide-react";
 import * as api from "./api";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Spinner } from "@/components/ui/ios-spinner";
@@ -18,10 +20,7 @@ function OtpInput({ value, onChange, length = 6 }: { value: string; onChange: (v
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
   
   useEffect(() => {
-    // Initialize refs array
     inputRefs.current = Array(length).fill(null);
-    
-    // Focus first input on mount
     if (inputRefs.current[0]) {
       inputRefs.current[0].focus();
     }
@@ -37,7 +36,6 @@ function OtpInput({ value, onChange, length = 6 }: { value: string; onChange: (v
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>, index: number) => {
     const val = e.target.value;
     
-    
     if (val.length > 1) {
       const digits = val.split('').filter(char => /\d/.test(char));
       const newOtp = [...value.split('')]; 
@@ -48,97 +46,50 @@ function OtpInput({ value, onChange, length = 6 }: { value: string; onChange: (v
       
       const newValue = newOtp.join('');
       onChange(newValue);
-      
-      const nextIndex = Math.min(index + digits.length, length - 1);
-      const nextInput = inputRefs.current[nextIndex];
-      if (nextInput) {
-        nextInput.focus();
-      }
-    } else {
-      // Handle single digit input
-      const newValue = [...value.split('')];
-      if (val === '') {
-        // Handle deletion
-        newValue[index] = '';
-      } else {
-        // Handle new digit
-        newValue[index] = val;
-      }
-      
-      onChange(newValue.join(''));
-      
-      // Auto-focus next input if a digit was entered
-      if (val !== '' && index < length - 1) {
-        const nextInput = inputRefs.current[index + 1];
-        if (nextInput) {
-          nextInput.focus();
-        }
-      }
+      return;
+    }
+    
+    if (!/^\d*$/.test(val)) return;
+    
+    const newOtp = value.split('');
+    newOtp[index] = val;
+    onChange(newOtp.join(''));
+    
+    if (val && index < length - 1) {
+      inputRefs.current[index + 1]?.focus();
     }
   };
   
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>, index: number) => {
-    const input = e.target as HTMLInputElement;
-    const currentValue = input.value;
-    
-    // Handle backspace
-    if (e.key === 'Backspace') {
-      if (currentValue === '') {
-        // If current input is empty, focus and clear previous input
-        if (index > 0) {
-          const prevInput = inputRefs.current[index - 1];
-          if (prevInput) {
-            prevInput.focus();
-            
-            // Clear the previous input's value in the state
-            const newValue = [...value.split('')];
-            newValue[index - 1] = '';
-            onChange(newValue.join(''));
-          }
-        }
-      } else {
-        // Clear current input
-        const newValue = [...value.split('')];
-        newValue[index] = '';
-        onChange(newValue.join(''));
-      }
-    }
-    // Handle left arrow
-    else if (e.key === 'ArrowLeft' && index > 0) {
-      const prevInput = inputRefs.current[index - 1];
-      if (prevInput) {
-        prevInput.focus();
-      }
-    }
-    // Handle right arrow
-    else if (e.key === 'ArrowRight' && index < length - 1) {
-      const nextInput = inputRefs.current[index + 1];
-      if (nextInput) {
-        nextInput.focus();
-      }
+    if (e.key === 'Backspace' && !value[index] && index > 0) {
+      inputRefs.current[index - 1]?.focus();
     }
   };
   
-  // Create array of digits from value
-  const digits = value.split('').concat(Array(length - value.length).fill(''));
+  const handlePaste = (e: React.ClipboardEvent) => {
+    e.preventDefault();
+    const paste = e.clipboardData.getData('text');
+    const digits = paste.replace(/\D/g, '').slice(0, length);
+    onChange(digits);
+  };
   
   return (
-    <div className="flex justify-center space-x-2 my-4">
-      {Array.from({ length }).map((_, index) => (
-        <input
+    <div className="flex gap-2 justify-center">
+      {Array.from({ length }, (_, index) => (
+        <Input
           key={index}
           ref={(el) => {
             inputRefs.current[index] = el;
           }}
           type="text"
           inputMode="numeric"
-          pattern="[0-9]*"
+          pattern="\d*"
           maxLength={1}
-          value={digits[index] || ''}
+          value={value[index] || ''}
           onChange={(e) => handleChange(e, index)}
           onKeyDown={(e) => handleKeyDown(e, index)}
-          onFocus={(e) => e.target.select()}
-          className="w-12 h-14 text-center text-xl font-mono font-bold border-2 border-[#333] rounded-md shadow-[0_4px_0_0_#333] focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transform hover:-translate-y-1 hover:shadow-[0_6px_0_0_#333] transition-all duration-200"
+          onPaste={handlePaste}
+          className="w-12 h-12 text-center text-lg font-mono"
         />
       ))}
     </div>
@@ -146,276 +97,278 @@ function OtpInput({ value, onChange, length = 6 }: { value: string; onChange: (v
 }
 
 const ChangePasswordPage = memo(function ChangePasswordPage() {
-  const [otp, setOtp] = useState("");
+  const [step, setStep] = useState<'request' | 'verify' | 'reset'>('request');
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isRequestingOtp, setIsRequestingOtp] = useState(false);
-  const [otpDialogOpen, setOtpDialogOpen] = useState(false);
-  
+  const [otp, setOtp] = useState('');
+  const [showPasswords, setShowPasswords] = useState({
+    current: false,
+    new: false,
+    confirm: false
+  });
+  const [isOtpDialogOpen, setIsOtpDialogOpen] = useState(false);
   const router = useRouter();
-  
+  const { toast } = useToast();
+
   const {
     register,
     handleSubmit,
     formState: { errors },
     watch,
-    reset,
-    getValues
+    reset: resetForm,
   } = useForm<ChangePasswordFormData>({
     resolver: zodResolver(changePasswordSchema),
   });
-  
-  const requestOtp = async () => {
-    const { currentPassword, newPassword, confirmPassword } = getValues();
-    
-    if (!currentPassword || !newPassword || !confirmPassword) {
-      toast.error("Please fill in all password fields first");
-      return;
-    }
-    
-    // Validate password strength
-    if (newPassword.length < 8) {
-      toast.error("New password must be at least 8 characters long");
-      return;
-    }
-    
-    // Validate passwords match
-    if (newPassword !== confirmPassword) {
-      toast.error("New passwords do not match");
-      return;
-    }
-    
-    setIsRequestingOtp(true);
-    
-    try {
-      const message = await api.requestPasswordChangeOTP();
-      toast.success(message || "OTP has been sent to your email");
-      
-      // Open the OTP dialog
-      setOtpDialogOpen(true);
-      // Reset OTP value when requesting a new one
-      setOtp("");
-    } catch (error) {
-      console.error('OTP request error:', error);
-      toast.error(error instanceof Error ? error.message : "Failed to send OTP");
-    } finally {
-      setIsRequestingOtp(false);
-    }
-  };
-  
-  const onSubmit = async (data: ChangePasswordFormData) => {
-    if (!otp) {
-      toast.error("Please enter the OTP");
-      return;
-    }
-    
+
+  const newPassword = watch('newPassword');
+
+  const requestPasswordChange = async (data: ChangePasswordFormData) => {
     setIsSubmitting(true);
-    
     try {
-      const message = await api.changePassword(data.currentPassword, data.newPassword, otp);
-      toast.success(message || "Password has been changed successfully");
-      
-      // Close the OTP dialog if it's open
-      setOtpDialogOpen(false);
-      
-      // Reset form state
-      reset();
-      setOtp("");
-      
-      // Redirect back to profile after successful password change
-      router.push("/dashboard/profile");
+      await api.requestPasswordChangeOTP();
+      toast({
+        title: "Success",
+        description: "OTP sent to your email! Please check your inbox.",
+      });
+      setIsOtpDialogOpen(true);
+      setStep('verify');
     } catch (error) {
-      console.error('Password change error:', error);
-      
-      // Handle specific error messages
-      const errorMessage = error instanceof Error ? error.message : "Failed to change password";
-      
-      if (errorMessage.includes("Invalid or expired OTP")) {
-        toast.error("Your verification code has expired. Please request a new one.");
-        // Reset OTP field
-        setOtp("");
-        // Keep dialog open to allow requesting a new OTP
-      } else {
-        toast.error(errorMessage);
-      }
+      console.error('Password change request error:', error);
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : 'Failed to request password change',
+        variant: "destructive",
+      });
     } finally {
       setIsSubmitting(false);
     }
   };
 
+  const verifyOtpAndChangePassword = async (data: ChangePasswordFormData) => {
+    if (otp.length !== 6) {
+      toast({
+        title: "Error",
+        description: "Please enter the complete 6-digit OTP",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      await api.changePassword(data.currentPassword, data.newPassword, otp);
+      toast({
+        title: "Success",
+        description: "Password changed successfully! Please login with your new password.",
+      });
+      setIsOtpDialogOpen(false);
+      resetForm();
+      setOtp('');
+      setStep('request');
+      router.push('/auth/login');
+    } catch (error) {
+      console.error('Password change verification error:', error);
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : 'Failed to change password',
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const onSubmit = async (data: ChangePasswordFormData) => {
+    if (step === 'request') {
+      await requestPasswordChange(data);
+    } else if (step === 'verify') {
+      await verifyOtpAndChangePassword(data);
+    }
+  };
+
+  const togglePasswordVisibility = (field: keyof typeof showPasswords) => {
+    setShowPasswords(prev => ({
+      ...prev,
+      [field]: !prev[field]
+    }));
+  };
+
   return (
-    <div className="container mx-auto px-4 py-8">
-      <h1 className="text-2xl font-bold mb-6 font-mono text-[#333]">Security Settings</h1>
-      
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex items-center gap-4">
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => router.back()}
+        >
+          <ArrowLeft className="h-4 w-4 mr-2" />
+          Back
+        </Button>
+        <div>
+          <h1 className="text-3xl font-semibold">Change Password</h1>
+          <p className="text-muted-foreground">
+            Update your account password for better security.
+          </p>
+        </div>
+      </div>
+
+      <Card className="max-w-md mx-auto">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <KeyRound className="h-5 w-5" />
+            Security Verification
+          </CardTitle>
+          <CardDescription>
+            Enter your current password to proceed with changing it.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="currentPassword">Current Password</Label>
+              <div className="relative">
+                <Input
+                  {...register("currentPassword")}
+                  id="currentPassword"
+                  type={showPasswords.current ? "text" : "password"}
+                  className={`pr-10 ${errors.currentPassword ? 'border-red-500' : ''}`}
+                  placeholder="Enter your current password"
+                />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                  onClick={() => togglePasswordVisibility('current')}
+                >
+                  {showPasswords.current ? (
+                    <EyeOff className="h-4 w-4 text-gray-400" />
+                  ) : (
+                    <Eye className="h-4 w-4 text-gray-400" />
+                  )}
+                </Button>
+              </div>
+              {errors.currentPassword && (
+                <p className="text-sm text-red-600">{errors.currentPassword.message}</p>
+              )}
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="newPassword">New Password</Label>
+              <div className="relative">
+                <Input
+                  {...register("newPassword")}
+                  id="newPassword"
+                  type={showPasswords.new ? "text" : "password"}
+                  className={`pr-10 ${errors.newPassword ? 'border-red-500' : ''}`}
+                  placeholder="Enter your new password"
+                />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                  onClick={() => togglePasswordVisibility('new')}
+                >
+                  {showPasswords.new ? (
+                    <EyeOff className="h-4 w-4 text-gray-400" />
+                  ) : (
+                    <Eye className="h-4 w-4 text-gray-400" />
+                  )}
+                </Button>
+              </div>
+              {errors.newPassword && (
+                <p className="text-sm text-red-600">{errors.newPassword.message}</p>
+              )}
+              <p className="text-xs text-muted-foreground">
+                Password must be at least 8 characters long
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="confirmPassword">Confirm New Password</Label>
+              <div className="relative">
+                <Input
+                  {...register("confirmPassword")}
+                  id="confirmPassword"
+                  type={showPasswords.confirm ? "text" : "password"}
+                  className={`pr-10 ${errors.confirmPassword ? 'border-red-500' : ''}`}
+                  placeholder="Confirm your new password"
+                />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                  onClick={() => togglePasswordVisibility('confirm')}
+                >
+                  {showPasswords.confirm ? (
+                    <EyeOff className="h-4 w-4 text-gray-400" />
+                  ) : (
+                    <Eye className="h-4 w-4 text-gray-400" />
+                  )}
+                </Button>
+              </div>
+              {errors.confirmPassword && (
+                <p className="text-sm text-red-600">{errors.confirmPassword.message}</p>
+              )}
+            </div>
+
+            <Button type="submit" disabled={isSubmitting} className="w-full">
+              {isSubmitting ? (
+                <>
+                  <Spinner size="sm" className="mr-2" />
+                  Processing...
+                </>
+              ) : (
+                <>
+                  <Shield className="mr-2 h-4 w-4" />
+                  Change Password
+                </>
+              )}
+            </Button>
+          </form>
+        </CardContent>
+      </Card>
+
       {/* OTP Verification Dialog */}
-      <Dialog open={otpDialogOpen} onOpenChange={(open) => {
-        if (!isSubmitting) {
-          setOtpDialogOpen(open);
-        }
-      }}>
-        <DialogContent className="sm:max-w-md border-2 border-[#333] shadow-[0_8px_0_0_#333] p-0 bg-white">
-          <div className="absolute right-4 top-4">
-            <button 
-              onClick={() => setOtpDialogOpen(false)} 
-              className="rounded-full p-1 hover:bg-gray-100 transition-colors focus:outline-none disabled:opacity-50"
-              disabled={isSubmitting}
-            >
-              <X className="h-4 w-4 text-gray-500" />
-            </button>
-          </div>
-          
-          <DialogHeader className="px-6 pt-6">
-            <div className="text-center mb-2 font-mono font-bold text-xl text-[#333]">LUMEN</div>
-            <DialogTitle className="text-xl font-bold font-mono text-center text-[#333]">Verification Required</DialogTitle>
-            <DialogDescription className="text-center font-mono text-gray-600 mt-2">
-              Enter the 6-digit code sent to your email address
+      <Dialog open={isOtpDialogOpen} onOpenChange={setIsOtpDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Shield className="h-5 w-5" />
+              Verify Your Identity
+            </DialogTitle>
+            <DialogDescription>
+              We&amp;apos;ve sent a 6-digit verification code to your email. Please enter it below to confirm your password change.
             </DialogDescription>
           </DialogHeader>
           
-          <div className="p-6 pt-2">
-            <div className="flex flex-col items-center space-y-4">
-              <OtpInput 
-                value={otp} 
-                onChange={setOtp} 
-                length={6} 
-              />
-              
-              <p className="text-sm text-gray-500 font-mono">
-                Didn&apos;t receive the code?{" "}
-                <button 
-                  type="button" 
-                  onClick={requestOtp} 
-                  disabled={isRequestingOtp}
-                  className="text-blue-600 hover:text-blue-800 underline font-mono"
-                >
-                  {isRequestingOtp ? "Sending..." : "Resend"}
-                </button>
-              </p>
+          <div className="space-y-6 py-4">
+            <div className="space-y-4">
+              <Label className="text-center block">Enter Verification Code</Label>
+              <OtpInput value={otp} onChange={setOtp} />
             </div>
             
-            <div className="flex justify-between mt-6 gap-4">
+            {otp.length === 6 && (
               <Button 
-                type="button" 
-                onClick={() => setOtpDialogOpen(false)}
+                onClick={handleSubmit(onSubmit)} 
                 disabled={isSubmitting}
-                className="flex-1 font-mono border-2 border-[#333] shadow-[0_4px_0_0_#333] bg-white hover:bg-gray-100 text-[#333] transform hover:-translate-y-1 hover:shadow-[0_6px_0_0_#333] transition-all duration-200"
-              >
-                Cancel
-              </Button>
-              <Button 
-                type="submit"
-                disabled={otp.length !== 6 || isSubmitting}
-                className="flex-1 font-mono border-2 border-[#333] shadow-[0_4px_0_0_#333] bg-blue-500 hover:bg-blue-600 text-white transform hover:-translate-y-1 hover:shadow-[0_6px_0_0_#333] transition-all duration-200"
+                className="w-full"
               >
                 {isSubmitting ? (
-                  <div className="flex items-center justify-center w-full">
+                  <>
                     <Spinner size="sm" className="mr-2" />
                     Verifying...
-                  </div>
+                  </>
                 ) : (
-                  "Verify & Change"
+                  'Verify & Change Password'
                 )}
               </Button>
-            </div>
+            )}
           </div>
         </DialogContent>
       </Dialog>
-      
-      <div className="max-w-2xl mx-auto space-y-8">
-        <div className="bg-white rounded-lg shadow-[0_8px_0_0_#333] border-2 border-[#333] p-6 relative transform hover:-translate-y-1 hover:shadow-[0_12px_0_0_#333] transition-all duration-200">
-          <div className="flex items-center mb-4">
-            <div className="bg-blue-100 p-3 rounded-md mr-4">
-              <KeyRound className="h-6 w-6 text-blue-600" />
-            </div>
-            <div>
-              <h2 className="text-xl font-bold font-mono text-[#333]">Change Password</h2>
-              <p className="text-gray-600 font-mono text-sm">Update your account password</p>
-            </div>
-          </div>
-          
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-            <div>
-              <p className="text-sm text-gray-500 font-mono mb-1">Current Password</p>
-              <Input
-                id="current-password"
-                type="password"
-                {...register("currentPassword")}
-                className={`w-full border-2 border-[#333] rounded-md p-2 font-mono focus:outline-none focus:ring-2 focus:ring-blue-300 focus:border-blue-500 ${
-                  errors.currentPassword ? "border-red-500" : ""
-                }`}
-                placeholder="Enter your current password"
-              />
-              {errors.currentPassword && (
-                <p className="mt-1 text-sm text-red-600 font-mono">{errors.currentPassword.message}</p>
-              )}
-            </div>
-
-            <div>
-              <p className="text-sm text-gray-500 font-mono mb-1">New Password</p>
-              <Input
-                id="new-password"
-                type="password"
-                {...register("newPassword")}
-                className={`w-full border-2 border-[#333] rounded-md p-2 font-mono focus:outline-none focus:ring-2 focus:ring-blue-300 focus:border-blue-500 ${
-                  errors.newPassword ? "border-red-500" : ""
-                }`}
-                placeholder="Enter your new password"
-              />
-              {errors.newPassword && (
-                <p className="mt-1 text-sm text-red-600 font-mono">{errors.newPassword.message}</p>
-              )}
-            </div>
-
-            <div>
-              <p className="text-sm text-gray-500 font-mono mb-1">Confirm New Password</p>
-              <Input
-                id="confirm-password"
-                type="password"
-                {...register("confirmPassword")}
-                className={`w-full border-2 border-[#333] rounded-md p-2 font-mono focus:outline-none focus:ring-2 focus:ring-blue-300 focus:border-blue-500 ${
-                  errors.confirmPassword ? "border-red-500" : ""
-                }`}
-                placeholder="Confirm your new password"
-              />
-              {errors.confirmPassword && (
-                <p className="mt-1 text-sm text-red-600 font-mono">{errors.confirmPassword.message}</p>
-              )}
-            </div>
-            
-            <div className="flex items-center text-sm text-amber-600 font-mono mt-2">
-              <AlertCircle className="h-4 w-4 mr-2" />
-              <span>Password must be at least 8 characters long</span>
-            </div>
-
-            <div className="flex items-center justify-end space-x-4 pt-4">
-              <Button
-                type="button"
-                onClick={() => router.push("/dashboard/profile")}
-                className="font-mono border-2 border-[#333] shadow-[0_4px_0_0_#333] bg-white hover:bg-gray-100 text-[#333] transform hover:-translate-y-1 hover:shadow-[0_6px_0_0_#333] transition-all duration-200"
-              >
-                Cancel
-              </Button>
-              <Button
-                type="button"
-                onClick={requestOtp}
-                disabled={isRequestingOtp || Object.keys(errors).length > 0 || !watch("currentPassword") || !watch("newPassword") || !watch("confirmPassword")}
-                className="font-mono border-2 border-[#333] shadow-[0_4px_0_0_#333] bg-blue-500 hover:bg-blue-600 text-white transform hover:-translate-y-1 hover:shadow-[0_6px_0_0_#333] transition-all duration-200"
-              >
-                {isRequestingOtp ? (
-                  <div className="flex items-center">
-                    <Spinner size="sm" className="mr-2" />
-                    Sending OTP...
-                  </div>
-                ) : (
-                  <div className="flex items-center">
-                    <Shield className="h-4 w-4 mr-2" />
-                    Verify Password Change
-                  </div>
-                )}
-              </Button>
-            </div>
-          </form>
-        </div>
-      </div>
     </div>
   );
 });

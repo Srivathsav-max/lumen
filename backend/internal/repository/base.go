@@ -5,7 +5,9 @@ import (
 	"database/sql"
 	"fmt"
 	"log/slog"
+	"math/rand"
 	"strings"
+	"time"
 
 	"github.com/Srivathsav-max/lumen/backend/internal/database"
 	"github.com/Srivathsav-max/lumen/backend/internal/errors"
@@ -25,6 +27,12 @@ func NewBaseRepository(db database.Manager, logger *slog.Logger, table string) *
 	}
 }
 
+func (r *BaseRepository) makeQueryUnique(query string) string {
+	timestamp := time.Now().UnixNano()
+	randomNum := rand.Intn(10000)
+	return fmt.Sprintf("%s /* unique_%d_%d */", query, timestamp, randomNum)
+}
+
 func (r *BaseRepository) GetDB() database.Manager {
 	return r.db
 }
@@ -38,13 +46,16 @@ func (r *BaseRepository) GetTable() string {
 }
 
 func (r *BaseRepository) ExecuteQuery(ctx context.Context, query string, args ...interface{}) (*sql.Rows, error) {
+	// Make query unique to prevent prepared statement caching conflicts
+	uniqueQuery := r.makeQueryUnique(query)
+
 	r.logger.Debug("Executing query",
 		"query", query,
 		"args", args,
 		"table", r.table,
 	)
 
-	rows, err := r.db.GetDB().QueryContext(ctx, query, args...)
+	rows, err := r.db.GetDB().QueryContext(ctx, uniqueQuery, args...)
 	if err != nil {
 		r.logger.Error("Query execution failed",
 			"query", query,
@@ -58,23 +69,29 @@ func (r *BaseRepository) ExecuteQuery(ctx context.Context, query string, args ..
 }
 
 func (r *BaseRepository) ExecuteQueryRow(ctx context.Context, query string, args ...interface{}) *sql.Row {
+	// Make query unique to prevent prepared statement caching conflicts
+	uniqueQuery := r.makeQueryUnique(query)
+
 	r.logger.Debug("Executing query row",
 		"query", query,
 		"args", args,
 		"table", r.table,
 	)
 
-	return r.db.GetDB().QueryRowContext(ctx, query, args...)
+	return r.db.GetDB().QueryRowContext(ctx, uniqueQuery, args...)
 }
 
 func (r *BaseRepository) ExecuteExec(ctx context.Context, query string, args ...interface{}) (sql.Result, error) {
+	// Make query unique to prevent prepared statement caching conflicts
+	uniqueQuery := r.makeQueryUnique(query)
+
 	r.logger.Debug("Executing exec",
 		"query", query,
 		"args", args,
 		"table", r.table,
 	)
 
-	result, err := r.db.GetDB().ExecContext(ctx, query, args...)
+	result, err := r.db.GetDB().ExecContext(ctx, uniqueQuery, args...)
 	if err != nil {
 		r.logger.Error("Exec execution failed",
 			"query", query,
@@ -85,6 +102,10 @@ func (r *BaseRepository) ExecuteExec(ctx context.Context, query string, args ...
 	}
 
 	return result, nil
+}
+
+func (r *BaseRepository) ExecuteCommand(ctx context.Context, query string, args ...interface{}) (sql.Result, error) {
+	return r.ExecuteExec(ctx, query, args...)
 }
 
 func (r *BaseRepository) ExecuteInTransaction(ctx context.Context, fn func(*sql.Tx) error) error {

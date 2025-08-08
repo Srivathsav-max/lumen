@@ -1,0 +1,96 @@
+/* Table Block Styles */
+.cdx-table {
+  @apply relative overflow-x-auto;
+}
+
+.cdx-table__table {
+  @apply w-full border-collapse rounded-lg border border-border;
+}
+
+.cdx-table__row {
+  @apply border-b border-border last:border-b-0;
+}
+
+.cdx-table__cell {
+  @apply relative border-r border-border p-0 last:border-r-0;
+  min-width: 100px;
+}
+
+.cdx-table__cell-input {
+  @apply min-h-[40px] w-full p-3 text-sm outline-none;
+  word-wrap: break-word;
+}
+
+.cdx-table__cell-input:focus {
+  @apply bg-muted/20;
+}
+
+.cdx-table__cell-input:empty::before {
+  content: "";
+  @apply text-muted-foreground/50;
+}
+
+/* Header styles for tables with headings */
+.cdx-table--with-headings .cdx-table__row:first-child .cdx-table__cell {
+  @apply bg-muted/50;
+}
+
+.cdx-table--with-headings .cdx-table__row:first-child .cdx-table__cell-input {
+  @apply font-semibold text-foreground;
+}
+
+/* Table controls */
+.cdx-table__controls {
+  @apply mb-3 flex gap-2;
+}
+
+.cdx-table__add-row,
+.cdx-table__add-col {
+  @apply inline-flex items-center gap-2 rounded-md border border-input bg-background px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground;
+}
+
+.cdx-table__add-row svg,
+.cdx-table__add-col svg {
+  @apply h-3 w-3;
+}
+
+/* Hover effects */
+.cdx-table__cell:hover {
+  @apply bg-muted/10;
+}
+
+/* Dark mode adjustments */
+.dark .cdx-table__table {
+  @apply border-muted-foreground/20;
+}
+
+.dark .cdx-table__row {
+  @apply border-muted-foreground/20;
+}
+
+.dark .cdx-table__cell {
+  @apply border-muted-foreground/20;
+}
+
+.dark .cdx-table--with-headings .cdx-table__row:first-child .cdx-table__cell {
+  @apply bg-muted/30;
+}
+
+.dark .cdx-table__cell:hover {
+  @apply bg-muted/20;
+}
+
+/* Responsive table */
+@media (max-width: 768px) {
+  .cdx-table {
+    @apply overflow-x-scroll;
+  }
+  
+  .cdx-table__cell {
+    min-width: 120px;
+  }
+  
+  .cdx-table__cell-input {
+    @apply text-xs;
+  }
+}

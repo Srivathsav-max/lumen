@@ -1,0 +1,74 @@
+/* Image Block Styles */
+.cdx-image {
+  @apply relative;
+}
+
+.cdx-image__container {
+  @apply relative overflow-hidden rounded-lg;
+}
+
+.cdx-image__picture {
+  @apply h-auto w-full rounded-lg object-cover;
+  max-width: 100%;
+}
+
+.cdx-image__select-button {
+  @apply flex cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed border-muted-foreground/30 p-8 text-center transition-colors hover:border-muted-foreground/50 hover:bg-muted/20;
+  min-height: 200px;
+}
+
+.cdx-image__select-button svg {
+  @apply mb-3 h-12 w-12 text-muted-foreground;
+}
+
+.cdx-image__select-button span {
+  @apply text-sm font-medium text-muted-foreground;
+}
+
+.cdx-image__caption {
+  @apply mt-3 text-center text-sm text-muted-foreground;
+  min-height: 1em;
+}
+
+.cdx-image__caption:empty::before {
+  content: attr(data-placeholder);
+  @apply text-muted-foreground/70;
+}
+
+.cdx-image__caption:focus {
+  @apply outline-none;
+}
+
+/* Image tunes */
+.cdx-image--with-border .cdx-image__picture {
+  @apply border border-border;
+}
+
+.cdx-image--with-background .cdx-image__container {
+  @apply bg-muted p-4;
+}
+
+.cdx-image--stretched .cdx-image__picture {
+  @apply w-full;
+  max-width: none;
+}
+
+/* Loading state */
+.cdx-image__preloader {
+  @apply flex items-center justify-center;
+  min-height: 200px;
+}
+
+.cdx-image__loader {
+  @apply h-8 w-8 animate-spin rounded-full border-2 border-muted-foreground/30 border-t-primary;
+}
+
+/* Dark mode adjustments */
+.dark .cdx-image__select-button {
+  @apply border-muted-foreground/20 hover:border-muted-foreground/40 hover:bg-muted/10;
+}
+
+.dark .cdx-image__select-button svg,
+.dark .cdx-image__select-button span {
+  @apply text-muted-foreground/70;
+}

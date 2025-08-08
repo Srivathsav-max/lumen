@@ -3,7 +3,6 @@
  * Contains the logic for handling user profile updates
  */
 
-import { toast } from '@/providers/notification-provider';
 import { User } from '@/providers/auth-provider';
 import * as profileApi from '@/app/dashboard/profile/api';
 import { setUserData } from '@/lib/cookies';
@@ -25,7 +24,7 @@ export async function handleUpdateProfile(
   setIsLoading: (isLoading: boolean) => void
 ): Promise<User | undefined> {
   if (!token || !user) {
-    toast.error('You must be logged in to update your profile');
+    // Error notification handled by component
     return;
   }
   
@@ -41,11 +40,11 @@ export async function handleUpdateProfile(
     // Update user data in cookies
     setUserData(updatedUser);
     
-    toast.success('Profile updated successfully');
+    // Success notification handled by component
     return updatedUser;
   } catch (error) {
     console.error('Profile update error:', error);
-    toast.error(error instanceof Error ? error.message : 'Profile update failed');
+    // Error notification handled by component
     // Don't throw the error to prevent auth state issues
     return undefined;
   } finally {

@@ -1,14 +1,19 @@
 "use client";
 
 // Protected routes are now handled by middleware
-import Sidebar from "@/components/dashboard/sidebar";
-import Navbar from "@/components/dashboard/navbar";
+import { AppSidebar } from "@/components/app-sidebar";
+import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { useState, useEffect } from "react";
 import { DashboardFeature, FeatureRouter } from "@/components/dashboard/feature-router";
 import { usePathname, useRouter } from "next/navigation";
 import { useAuth } from "@/hooks/use-auth";
 import { Spinner } from "@/components/ui/ios-spinner";
-import "@/styles/sketchy-elements.css";
+import dynamic from "next/dynamic";
+
+const AIChatMenu = dynamic(
+  () => import("@/components/ai/ai-chat-menu").then((m) => m.AIChatMenu),
+  { ssr: false, loading: () => null }
+);
 
 export default function DashboardLayout({
   children,
@@ -41,6 +46,8 @@ export default function DashboardLayout({
       router.replace('/auth/login');
     }
   }, [isAuthenticated, isLoading, router]);
+
+  // No search bar in the navbar per product spec
   
   // Show loading spinner while checking authentication
   if (isLoading) {
@@ -57,22 +64,30 @@ export default function DashboardLayout({
   }
   
   return (
-    <div className="flex h-screen bg-[#f5f5f5] overflow-hidden">
-      {/* Sidebar */}
-      <Sidebar />
-      
-      {/* Main content */}
-      <div className="flex-1 flex flex-col overflow-hidden">
-        {/* Navbar */}
-        <Navbar />
-        
+    <SidebarProvider>
+      <AppSidebar />
+      <main className="flex flex-col flex-1 overflow-hidden">
+        {/* Header (no divider) */}
+        <header className="grid grid-cols-3 h-16 shrink-0 items-center px-4">
+          <div className="flex items-center">
+            <SidebarTrigger className="-ml-1" />
+          </div>
+          <div className="flex justify-center">
+            {/* Centered AI chat input only on Notes pages */}
+            {pathname?.startsWith("/dashboard/notes") && <AIChatMenu />}
+          </div>
+          <div className="flex items-center justify-end gap-2">
+            {/* Right-side actions reserved */}
+          </div>
+        </header>
+
         {/* Page content */}
-        <main className="flex-1 overflow-y-auto p-4 md:p-6 bg-[#f5f5f5] sketchy-shapes">
+        <div className="flex-1 overflow-y-auto p-4 md:p-6">
           <FeatureRouter feature={currentFeature}>
             {children}
           </FeatureRouter>
-        </main>
-      </div>
-    </div>
+        </div>
+      </main>
+    </SidebarProvider>
   );
 }

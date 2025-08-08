@@ -4,24 +4,21 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/joho/godotenv"
 	"github.com/Srivathsav-max/lumen/backend/config"
 	"github.com/Srivathsav-max/lumen/backend/db"
 	internalConfig "github.com/Srivathsav-max/lumen/backend/internal/config"
 	"github.com/Srivathsav-max/lumen/backend/internal/container"
 	"github.com/Srivathsav-max/lumen/backend/internal/router"
+	"github.com/joho/godotenv"
 )
 
 func main() {
-	// Load environment variables from .env file
 	if err := godotenv.Load(); err != nil {
 		log.Printf("Warning: Error loading .env file: %v", err)
 	}
 
-	// Create container builder
 	builder := container.NewBuilder()
 
-	// Build the dependency injection container
 	builder, err := builder.WithConfig(internalConfig.NewEnvConfigLoader())
 	if err != nil {
 		log.Fatalf("Failed to load config: %v", err)
@@ -58,11 +55,8 @@ func main() {
 		log.Fatalf("Failed to build application container: %v", err)
 	}
 
-	// Run database migrations using the old migration system
-	// TODO: Migrate this to use the new database manager
 	cfg := appContainer.GetConfig()
-	
-	// Create adapter for old config structure
+
 	oldCfg := &config.DatabaseConfig{
 		Host:            cfg.Database.Host,
 		Port:            cfg.Database.Port,
@@ -76,7 +70,7 @@ func main() {
 		ConnMaxLifetime: cfg.Database.ConnMaxLifetime,
 		ConnMaxIdleTime: cfg.Database.ConnMaxIdleTime,
 	}
-	
+
 	database, err := db.New(oldCfg)
 	if err != nil {
 		log.Fatalf("Failed to connect to database for migrations: %v", err)
@@ -87,14 +81,12 @@ func main() {
 		log.Fatalf("Failed to run migrations: %v", err)
 	}
 
-	// Create router with clean handlers
 	appRouter := router.NewRouter(appContainer)
 	ginEngine := appRouter.SetupRoutes()
 
-	// Start the server
 	serverAddr := fmt.Sprintf(":%d", cfg.Server.Port)
 	appContainer.GetLogger().Info("Server starting", "address", serverAddr)
-	
+
 	if err := ginEngine.Run(serverAddr); err != nil {
 		log.Fatalf("Failed to start server: %v", err)
 	}

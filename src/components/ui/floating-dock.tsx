@@ -27,7 +27,7 @@ export const FloatingDock = ({
         {/* Left: Company Name */}
         <Link href="/" className="flex items-center gap-2">
           <Star className="h-5 w-5 text-blue-500 fill-blue-500" />
-          <span className="text-gray-800 font-medium text-lg">Moxium</span>
+          <span className="text-gray-800 font-medium text-lg">Lumen</span>
         </Link>
 
         {/* Middle: Home */}

@@ -1,0 +1,124 @@
+/* Highlighter Inline Tool Styles */
+
+/* Highlighted text */
+.ce-highlighter {
+  padding: 1px 2px;
+  border-radius: 2px;
+  transition: background-color 0.2s ease;
+}
+
+/* Color palette menu */
+.ce-highlighter-palette {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  padding: 8px;
+  background: var(--color-background-secondary);
+  border-radius: 6px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  max-width: 200px;
+}
+
+/* Color buttons */
+.ce-highlighter-color {
+  width: 24px;
+  height: 24px;
+  border: 2px solid transparent;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  position: relative;
+}
+
+.ce-highlighter-color:hover {
+  border-color: var(--color-text-primary);
+  transform: scale(1.1);
+}
+
+.ce-highlighter-color:active {
+  transform: scale(0.95);
+}
+
+/* Remove highlight button */
+.ce-highlighter-remove {
+  width: 24px;
+  height: 24px;
+  border: 2px solid var(--color-border);
+  border-radius: 4px;
+  background: var(--color-background-primary);
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: bold;
+}
+
+.ce-highlighter-remove:hover {
+  border-color: var(--color-text-primary);
+  background: var(--color-background-secondary);
+  color: var(--color-text-primary);
+  transform: scale(1.1);
+}
+
+.ce-highlighter-remove:active {
+  transform: scale(0.95);
+}
+
+/* Toolbar button active state */
+.ce-inline-tool--highlighter.ce-inline-tool--active {
+  background: var(--color-background-secondary);
+}
+
+/* Dark mode adjustments */
+.dark .ce-highlighter-palette {
+  background: var(--color-background-secondary);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.dark .ce-highlighter-color:hover {
+  border-color: var(--color-text-primary);
+}
+
+.dark .ce-highlighter-remove {
+  border-color: var(--color-border);
+  background: var(--color-background-primary);
+  color: var(--color-text-secondary);
+}
+
+.dark .ce-highlighter-remove:hover {
+  border-color: var(--color-text-primary);
+  background: var(--color-background-secondary);
+  color: var(--color-text-primary);
+}
+
+/* Animation for color palette appearance */
+.ce-highlighter-palette {
+  animation: fadeInScale 0.2s ease-out;
+}
+
+@keyframes fadeInScale {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .ce-highlighter-palette {
+    max-width: 160px;
+  }
+  
+  .ce-highlighter-color,
+  .ce-highlighter-remove {
+    width: 20px;
+    height: 20px;
+  }
+}

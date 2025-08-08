@@ -186,6 +186,10 @@ func (r *Router) setupV1ProtectedRoutes(v1 *gin.RouterGroup) {
 
 		r.setupWaitlistRoutes(protected)
 
+		r.setupNotesRoutes(protected)
+
+		r.setupAIRoutes(protected)
+
 		r.setupAdminRoutes(protected)
 	}
 }
@@ -217,6 +221,68 @@ func (r *Router) setupWaitlistRoutes(protected *gin.RouterGroup) {
 		waitlist.POST("/approve", r.handlers.Waitlist.ApproveWaitlistEntry)
 		waitlist.DELETE("/:email", r.handlers.Waitlist.RemoveFromWaitlist)
 		waitlist.PUT("/:id", r.handlers.Waitlist.UpdateWaitlistStatus)
+	}
+}
+
+func (r *Router) setupNotesRoutes(protected *gin.RouterGroup) {
+	notes := protected.Group("/notes")
+	{
+		// Workspace routes
+		workspaces := notes.Group("/workspaces")
+		{
+			workspaces.POST("", r.handlers.Notes.CreateWorkspace)
+			workspaces.GET("", r.handlers.Notes.GetUserWorkspaces)
+			workspaces.GET("/:workspace_id", r.handlers.Notes.GetWorkspace)
+			workspaces.PUT("/:workspace_id", r.handlers.Notes.UpdateWorkspace)
+			workspaces.DELETE("/:workspace_id", r.handlers.Notes.DeleteWorkspace)
+
+			// Workspace members
+			workspaces.POST("/:workspace_id/members", r.handlers.Notes.AddWorkspaceMember)
+			workspaces.GET("/:workspace_id/members", r.handlers.Notes.GetWorkspaceMembers)
+			workspaces.DELETE("/:workspace_id/members/:user_id", r.handlers.Notes.RemoveWorkspaceMember)
+			workspaces.PUT("/:workspace_id/members/:user_id/role", r.handlers.Notes.UpdateMemberRole)
+
+			// Workspace pages
+			workspaces.GET("/:workspace_id/pages", r.handlers.Notes.GetWorkspacePages)
+			workspaces.GET("/:workspace_id/pages/root", r.handlers.Notes.GetRootPages)
+		}
+
+		// Page routes
+		pages := notes.Group("/pages")
+		{
+			pages.POST("", r.handlers.Notes.CreatePage)
+			pages.GET("/:page_id", r.handlers.Notes.GetPage)
+			pages.PUT("/:page_id", r.handlers.Notes.UpdatePage)
+			pages.POST("/:page_id/content", r.handlers.Notes.SavePageContent)
+			pages.DELETE("/:page_id", r.handlers.Notes.DeletePage)
+			pages.POST("/:page_id/archive", r.handlers.Notes.ArchivePage)
+			pages.POST("/:page_id/restore", r.handlers.Notes.RestorePage)
+
+			// Child pages
+			pages.GET("/:page_id/children", r.handlers.Notes.GetChildPages)
+
+			// Page permissions
+			pages.POST("/:page_id/permissions", r.handlers.Notes.GrantPagePermission)
+			pages.GET("/:page_id/permissions", r.handlers.Notes.GetPagePermissions)
+			pages.DELETE("/:page_id/permissions/:user_id", r.handlers.Notes.RevokePagePermission)
+
+			// Page versions
+			pages.GET("/:page_id/versions", r.handlers.Notes.GetPageVersions)
+			pages.GET("/:page_id/versions/:version_number", r.handlers.Notes.GetPageVersion)
+		}
+
+		// Search and recent pages
+		notes.POST("/search", r.handlers.Notes.SearchPages)
+		notes.GET("/recent", r.handlers.Notes.GetRecentPages)
+	}
+}
+
+func (r *Router) setupAIRoutes(protected *gin.RouterGroup) {
+	ai := protected.Group("/ai")
+	{
+		ai.POST("/generate", r.handlers.AI.GenerateNoteContent)
+		ai.POST("/chat/exchange", r.handlers.AI.SaveExchange)
+		ai.GET("/chat/history", r.handlers.AI.GetHistory)
 	}
 }
 

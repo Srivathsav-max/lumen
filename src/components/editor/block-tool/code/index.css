@@ -1,0 +1,66 @@
+/* Code Block Styles */
+.cdx-code {
+  @apply rounded-lg border border-border bg-muted/30;
+}
+
+.cdx-code__header {
+  @apply flex items-center justify-between border-b border-border px-4 py-2;
+}
+
+.cdx-code__language-selector {
+  @apply rounded border border-input bg-background px-2 py-1 text-xs text-muted-foreground outline-none focus:border-ring focus:ring-1 focus:ring-ring;
+}
+
+.cdx-code__textarea {
+  @apply w-full resize-none border-none bg-transparent p-4 font-mono text-sm leading-relaxed text-foreground outline-none;
+  min-height: 120px;
+  tab-size: 2;
+}
+
+.cdx-code__textarea::placeholder {
+  @apply text-muted-foreground/70;
+}
+
+.cdx-code__textarea:focus {
+  @apply outline-none;
+}
+
+/* Syntax highlighting placeholder styles */
+.cdx-code__textarea {
+  /* Basic syntax highlighting colors */
+  color: var(--foreground);
+}
+
+/* Dark mode adjustments */
+.dark .cdx-code {
+  @apply bg-muted/20;
+}
+
+.dark .cdx-code__header {
+  @apply border-muted-foreground/20;
+}
+
+.dark .cdx-code__language-selector {
+  @apply border-muted-foreground/30 bg-background/50 text-muted-foreground;
+}
+
+.dark .cdx-code__textarea {
+  @apply text-foreground;
+}
+
+/* Scrollbar styling for code textarea */
+.cdx-code__textarea::-webkit-scrollbar {
+  @apply w-2;
+}
+
+.cdx-code__textarea::-webkit-scrollbar-track {
+  @apply bg-transparent;
+}
+
+.cdx-code__textarea::-webkit-scrollbar-thumb {
+  @apply rounded-full bg-muted-foreground/20;
+}
+
+.cdx-code__textarea::-webkit-scrollbar-thumb:hover {
+  @apply bg-muted-foreground/30;
+}

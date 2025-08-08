@@ -17,6 +17,7 @@ type Config struct {
 	JWT      JWTConfig      `validate:"required"`
 	Email    EmailConfig    `validate:"required"`
 	Logging  logger.Config  `validate:"required"`
+	AI       AIConfig       `validate:"required"`
 }
 
 type ServerConfig struct {
@@ -52,6 +53,14 @@ type EmailConfig struct {
 	FromEmail    string `validate:"required,email"`
 	FromName     string `validate:"required"`
 	TemplatesDir string `validate:"required"`
+}
+
+// AIConfig contains configuration required for AI integrations (Gemini)
+type AIConfig struct {
+	// Gemini API key. Keep this secret and only load from environment/secrets
+	GeminiAPIKey string `validate:"required"`
+	// Model name to use. Example: gemini-2.5-flash, gemini-2.5-pro
+	GeminiModel string `validate:"required"`
 }
 
 type ConfigLoader interface {
@@ -133,6 +142,11 @@ func (l *EnvConfigLoader) Load() (*Config, error) {
 		TemplatesDir: getEnv("EMAIL_TEMPLATES_DIR", constants.DefaultEmailTemplatesDir),
 	}
 
+	config.AI = AIConfig{
+		GeminiAPIKey: getRequiredEnv("GEMINI_API_KEY"),
+		GeminiModel:  getEnv("GEMINI_MODEL", "gemini-2.5-flash"),
+	}
+
 	config.Logging = logger.Config{
 		Level:  logger.LogLevel(getEnv("LOG_LEVEL", constants.LogLevelInfo)),
 		Format: getEnv("LOG_FORMAT", constants.LogFormatJSON),
@@ -154,10 +168,16 @@ func (l *EnvConfigLoader) Validate(config *Config) error {
 
 func (c *DatabaseConfig) GetDSN() string {
 	if c.URL != "" {
+		if !strings.Contains(c.URL, "?") {
+			return c.URL + "?prefer_simple_protocol=true"
+		}
+		if !strings.Contains(c.URL, "prefer_simple_protocol") {
+			return c.URL + "&prefer_simple_protocol=true"
+		}
 		return c.URL
 	}
 
-	return fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=%s",
+	return fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=%s prefer_simple_protocol=true",
 		c.Host, c.Port, c.User, c.Password, c.DBName, c.SSLMode)
 }
 

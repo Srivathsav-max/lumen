@@ -28,6 +28,12 @@ const nextConfig = {
             priority: -10,
             chunks: 'all',
           },
+          editorjs: {
+            test: /[\\/]node_modules[\\/]@editorjs[\\/]/,
+            name: 'editorjs',
+            priority: 10,
+            chunks: 'all',
+          },
           common: {
             minChunks: 2,
             chunks: 'all',
@@ -84,6 +90,15 @@ const nextConfig = {
   experimental: {
     optimizeCss: true,
     scrollRestoration: true,
+    optimizePackageImports: ['@editorjs/editorjs', '@radix-ui/react-dialog', 'framer-motion'],
+    turbo: {
+      rules: {
+        '*.svg': {
+          loaders: ['@svgr/webpack'],
+          as: '*.js',
+        },
+      },
+    },
   },
   
   ...(process.env.NODE_ENV === 'production' && {

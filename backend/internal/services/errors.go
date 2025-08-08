@@ -260,3 +260,38 @@ func NewInvalidSettingKeyError() *errors.AppError {
 func NewInvalidEmailError() *errors.AppError {
 	return errors.NewValidationError("Invalid email", "Email cannot be empty")
 }
+
+// Error helper functions for service layer
+func NewValidationError(err error) *errors.AppError {
+	if validationErr, ok := err.(*ValidationError); ok {
+		return errors.NewValidationError("Validation failed", validationErr.Error()).WithDetails(&ValidationErrorResponse{
+			Message: "Validation failed",
+			Errors:  validationErr.Errors,
+		})
+	}
+	return errors.NewValidationError("Validation failed", err.Error())
+}
+
+func NewInternalError(message string) *errors.AppError {
+	return errors.NewInternalError(message)
+}
+
+func NewNotFoundError(message string) *errors.AppError {
+	return errors.NewNotFoundError(message)
+}
+
+func NewForbiddenError(message string) *errors.AppError {
+	return errors.NewAuthorizationError(message)
+}
+
+func NewBadRequestError(message string) *errors.AppError {
+	return errors.NewValidationError("Bad request", message)
+}
+
+func NewConflictError(message string) *errors.AppError {
+	return errors.NewConflictError(message, "")
+}
+
+func NewUnauthorizedError(message string) *errors.AppError {
+	return errors.NewAuthenticationError(message)
+}

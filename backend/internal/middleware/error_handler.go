@@ -13,11 +13,11 @@ type ErrorResponse struct {
 }
 
 type ErrorDetail struct {
-	Code      string `json:"code"`
-	Message   string `json:"message"`
-	Details   string `json:"details,omitempty"`
-	Timestamp string `json:"timestamp"`
-	RequestID string `json:"request_id,omitempty"`
+	Code      string      `json:"code"`
+	Message   string      `json:"message"`
+	Details   interface{} `json:"details,omitempty"`
+	Timestamp string      `json:"timestamp"`
+	RequestID string      `json:"request_id,omitempty"`
 }
 
 func ErrorHandlingMiddleware(logger *slog.Logger) gin.HandlerFunc {

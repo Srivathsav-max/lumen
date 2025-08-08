@@ -1,0 +1,43 @@
+/* Quote Block Styles */
+.cdx-quote {
+  @apply my-4 border-l-4 border-primary/30 pl-6 pr-4;
+}
+
+.cdx-quote__text {
+  @apply text-lg font-medium italic leading-relaxed text-foreground;
+  min-height: 1.2em;
+}
+
+.cdx-quote__text:empty::before {
+  content: attr(data-placeholder);
+  @apply text-muted-foreground;
+  font-style: normal;
+}
+
+.cdx-quote__caption {
+  @apply mt-3 text-sm text-muted-foreground;
+  min-height: 1em;
+}
+
+.cdx-quote__caption:empty::before {
+  content: attr(data-placeholder);
+  @apply text-muted-foreground/70;
+}
+
+.cdx-quote__caption::before {
+  content: "— ";
+}
+
+.cdx-quote__text:focus,
+.cdx-quote__caption:focus {
+  @apply outline-none;
+}
+
+/* Dark mode adjustments */
+.dark .cdx-quote {
+  @apply border-primary/40;
+}
+
+.dark .cdx-quote__text {
+  @apply text-foreground;
+}

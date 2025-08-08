@@ -8,7 +8,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import Link from "next/link";
 import { toast } from "@/providers/notification-provider";
-import "@/styles/sketchy-elements.css";
 import { useRouter, useSearchParams } from "next/navigation";
 import * as api from "./api";
 import { Spinner } from "@/components/ui/ios-spinner";

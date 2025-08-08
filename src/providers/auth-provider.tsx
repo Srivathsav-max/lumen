@@ -2,7 +2,7 @@
 
 import React, { createContext, useContext, useEffect, useState, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { toast } from '@/providers/notification-provider';
+// Toast notifications will be handled by components
 import {
   clearAuthCookies,
   isAuthenticated as checkIsAuthenticated,

@@ -28,7 +28,7 @@ func NewUserHandlers(userService services.UserService, roleService services.Role
 }
 
 func (h *UserHandlers) GetProfile(c *gin.Context) {
-	userID, exists := c.Get("user_id")
+	userID, exists := c.Get("userID")
 	if !exists {
 		c.Error(errors.NewAuthenticationError("User not authenticated"))
 		return
@@ -60,7 +60,7 @@ func (h *UserHandlers) GetProfile(c *gin.Context) {
 }
 
 func (h *UserHandlers) UpdateProfile(c *gin.Context) {
-	userID, exists := c.Get("user_id")
+	userID, exists := c.Get("userID")
 	if !exists {
 		c.Error(errors.NewAuthenticationError("User not authenticated"))
 		return
@@ -139,7 +139,7 @@ func (h *UserHandlers) GetUserByID(c *gin.Context) {
 }
 
 func (h *UserHandlers) VerifyEmail(c *gin.Context) {
-	userID, exists := c.Get("user_id")
+	userID, exists := c.Get("userID")
 	if !exists {
 		c.Error(errors.NewAuthenticationError("User not authenticated"))
 		return
@@ -158,7 +158,7 @@ func (h *UserHandlers) VerifyEmail(c *gin.Context) {
 }
 
 func (h *UserHandlers) CheckEmailVerification(c *gin.Context) {
-	userID, exists := c.Get("user_id")
+	userID, exists := c.Get("userID")
 	if !exists {
 		c.Error(errors.NewAuthenticationError("User not authenticated"))
 		return
@@ -209,7 +209,7 @@ func (h *UserHandlers) isAdmin(c *gin.Context) bool {
 }
 
 func (h *UserHandlers) getCurrentUserID(c *gin.Context) (int64, error) {
-	userID, exists := c.Get("user_id")
+	userID, exists := c.Get("userID")
 	if !exists {
 		return 0, errors.NewAuthenticationError("User not authenticated")
 	}
@@ -222,7 +222,7 @@ func (h *UserHandlers) getCurrentUserID(c *gin.Context) (int64, error) {
 }
 
 func (h *UserHandlers) RequestPasswordChangeOTP(c *gin.Context) {
-	userID, exists := c.Get("user_id")
+	userID, exists := c.Get("userID")
 	if !exists {
 		c.Error(errors.NewAuthenticationError("User not authenticated"))
 		return
@@ -255,7 +255,7 @@ func (h *UserHandlers) RequestPasswordChangeOTP(c *gin.Context) {
 }
 
 func (h *UserHandlers) ChangePassword(c *gin.Context) {
-	userID, exists := c.Get("user_id")
+	userID, exists := c.Get("userID")
 	if !exists {
 		c.Error(errors.NewAuthenticationError("User not authenticated"))
 		return

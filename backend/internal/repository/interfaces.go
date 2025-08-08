@@ -2,6 +2,7 @@ package repository
 
 import (
 	"context"
+	"encoding/json"
 	"time"
 )
 
@@ -139,4 +140,202 @@ type SystemSettingsRepository interface {
 	List(ctx context.Context) ([]*SystemSetting, error)
 	GetValue(ctx context.Context, key string) (string, error)
 	SetValue(ctx context.Context, key, value string) error
+}
+
+// Notes System Models
+
+type Workspace struct {
+	ID          int64     `db:"id" json:"id"`
+	Name        string    `db:"name" json:"name"`
+	Description *string   `db:"description" json:"description,omitempty"`
+	OwnerID     int64     `db:"owner_id" json:"owner_id"`
+	CreatedAt   time.Time `db:"created_at" json:"created_at"`
+	UpdatedAt   time.Time `db:"updated_at" json:"updated_at"`
+}
+
+type WorkspaceRole string
+
+const (
+	WorkspaceRoleMember WorkspaceRole = "member"
+	WorkspaceRoleAdmin  WorkspaceRole = "admin"
+	WorkspaceRoleOwner  WorkspaceRole = "owner"
+)
+
+type WorkspaceMember struct {
+	ID          int64         `db:"id" json:"id"`
+	WorkspaceID int64         `db:"workspace_id" json:"workspace_id"`
+	UserID      int64         `db:"user_id" json:"user_id"`
+	Role        WorkspaceRole `db:"role" json:"role"`
+	AddedBy     int64         `db:"added_by" json:"added_by"`
+	CreatedAt   time.Time     `db:"created_at" json:"created_at"`
+	UpdatedAt   time.Time     `db:"updated_at" json:"updated_at"`
+}
+
+type Page struct {
+	ID           string          `db:"id" json:"id"`
+	Title        string          `db:"title" json:"title"`
+	WorkspaceID  int64           `db:"workspace_id" json:"workspace_id"`
+	OwnerID      int64           `db:"owner_id" json:"owner_id"`
+	ParentID     *string         `db:"parent_id" json:"parent_id,omitempty"`
+	Icon         *string         `db:"icon" json:"icon,omitempty"`
+	CoverURL     *string         `db:"cover_url" json:"cover_url,omitempty"`
+	IsArchived   bool            `db:"is_archived" json:"is_archived"`
+	IsTemplate   bool            `db:"is_template" json:"is_template"`
+	Properties   json.RawMessage `db:"properties" json:"properties"`
+	CreatedAt    time.Time       `db:"created_at" json:"created_at"`
+	UpdatedAt    time.Time       `db:"updated_at" json:"updated_at"`
+	LastEditedBy *int64          `db:"last_edited_by" json:"last_edited_by,omitempty"`
+}
+
+type Block struct {
+	ID            string          `db:"id" json:"id"`
+	PageID        string          `db:"page_id" json:"page_id"`
+	BlockType     string          `db:"block_type" json:"block_type"`
+	BlockData     json.RawMessage `db:"block_data" json:"block_data"`
+	Position      int             `db:"position" json:"position"`
+	ParentBlockID *string         `db:"parent_block_id" json:"parent_block_id,omitempty"`
+	CreatedAt     time.Time       `db:"created_at" json:"created_at"`
+	UpdatedAt     time.Time       `db:"updated_at" json:"updated_at"`
+	CreatedBy     int64           `db:"created_by" json:"created_by"`
+	LastEditedBy  *int64          `db:"last_edited_by" json:"last_edited_by,omitempty"`
+}
+
+type PermissionLevel string
+
+const (
+	PermissionView    PermissionLevel = "view"
+	PermissionComment PermissionLevel = "comment"
+	PermissionEdit    PermissionLevel = "edit"
+	PermissionAdmin   PermissionLevel = "admin"
+)
+
+type PagePermission struct {
+	ID         int64           `db:"id" json:"id"`
+	PageID     string          `db:"page_id" json:"page_id"`
+	UserID     int64           `db:"user_id" json:"user_id"`
+	Permission PermissionLevel `db:"permission" json:"permission"`
+	GrantedBy  int64           `db:"granted_by" json:"granted_by"`
+	CreatedAt  time.Time       `db:"created_at" json:"created_at"`
+	UpdatedAt  time.Time       `db:"updated_at" json:"updated_at"`
+}
+
+type PageVersion struct {
+	ID            string          `db:"id" json:"id"`
+	PageID        string          `db:"page_id" json:"page_id"`
+	VersionNumber int             `db:"version_number" json:"version_number"`
+	Title         *string         `db:"title" json:"title,omitempty"`
+	Content       json.RawMessage `db:"content" json:"content"`
+	ChangeSummary *string         `db:"change_summary" json:"change_summary,omitempty"`
+	CreatedBy     int64           `db:"created_by" json:"created_by"`
+	CreatedAt     time.Time       `db:"created_at" json:"created_at"`
+}
+
+type Comment struct {
+	ID              string     `db:"id" json:"id"`
+	PageID          string     `db:"page_id" json:"page_id"`
+	BlockID         *string    `db:"block_id" json:"block_id,omitempty"`
+	ParentCommentID *string    `db:"parent_comment_id" json:"parent_comment_id,omitempty"`
+	AuthorID        int64      `db:"author_id" json:"author_id"`
+	Content         string     `db:"content" json:"content"`
+	IsResolved      bool       `db:"is_resolved" json:"is_resolved"`
+	ResolvedBy      *int64     `db:"resolved_by" json:"resolved_by,omitempty"`
+	ResolvedAt      *time.Time `db:"resolved_at" json:"resolved_at,omitempty"`
+	CreatedAt       time.Time  `db:"created_at" json:"created_at"`
+	UpdatedAt       time.Time  `db:"updated_at" json:"updated_at"`
+}
+
+// AI Chat models
+type AIConversation struct {
+	ID        string    `db:"id" json:"id"`
+	UserID    int64     `db:"user_id" json:"user_id"`
+	Type      string    `db:"type" json:"type"`
+	PageID    *string   `db:"page_id" json:"page_id,omitempty"`
+	Title     *string   `db:"title" json:"title,omitempty"`
+	CreatedAt time.Time `db:"created_at" json:"created_at"`
+	UpdatedAt time.Time `db:"updated_at" json:"updated_at"`
+}
+
+type AIMessage struct {
+	ID             string          `db:"id" json:"id"`
+	ConversationID string          `db:"conversation_id" json:"conversation_id"`
+	Role           string          `db:"role" json:"role"`
+	Content        string          `db:"content" json:"content"`
+	Metadata       json.RawMessage `db:"metadata" json:"metadata"`
+	CreatedAt      time.Time       `db:"created_at" json:"created_at"`
+}
+
+type AIConversationRepository interface {
+	UpsertConversation(ctx context.Context, userID int64, chatType string, pageID *string, title *string) (*AIConversation, error)
+	GetConversation(ctx context.Context, userID int64, chatType string, pageID *string) (*AIConversation, error)
+}
+
+type AIMessageRepository interface {
+	CreateMessage(ctx context.Context, msg *AIMessage) error
+	ListMessages(ctx context.Context, conversationID string, limit, offset int) ([]*AIMessage, error)
+}
+
+// Repository Interfaces for Notes System
+
+type WorkspaceRepository interface {
+	Create(ctx context.Context, workspace *Workspace) error
+	GetByID(ctx context.Context, id int64) (*Workspace, error)
+	GetByOwnerID(ctx context.Context, ownerID int64) ([]*Workspace, error)
+	Update(ctx context.Context, workspace *Workspace) error
+	Delete(ctx context.Context, id int64) error
+	List(ctx context.Context, limit, offset int) ([]*Workspace, error)
+	GetUserWorkspaces(ctx context.Context, userID int64) ([]*Workspace, error)
+	AddMember(ctx context.Context, member *WorkspaceMember) error
+	RemoveMember(ctx context.Context, workspaceID, userID int64) error
+	GetMembers(ctx context.Context, workspaceID int64) ([]*WorkspaceMember, error)
+	UpdateMemberRole(ctx context.Context, workspaceID, userID int64, role WorkspaceRole) error
+	HasAccess(ctx context.Context, workspaceID, userID int64) (bool, error)
+}
+
+type PageRepository interface {
+	Create(ctx context.Context, page *Page) error
+	GetByID(ctx context.Context, id string) (*Page, error)
+	GetByWorkspaceID(ctx context.Context, workspaceID int64, includeArchived bool) ([]*Page, error)
+	GetByParentID(ctx context.Context, parentID string, includeArchived bool) ([]*Page, error)
+	GetRootPages(ctx context.Context, workspaceID int64, includeArchived bool) ([]*Page, error)
+	Update(ctx context.Context, page *Page) error
+	Delete(ctx context.Context, id string) error
+	Archive(ctx context.Context, id string, archivedBy int64) error
+	Restore(ctx context.Context, id string, restoredBy int64) error
+	Search(ctx context.Context, workspaceID int64, query string, limit, offset int) ([]*Page, error)
+	GetRecentPages(ctx context.Context, userID int64, limit int) ([]*Page, error)
+	CreateVersion(ctx context.Context, version *PageVersion) error
+	GetVersions(ctx context.Context, pageID string, limit, offset int) ([]*PageVersion, error)
+	GetVersion(ctx context.Context, pageID string, versionNumber int) (*PageVersion, error)
+	GetUserPermission(ctx context.Context, pageID string, userID int64) (*PagePermission, error)
+	GrantPermission(ctx context.Context, permission *PagePermission) error
+	RevokePermission(ctx context.Context, pageID string, userID int64) error
+	ListPermissions(ctx context.Context, pageID string) ([]*PagePermission, error)
+	HasPermission(ctx context.Context, pageID string, userID int64, requiredLevel PermissionLevel) (bool, error)
+}
+
+type BlockRepository interface {
+	Create(ctx context.Context, block *Block) error
+	GetByID(ctx context.Context, id string) (*Block, error)
+	GetByPageID(ctx context.Context, pageID string) ([]*Block, error)
+	GetByParentID(ctx context.Context, parentBlockID string) ([]*Block, error)
+	Update(ctx context.Context, block *Block) error
+	Delete(ctx context.Context, id string) error
+	BulkCreate(ctx context.Context, blocks []*Block) error
+	BulkUpdate(ctx context.Context, blocks []*Block) error
+	BulkDelete(ctx context.Context, ids []string) error
+	ReorderBlocks(ctx context.Context, pageID string, blockOrders map[string]int) error
+	GetBlocksByType(ctx context.Context, pageID string, blockType string) ([]*Block, error)
+}
+
+type CommentRepository interface {
+	Create(ctx context.Context, comment *Comment) error
+	GetByID(ctx context.Context, id string) (*Comment, error)
+	GetByPageID(ctx context.Context, pageID string) ([]*Comment, error)
+	GetByBlockID(ctx context.Context, blockID string) ([]*Comment, error)
+	GetReplies(ctx context.Context, parentCommentID string) ([]*Comment, error)
+	Update(ctx context.Context, comment *Comment) error
+	Delete(ctx context.Context, id string) error
+	Resolve(ctx context.Context, id string, resolvedBy int64) error
+	Unresolve(ctx context.Context, id string) error
+	GetUnresolved(ctx context.Context, pageID string) ([]*Comment, error)
 }

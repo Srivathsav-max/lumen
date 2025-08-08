@@ -61,6 +61,24 @@ func (f *HandlerFactory) CreateSecurityHandlers() *SecurityHandlers {
 	return NewSecurityHandlers(securityMiddleware.GetCSRFService())
 }
 
+func (f *HandlerFactory) CreateNotesHandlers() *NotesHandlers {
+	return NewNotesHandlers(
+		f.container.GetWorkspaceService(),
+		f.container.GetPageService(),
+		f.container.GetLogger(),
+	)
+}
+
+func (f *HandlerFactory) CreateAIHandlers() *AIHandlers {
+	h := NewAIHandlers(
+		f.container.GetAIService(),
+		f.container.GetLogger(),
+	)
+	// Inject chat service via exported field for simplicity
+	h.chat = f.container.AIChatService
+	return h
+}
+
 type AllHandlers struct {
 	Auth        *AuthHandlers
 	User        *UserHandlers
@@ -68,9 +86,11 @@ type AllHandlers struct {
 	System      *SystemHandlers
 	Email       *EmailHandlers
 	Maintenance *MaintenanceHandlers
+	Notes       *NotesHandlers
 
 	SystemSettings *SystemSettingsHandlers
 	Security       *SecurityHandlers
+	AI             *AIHandlers
 }
 
 func (f *HandlerFactory) CreateAllHandlers() *AllHandlers {
@@ -81,8 +101,10 @@ func (f *HandlerFactory) CreateAllHandlers() *AllHandlers {
 		System:      f.CreateSystemHandlers(),
 		Email:       f.CreateEmailHandlers(),
 		Maintenance: f.CreateMaintenanceHandlers(),
+		Notes:       f.CreateNotesHandlers(),
 
 		SystemSettings: f.CreateSystemSettingsHandlers(),
 		Security:       f.CreateSecurityHandlers(),
+		AI:             f.CreateAIHandlers(),
 	}
 }
