@@ -38,6 +38,7 @@ export class SearchService {
   };
   private highlightClassName = 'search-highlight';
   private currentHighlightClassName = 'search-highlight-current';
+  private regexHighlightClassName = 'regex-preview-highlight';
 
   // Event listeners
   private listeners: {
@@ -48,6 +49,10 @@ export class SearchService {
   constructor(editor: EditorJS) {
     this.editor = editor;
     this.injectSearchStyles();
+    // Listen for inline regex compile events from blocks
+    if (typeof window !== 'undefined') {
+      window.addEventListener('lumen-inline-regex', this.handleInlineRegexEvent as EventListener);
+    }
   }
 
   /**
@@ -223,6 +228,9 @@ export class SearchService {
   public dispose(): void {
     this.clearHighlights();
     this.listeners = {};
+    if (typeof window !== 'undefined') {
+      window.removeEventListener('lumen-inline-regex', this.handleInlineRegexEvent as EventListener);
+    }
   }
 
   /**
@@ -545,6 +553,12 @@ export class SearchService {
         border-radius: 2px;
         box-shadow: 0 0 0 2px #ff9800;
       }
+
+      .${this.regexHighlightClassName} {
+        background-color: rgba(76, 175, 80, 0.25);
+        outline: 1px dashed #4caf50;
+        border-radius: 2px;
+      }
     `;
     
     document.head.appendChild(style);
@@ -556,6 +570,73 @@ export class SearchService {
   private notifyMatchesChanged(): void {
     if (this.listeners.onMatchesChanged) {
       this.listeners.onMatchesChanged(this.matches, this.currentMatchIndex);
+    }
+  }
+
+  /**
+   * Handle inline regex event and preview-highlight matches in current document.
+   */
+  private handleInlineRegexEvent = (evt: CustomEvent<{ pattern: string; flags: string }>): void => {
+    try {
+      const { pattern, flags } = (evt as any).detail ?? { pattern: '', flags: '' };
+      if (!pattern) return;
+      // Clear previous regex preview highlights only (not find/replace ones)
+      document.querySelectorAll(`.${this.regexHighlightClassName}`).forEach((el) => {
+        const parent = el.parentNode;
+        if (parent) {
+          parent.replaceChild(document.createTextNode(el.textContent || ''), el);
+          parent.normalize();
+        }
+      });
+
+      const safeFlags = (flags || '').replace(/[^gimsuy]/g, '');
+      const re = new RegExp(pattern, safeFlags || 'g');
+
+      // Walk through editor blocks and highlight matches
+      const root = document.querySelector('#editor');
+      if (!root) return;
+      const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+      const nodes: Text[] = [];
+      let n: Node | null;
+      while ((n = walker.nextNode())) nodes.push(n as Text);
+      nodes.forEach((textNode) => this.highlightRegexInTextNode(textNode, re));
+    } catch (e) {
+      // ignore invalid patterns
+    }
+  };
+
+  private highlightRegexInTextNode(textNode: Text, re: RegExp): void {
+    const text = textNode.textContent || '';
+    if (!text) return;
+    let lastIndex = 0;
+    let match: RegExpExecArray | null;
+    re.lastIndex = 0;
+
+    const parent = textNode.parentNode;
+    if (!parent) return;
+
+    const frag = document.createDocumentFragment();
+
+    while ((match = re.exec(text)) !== null) {
+      const start = match.index;
+      const end = match.index + match[0].length;
+      if (start > lastIndex) {
+        frag.appendChild(document.createTextNode(text.slice(lastIndex, start)));
+      }
+      const span = document.createElement('span');
+      span.className = this.regexHighlightClassName;
+      span.textContent = text.slice(start, end);
+      frag.appendChild(span);
+      if (!re.global) break; // avoid infinite loops
+      lastIndex = end;
+      if (re.lastIndex === match.index) re.lastIndex++; // progress for zero-length matches
+    }
+    if (lastIndex < text.length) {
+      frag.appendChild(document.createTextNode(text.slice(lastIndex)));
+    }
+
+    if (frag.childNodes.length > 0) {
+      parent.replaceChild(frag, textNode);
     }
   }
 

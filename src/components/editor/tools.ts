@@ -13,6 +13,9 @@ import QuoteBlock from "./block-tool/quote/index";
 import ImageBlock from "./block-tool/image/index";
 import CodeBlock from "./block-tool/code/index";
 import TableBlock from "./block-tool/table/index";
+import BookmarkBlock from "./block-tool/bookmark/index";
+import FileBlock from "./block-tool/file/index";
+import ChartBlock from "./block-tool/chart/index";
 
 import AlignmentTune from "./block-tune/alignment/index";
 import { BoldInlineTool } from "./inline-tool/bold/index";
@@ -76,6 +79,15 @@ export const tools: EditorConfig["tools"] = {
       cols: 2,
       withHeadings: false,
     },
+  },
+  bookmark: {
+    class: BookmarkBlock as unknown as BlockToolConstructable,
+  },
+  file: {
+    class: FileBlock as unknown as BlockToolConstructable,
+  },
+  chart: {
+    class: ChartBlock as unknown as BlockToolConstructable,
   },
   checklist: {
     class: Checklist,

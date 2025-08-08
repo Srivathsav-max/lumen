@@ -11,6 +11,7 @@ import { NotesSettingsMenu } from "./notes-settings-menu";
 import { ExportMenu } from "@/components/editor/export-menu/export-menu";
 import { FindReplaceWidget } from "@/components/editor/find-replace/find-replace-widget";
 import { NotesAPI, WorkspaceManager, type Page, type Workspace } from "@/app/dashboard/notes/api";
+import { SearchService } from "@/components/editor/services/search-service";
 
 // Helper function to sanitize content and remove HTML entities
 const sanitizeContent = (data: any): any => {
@@ -59,6 +60,8 @@ export function NotesEditor() {
   
   // Export menu functionality
   const exportMenuRef = useRef<any>(null);
+  // Regex preview service (for inline /pattern/flags highlighting)
+  const regexPreviewServiceRef = useRef<SearchService | null>(null);
   
   // Auto-save timeout
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -381,6 +384,11 @@ export function NotesEditor() {
   const readyHandler = useCallback((editor: EditorJS | null) => {
     if (!editor) return;
     editorRef.current = editor;
+    // Initialize a background search service to listen for inline regex events
+    try {
+      regexPreviewServiceRef.current?.dispose();
+      regexPreviewServiceRef.current = new SearchService(editor);
+    } catch (_) {}
   }, []);
 
   const changeHandler = useCallback(async (api: any, event: any) => {
