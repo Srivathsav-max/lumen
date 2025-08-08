@@ -44,7 +44,7 @@ export class HighlighterInlineTool implements InlineTool {
     '#ff5722', // Deep Orange
   ];
 
-  constructor({ api, config }: InlineToolConstructorOptions<HighlighterConfig>) {
+  constructor({ api, config }: InlineToolConstructorOptions) {
     this.api = api;
     this.config = {
       defaultColor: config?.defaultColor || '#ffeb3b',
@@ -223,11 +223,10 @@ export class HighlighterInlineTool implements InlineTool {
       // Apply new color to selection
       this.config.defaultColor = color;
       try {
-        const selection = this.api.selection.save();
-        if (selection) {
-          this.wrap(selection as Range);
-          this.api.selection.restore();
-        }
+        this.api.selection.save();
+        const range = window.getSelection()?.getRangeAt(0);
+        if (range) this.wrap(range);
+        this.api.selection.restore();
       } catch (error) {
         console.warn('Error applying highlight color:', error);
       }
@@ -249,12 +248,7 @@ export class HighlighterInlineTool implements InlineTool {
    */
   private get button(): HTMLElement | null {
     try {
-      // Try different ways to access the toolbar
-      if (this.api.toolbar?.nodes?.wrapper) {
-        return this.api.toolbar.nodes.wrapper.querySelector(`.${this.CSS.buttonModifier}`);
-      }
-      
-      // Fallback: search in document
+      // Toolbar API is not typed publicly; rely on document query
       return document.querySelector(`.${this.CSS.buttonModifier}`);
     } catch (error) {
       console.warn('Could not find highlighter button:', error);

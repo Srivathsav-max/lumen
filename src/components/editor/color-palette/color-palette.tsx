@@ -25,7 +25,6 @@ interface ColorPaletteProps {
 }
 
 const DEFAULT_COLORS: ColorOption[] = [
-  // Text Colors
   { name: "Default", value: "", category: "text" },
   { name: "Gray", value: "#6b7280", category: "text" },
   { name: "Red", value: "#dc2626", category: "text" },
@@ -36,7 +35,6 @@ const DEFAULT_COLORS: ColorOption[] = [
   { name: "Purple", value: "#9333ea", category: "text" },
   { name: "Pink", value: "#db2777", category: "text" },
   
-  // Background Colors
   { name: "Clear", value: "", category: "background" },
   { name: "Light Gray", value: "#f3f4f6", category: "background" },
   { name: "Light Red", value: "#fef2f2", category: "background" },
@@ -47,7 +45,6 @@ const DEFAULT_COLORS: ColorOption[] = [
   { name: "Light Purple", value: "#faf5ff", category: "background" },
   { name: "Light Pink", value: "#fdf2f8", category: "background" },
   
-  // Highlight Colors
   { name: "Yellow Highlight", value: "#fef08a", category: "highlight" },
   { name: "Green Highlight", value: "#bbf7d0", category: "highlight" },
   { name: "Blue Highlight", value: "#bfdbfe", category: "highlight" },
@@ -157,12 +154,10 @@ export function ColorPalette({
   );
 }
 
-// Export predefined color sets for different use cases
 export const TEXT_COLORS: ColorOption[] = DEFAULT_COLORS.filter(c => c.category === 'text');
 export const BACKGROUND_COLORS: ColorOption[] = DEFAULT_COLORS.filter(c => c.category === 'background');
 export const HIGHLIGHT_COLORS: ColorOption[] = DEFAULT_COLORS.filter(c => c.category === 'highlight');
 
-// Utility function to convert hex to rgba
 export function hexToRgba(hex: string, alpha: number = 1): string {
   const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
   if (!result) return hex;
@@ -174,7 +169,6 @@ export function hexToRgba(hex: string, alpha: number = 1): string {
   return `rgba(${r}, ${g}, ${b}, ${alpha})`;
 }
 
-// Utility function to determine if a color is light or dark
 export function isLightColor(hex: string): boolean {
   const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
   if (!result) return true;

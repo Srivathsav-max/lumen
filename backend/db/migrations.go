@@ -11,7 +11,6 @@ import (
 	_ "github.com/lib/pq"
 )
 
-// RunMigrations runs all database migrations
 func RunMigrations(db *DB, cfg *config.DatabaseConfig) error {
 	log.Println("Running database migrations...")
 
@@ -29,7 +28,6 @@ func RunMigrations(db *DB, cfg *config.DatabaseConfig) error {
 		return fmt.Errorf("could not create migration instance: %w", err)
 	}
 
-	// Check if database is in dirty state and fix it
 	if err := fixDirtyMigration(m); err != nil {
 		return fmt.Errorf("could not fix dirty migration: %w", err)
 	}
@@ -42,7 +40,6 @@ func RunMigrations(db *DB, cfg *config.DatabaseConfig) error {
 	return nil
 }
 
-// fixDirtyMigration checks if the database is in a dirty state and fixes it
 func fixDirtyMigration(m *migrate.Migrate) error {
 	version, dirty, err := m.Version()
 	if err != nil && err != migrate.ErrNilVersion {
@@ -52,7 +49,6 @@ func fixDirtyMigration(m *migrate.Migrate) error {
 	if dirty {
 		log.Printf("Database is in dirty state at version %d. Attempting to fix...", version)
 
-		// Force the version to clean the dirty state
 		if err := m.Force(int(version)); err != nil {
 			return fmt.Errorf("could not force migration version %d: %w", version, err)
 		}

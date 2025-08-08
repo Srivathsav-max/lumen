@@ -136,6 +136,13 @@ export class NotesAPI {
     return response.data.data;
   }
 
+  // AI helpers routed through backend
+  static async generateWithAI(query: string, context?: any): Promise<{ text: string }> {
+    const response = await api.post(`/ai/generate`, { query, context });
+    const data = response?.data?.data;
+    return { text: data?.text ?? data?.Text ?? "" };
+  }
+
   static async deletePage(pageId: string): Promise<void> {
     await api.delete(`/notes/pages/${pageId}`);
   }

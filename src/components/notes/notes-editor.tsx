@@ -9,34 +9,130 @@ import { NotesTitle } from "./notes-title";
 import { FloatingWordCount, type FloatingWordCountRef } from "./floating-word-count";
 import { NotesSettingsMenu } from "./notes-settings-menu";
 import { ExportMenu } from "@/components/editor/export-menu/export-menu";
+import { useAI } from "@/providers/ai-provider";
 import { FindReplaceWidget } from "@/components/editor/find-replace/find-replace-widget";
 import { NotesAPI, WorkspaceManager, type Page, type Workspace } from "@/app/dashboard/notes/api";
 import { SearchService } from "@/components/editor/services/search-service";
 
-// Helper function to sanitize content and remove HTML entities
 const sanitizeContent = (data: any): any => {
   if (!data || !data.blocks) return data;
+  
+  const isHtmlContent = (text: string): boolean => {
+    return /<\/?[a-zA-Z][^>]*>/.test(text);
+  };
+  
+  const hasMarkdownFormatting = (text: string): boolean => {
+    return /(\*\*[^*]+\*\*)|(\*[^*]+\*)|(`[^`]+`)|(__[^_]+__)|(_[^_]+_)|(~~[^~]+~~)|(\$\$[^$]+\$\$)|(\$[^$]+\$)|(\\\[[^\]]+\\\])|(\\\([^)]+\\\))/.test(text);
+  };
+
+  const processMarkdownToHtml = (text: string): string => {
+    if (!text) return "";
+    
+    // First process math expressions
+    let processedText = processMathExpressions(text);
+    
+    // Then process markdown patterns
+    processedText = processedText
+      .replace(/\*\*([^*]+)\*\*/g, '<b>$1</b>')
+      .replace(/\*([^*]+)\*/g, '<i>$1</i>')
+      .replace(/__([^_]+)__/g, '<b>$1</b>')
+      .replace(/_([^_]+)_/g, '<i>$1</i>')
+      .replace(/~~([^~]+)~~/g, '<s>$1</s>')
+      .replace(/`([^`]+)`/g, '<code>$1</code>')
+      .replace(/\[(.*?)\]\((.*?)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>');
+    
+    return processedText;
+  };
+
+  const processMathExpressions = (text: string): string => {
+    const encodeForAttribute = (text: string): string => {
+      return text.replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+    };
+
+    const mathPatterns = [
+      { regex: /\$\$([^$]+)\$\$/g, placeholder: (match: string) => `<span class="math-display" data-math="${encodeForAttribute(match.slice(2, -2))}">${match}</span>` },
+      { regex: /\$([^$]+)\$/g, placeholder: (match: string) => `<span class="math-inline" data-math="${encodeForAttribute(match.slice(1, -1))}">${match}</span>` },
+      { regex: /\\\[([^\]]+)\\\]/g, placeholder: (match: string) => `<span class="math-display" data-math="${encodeForAttribute(match.slice(2, -2))}">${match}</span>` },
+      { regex: /\\\(([^)]+)\\\)/g, placeholder: (match: string) => `<span class="math-inline" data-math="${encodeForAttribute(match.slice(2, -2))}">${match}</span>` }
+    ];
+
+    let result = text;
+    for (const pattern of mathPatterns) {
+      result = result.replace(pattern.regex, pattern.placeholder);
+    }
+    
+    return result;
+  };
+
+  const smartSanitizeText = (text: string): string => {
+    if (!text) return "";
+    
+    // If it already looks like HTML content, preserve it but clean up encoding
+    if (isHtmlContent(text)) {
+      return text
+        .replace(/&amp;lt;/g, '&lt;')
+        .replace(/&amp;gt;/g, '&gt;')
+        .replace(/&amp;quot;/g, '&quot;')
+        .replace(/&amp;#39;/g, '&#39;')
+        .replace(/&amp;amp;/g, '&amp;')
+        .trim();
+    }
+    
+    // If it has markdown formatting, convert to HTML
+    if (hasMarkdownFormatting(text)) {
+      return processMarkdownToHtml(text);
+    }
+    
+    // For plain text, decode all entities
+    const textarea = document.createElement('textarea');
+    textarea.innerHTML = text;
+    return textarea.value.trim();
+  };
   
   return {
     ...data,
     blocks: data.blocks.map((block: any) => {
-      if (block.data && typeof block.data.text === 'string') {
-        // Remove HTML entities like &nbsp;, &amp;, etc.
-        block.data.text = block.data.text
-          .replace(/&nbsp;/g, ' ')
-          .replace(/&amp;/g, '&')
-          .replace(/&lt;/g, '<')
-          .replace(/&gt;/g, '>')
-          .replace(/&quot;/g, '"')
-          .replace(/&#39;/g, "'")
-          .trim();
+      // Sanitize text content in various block types
+      if (block.data) {
+        if (typeof block.data.text === 'string') {
+          block.data.text = smartSanitizeText(block.data.text);
+        }
+        if (typeof block.data.code === 'string') {
+          // Code blocks should always be treated as plain text
+          const textarea = document.createElement('textarea');
+          textarea.innerHTML = block.data.code;
+          block.data.code = textarea.value;
+        }
+        if (typeof block.data.caption === 'string') {
+          block.data.caption = smartSanitizeText(block.data.caption);
+        }
+        if (Array.isArray(block.data.items)) {
+          block.data.items = block.data.items.map((item: any) => {
+            if (typeof item === 'string') {
+              return smartSanitizeText(item);
+            }
+            if (typeof item === 'object' && typeof item.text === 'string') {
+              return { ...item, text: smartSanitizeText(item.text) };
+            }
+            return item;
+          });
+        }
+        // Handle table content
+        if (Array.isArray(block.data.content)) {
+          block.data.content = block.data.content.map((row: any[]) => {
+            if (Array.isArray(row)) {
+              return row.map((cell) => typeof cell === 'string' ? smartSanitizeText(cell) : cell);
+            }
+            return row;
+          });
+        }
       }
       return block;
     })
   };
 };
 
-// Dynamically import the EditorCore component to avoid SSR issues
+// Dynamically import the EditorCore component to avoid SSR issues with preload
 const EditorCore = dynamic(
   () => import("@/components/editor/core/editor").then((mod) => ({ default: mod.EditorCore })),
   {
@@ -44,6 +140,11 @@ const EditorCore = dynamic(
     loading: () => <EditorLoading />,
   }
 );
+
+// Preload the editor module for faster loading
+if (typeof window !== 'undefined') {
+  import("@/components/editor/core/editor").catch(() => {});
+}
 
 export function NotesEditor() {
   const editorRef = useRef<EditorJS | null>(null);
@@ -57,6 +158,8 @@ export function NotesEditor() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [isEmptyState, setIsEmptyState] = useState(false);
+  const [shouldMountEditor, setShouldMountEditor] = useState(false);
+  const placeholderRef = useRef<HTMLDivElement | null>(null);
   
   // Export menu functionality
   const exportMenuRef = useRef<any>(null);
@@ -65,11 +168,13 @@ export function NotesEditor() {
   
   // Auto-save timeout
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const ai = useAI();
 
   // Initialize editor with workspace and page data
   useEffect(() => {
     setIsClient(true);
     initializeEditor();
+    // Defer KaTeX CSS until math content is detected later
     
     // Cleanup timeout on unmount
     return () => {
@@ -78,6 +183,71 @@ export function NotesEditor() {
       }
     };
   }, []);
+
+  // Optimized mounting strategy for better LCP
+  useEffect(() => {
+    if (!isClient) return;
+    
+    const startTime = performance.now();
+    let timeoutId: any = null;
+    let ioTimeoutId: any = null;
+    
+    const mount = () => {
+      setShouldMountEditor(true);
+      const mountTime = performance.now() - startTime;
+      console.log(`[Performance] Editor mount triggered after ${mountTime.toFixed(2)}ms`);
+    };
+
+    // Immediate mount for better LCP if content is likely above fold
+    const immediateMount = () => {
+      if (typeof window !== 'undefined' && (window as any).requestIdleCallback) {
+        (window as any).requestIdleCallback(mount, { timeout: 500 });
+      } else {
+        timeoutId = setTimeout(mount, 200);
+      }
+    };
+
+    // Check if editor area is likely in viewport
+    if ('IntersectionObserver' in window && placeholderRef.current) {
+      const io = new IntersectionObserver((entries) => {
+        const entry = entries[0];
+        if (entry && entry.isIntersecting) {
+          io.disconnect();
+          mount(); // Mount immediately if visible
+        }
+      }, { rootMargin: '100px', threshold: 0 });
+      
+      io.observe(placeholderRef.current);
+      
+      // Fallback: mount after short delay even if not intersecting
+      ioTimeoutId = setTimeout(() => {
+        io.disconnect();
+        immediateMount();
+      }, 800);
+    } else {
+      immediateMount();
+    }
+
+    // Mount on user interaction immediately
+    const onFirstInteract = () => {
+      mount();
+      window.removeEventListener('pointerdown', onFirstInteract);
+      window.removeEventListener('keydown', onFirstInteract);
+      window.removeEventListener('scroll', onFirstInteract);
+    };
+    
+    window.addEventListener('pointerdown', onFirstInteract, { once: true, passive: true });
+    window.addEventListener('keydown', onFirstInteract, { once: true });
+    window.addEventListener('scroll', onFirstInteract, { once: true, passive: true });
+
+    return () => {
+      if (timeoutId) clearTimeout(timeoutId);
+      if (ioTimeoutId) clearTimeout(ioTimeoutId);
+      window.removeEventListener('pointerdown', onFirstInteract);
+      window.removeEventListener('keydown', onFirstInteract);
+      window.removeEventListener('scroll', onFirstInteract);
+    };
+  }, [isClient]);
 
   const initializeEditor = async () => {
     try {
@@ -389,6 +559,61 @@ export function NotesEditor() {
       regexPreviewServiceRef.current?.dispose();
       regexPreviewServiceRef.current = new SearchService(editor);
     } catch (_) {}
+
+    // Expose editor context getter for navbar AI
+    (window as any).lumenGetEditorContext = async () => {
+      try {
+        const content = await editor.save();
+        return { ...(content ?? {}), page_id: currentPage?.id };
+      } catch {
+        return null;
+      }
+    };
+
+    // Listen to AI insert events from navbar menu
+    const handleInsertBlocks = async (ev: Event) => {
+      const { blocks } = (ev as CustomEvent).detail || {};
+      if (!Array.isArray(blocks)) return;
+      const ed: any = editorRef.current;
+      if (!ed) return;
+      try {
+        const count = ed.blocks.getBlocksCount?.() ?? 0;
+        for (const b of blocks) {
+          const type = mapToEditorTool(b.type);
+          ed.blocks.insert(type, b.data ?? {}, {}, count, false);
+        }
+      } catch {
+        for (const b of blocks) {
+          const type = mapToEditorTool(b.type);
+          (editorRef.current as any).blocks.insert(type, b.data ?? {});
+        }
+      }
+      try {
+        const output = await (editorRef.current as any).saver.save();
+        await saveHandler(output);
+      } catch {}
+    };
+
+    const handleInsertText = async (ev: Event) => {
+      const { text } = (ev as CustomEvent).detail || {};
+      if (!text) return;
+      const ed: any = editorRef.current;
+      if (!ed) return;
+      ed.blocks.insert("paragraph", { text });
+      try {
+        const output = await ed.saver.save();
+        await saveHandler(output);
+      } catch {}
+    };
+
+    window.addEventListener("lumen:ai-insert-blocks", handleInsertBlocks as EventListener);
+    window.addEventListener("lumen:ai-insert", handleInsertText as EventListener);
+
+    // Cleanup listeners on unmount or re-init
+    return () => {
+      window.removeEventListener("lumen:ai-insert-blocks", handleInsertBlocks as EventListener);
+      window.removeEventListener("lumen:ai-insert", handleInsertText as EventListener);
+    };
   }, []);
 
   const changeHandler = useCallback(async (api: any, event: any) => {
@@ -495,15 +720,36 @@ export function NotesEditor() {
         </div>
       </div>
 
+      {/* Navbar AI chat controls the insertion via events */}
+
       {/* Editor */}
-      <EditorCore
-        onReadyHandler={readyHandler}
-        onSaveHandler={saveHandler}
-        onChangeHandler={changeHandler}
-        data={data}
-        placeholder=""
-        readOnly={false}
-      />
+      <div ref={placeholderRef}>
+        {shouldMountEditor ? (
+          <EditorCore
+            onReadyHandler={readyHandler}
+            onSaveHandler={saveHandler}
+            onChangeHandler={changeHandler}
+            data={data}
+            placeholder=""
+            readOnly={false}
+          />
+        ) : (
+          <div 
+            className="space-y-3"
+            style={{
+              contentVisibility: 'auto',
+              containIntrinsicSize: '0 400px',
+              contain: 'layout style paint'
+            }}
+          >
+            <div className="h-6 w-1/3 bg-muted rounded animate-pulse" />
+            <div className="h-4 w-full bg-muted rounded animate-pulse" style={{ animationDelay: '0.1s' }} />
+            <div className="h-4 w-11/12 bg-muted rounded animate-pulse" style={{ animationDelay: '0.2s' }} />
+            <div className="h-4 w-10/12 bg-muted rounded animate-pulse" style={{ animationDelay: '0.3s' }} />
+            <div className="h-4 w-9/12 bg-muted rounded animate-pulse" style={{ animationDelay: '0.4s' }} />
+          </div>
+        )}
+      </div>
 
       {/* Floating Word Count */}
       <FloatingWordCount
@@ -528,4 +774,38 @@ export function NotesEditor() {
       </div>
     </div>
   );
+}
+
+// Map LLM-proposed block types to our EditorJS tool keys
+function mapToEditorTool(type: string): string {
+  const t = (type || "").toLowerCase();
+  switch (t) {
+    case "header":
+    case "heading":
+      return "heading"; // our custom heading tool
+    case "paragraph":
+      return "paragraph";
+    case "quote":
+      return "quote";
+    case "list":
+    case "unordered_list":
+    case "ordered_list":
+      return "list";
+    case "checklist":
+      return "checklist";
+    case "code":
+    case "codeblock":
+      return "code";
+    case "table":
+      return "table";
+    case "bookmark":
+      return "bookmark";
+    case "image":
+      return "image";
+    case "divider":
+    case "hr":
+      return "divider";
+    default:
+      return "paragraph";
+  }
 }

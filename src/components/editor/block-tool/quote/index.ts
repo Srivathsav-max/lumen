@@ -71,13 +71,52 @@ export default class QuoteBlock implements BlockTool {
     this._holderNode = this._drawView();
   }
 
+  private _isHtmlContent(text: string): boolean {
+    return /<\/?[a-zA-Z][^>]*>/.test(text);
+  }
+
+  private _hasMarkdownFormatting(text: string): boolean {
+    return /(\*\*[^*]+\*\*)|(\*[^*]+\*)|(`[^`]+`)|(__[^_]+__)|(_[^_]+_)|(~~[^~]+~~)/.test(text);
+  }
+
+  private _processMarkdownToHtml(text: string): string {
+    if (!text) return "";
+    
+    return text
+      .replace(/\*\*([^*]+)\*\*/g, '<b>$1</b>')
+      .replace(/\*([^*]+)\*/g, '<i>$1</i>')
+      .replace(/__([^_]+)__/g, '<b>$1</b>')
+      .replace(/_([^_]+)_/g, '<i>$1</i>')
+      .replace(/~~([^~]+)~~/g, '<s>$1</s>')
+      .replace(/`([^`]+)`/g, '<code>$1</code>')
+      .replace(/\[(.*?)\]\((.*?)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>');
+  }
+
+  private _sanitizeAndNormalizeText(text: string): string {
+    if (!text) return "";
+    
+    if (this._isHtmlContent(text)) {
+      const tempDiv = document.createElement('div');
+      tempDiv.innerHTML = text;
+      return tempDiv.innerHTML;
+    }
+    
+    if (this._hasMarkdownFormatting(text)) {
+      return this._processMarkdownToHtml(text);
+    }
+    
+    const textarea = document.createElement('textarea');
+    textarea.innerHTML = text;
+    return textarea.value;
+  }
+
   /**
    * Normalize input data
    */
   private _normalizeData(data: Partial<QuoteData>): QuoteData {
     return {
-      text: data.text || "",
-      caption: data.caption || "",
+      text: this._sanitizeAndNormalizeText(data.text || ""),
+      caption: this._sanitizeAndNormalizeText(data.caption || ""),
       alignment: data.alignment || "left",
     };
   }
@@ -101,8 +140,18 @@ export default class QuoteBlock implements BlockTool {
     text.dataset.placeholder = this._config.quotePlaceholder;
     caption.dataset.placeholder = this._config.captionPlaceholder;
 
-    text.innerHTML = this._data.text;
-    caption.innerHTML = this._data.caption;
+    // Set content with proper HTML handling
+    if (this._isHtmlContent(this._data.text) || this._hasMarkdownFormatting(this._data.text)) {
+      text.innerHTML = this._data.text;
+    } else {
+      text.textContent = this._data.text;
+    }
+    
+    if (this._isHtmlContent(this._data.caption) || this._hasMarkdownFormatting(this._data.caption)) {
+      caption.innerHTML = this._data.caption;
+    } else {
+      caption.textContent = this._data.caption;
+    }
 
     quote.appendChild(text);
     wrapper.appendChild(quote);

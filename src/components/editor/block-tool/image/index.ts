@@ -113,7 +113,7 @@ export default class ImageBlock implements BlockTool {
    * Create Tool's view
    */
   private _drawView(): HTMLDivElement {
-    const wrapper = document.createElement("DIV");
+    const wrapper = document.createElement("DIV") as HTMLDivElement;
     wrapper.classList.add(this._CSS.wrapper);
 
     if (this._data.file?.url || this._data.url) {
@@ -128,9 +128,9 @@ export default class ImageBlock implements BlockTool {
   /**
    * Create image element
    */
-  private _createImage(wrapper: HTMLElement): void {
+  private _createImage(wrapper: HTMLDivElement): void {
     const container = document.createElement("DIV");
-    const image = document.createElement("IMG");
+    const image = document.createElement("IMG") as HTMLImageElement;
     const caption = document.createElement("DIV");
 
     container.classList.add(this._CSS.imageContainer);
@@ -167,9 +167,9 @@ export default class ImageBlock implements BlockTool {
   /**
    * Create select button
    */
-  private _createSelectButton(wrapper: HTMLElement): void {
+  private _createSelectButton(wrapper: HTMLDivElement): void {
     const button = document.createElement("DIV");
-    const input = document.createElement("INPUT");
+    const input = document.createElement("INPUT") as HTMLInputElement;
 
     button.classList.add(this._CSS.selectButton);
     button.innerHTML = `

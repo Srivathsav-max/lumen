@@ -63,7 +63,7 @@ export default class FileBlock implements BlockTool {
       pick.classList.add(this._CSS.btn);
       const input = document.createElement("input");
       input.type = "file";
-      input.accept = this._config.types;
+      input.accept = this._config.types || "*";
       input.style.display = "none";
       if (!this.readOnly) {
         pick.addEventListener("click", () => input.click());

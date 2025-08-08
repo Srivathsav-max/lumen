@@ -86,6 +86,8 @@ func (b *Builder) WithRepositories() (*Builder, error) {
 	pageRepo := postgres.NewPageRepository(dbManager, b.container.Logger)
 	blockRepo := postgres.NewBlockRepository(dbManager, b.container.Logger)
 	commentRepo := postgres.NewCommentRepository(dbManager, b.container.Logger)
+	aiConvRepo := postgres.NewAIConversationRepository(dbManager, b.container.Logger)
+	aiMsgRepo := postgres.NewAIMessageRepository(dbManager, b.container.Logger)
 
 	b.container.SetUserRepository(userRepo)
 	b.container.SetRoleRepository(roleRepo)
@@ -99,6 +101,8 @@ func (b *Builder) WithRepositories() (*Builder, error) {
 	b.container.SetPageRepository(pageRepo)
 	b.container.SetBlockRepository(blockRepo)
 	b.container.SetCommentRepository(commentRepo)
+	b.container.SetAIConversationRepository(aiConvRepo)
+	b.container.SetAIMessageRepository(aiMsgRepo)
 
 	return b, nil
 }
@@ -176,6 +180,9 @@ func (b *Builder) WithServices() (*Builder, error) {
 		b.container.Logger,
 	)
 
+	aiService := services.NewAIService(&b.container.Config.AI, pageService, b.container.Logger)
+	aiChatService := services.NewAIChatService(b.container.GetAIConversationRepository(), b.container.GetAIMessageRepository(), b.container.Logger)
+
 	b.container.SetEmailService(emailService)
 	b.container.SetVerificationTokenService(verificationTokenService)
 	b.container.SetUserService(userService)
@@ -184,9 +191,10 @@ func (b *Builder) WithServices() (*Builder, error) {
 	b.container.SetWaitlistService(waitlistService)
 	b.container.SetSystemSettingsService(systemSettingsService)
 
-	// Set Notes System Services
 	b.container.SetWorkspaceService(workspaceService)
 	b.container.SetPageService(pageService)
+	b.container.SetAIService(aiService)
+	b.container.AIChatService = aiChatService
 
 	return b, nil
 }
@@ -243,12 +251,11 @@ func (b *Builder) createDatabaseConnection() (*sql.DB, error) {
 		return nil, fmt.Errorf("failed to open database connection: %w", err)
 	}
 
-	// For local development, use more aggressive connection cycling to avoid prepared statement caching
 	if cfg.IsDevelopment() {
-		db.SetMaxOpenConns(1)                   // Force single connection to avoid caching conflicts
-		db.SetMaxIdleConns(0)                   // Don't keep idle connections
-		db.SetConnMaxLifetime(1 * time.Minute)  // Short connection lifetime
-		db.SetConnMaxIdleTime(30 * time.Second) // Very short idle time
+		db.SetMaxOpenConns(1)
+		db.SetMaxIdleConns(0)
+		db.SetConnMaxLifetime(1 * time.Minute)
+		db.SetConnMaxIdleTime(30 * time.Second)
 	} else {
 		db.SetMaxOpenConns(cfg.Database.MaxOpenConns)
 		db.SetMaxIdleConns(cfg.Database.MaxIdleConns)

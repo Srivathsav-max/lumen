@@ -79,12 +79,80 @@ export default class HeadingBlock implements BlockTool {
   }
 
   /**
+   * Dynamically detect and handle HTML content
+   */
+  private _isHtmlContent(text: string): boolean {
+    return /<\/?[a-zA-Z][^>]*>/.test(text);
+  }
+
+  private _hasMarkdownFormatting(text: string): boolean {
+    return /(\*\*[^*]+\*\*)|(\*[^*]+\*)|(`[^`]+`)|(__[^_]+__)|(_[^_]+_)|(~~[^~]+~~)|(\$\$[^$]+\$\$)|(\$[^$]+\$)|(\\\[[^\]]+\\\])|(\\\([^)]+\\\))/.test(text);
+  }
+
+  private _processMarkdownToHtml(text: string): string {
+    if (!text) return "";
+    
+    // First process math expressions
+    let processedText = this._processMathExpressions(text);
+    
+    // Then process markdown patterns
+    processedText = processedText
+      .replace(/\*\*([^*]+)\*\*/g, '<b>$1</b>')
+      .replace(/\*([^*]+)\*/g, '<i>$1</i>')
+      .replace(/__([^_]+)__/g, '<b>$1</b>')
+      .replace(/_([^_]+)_/g, '<i>$1</i>')
+      .replace(/~~([^~]+)~~/g, '<s>$1</s>')
+      .replace(/`([^`]+)`/g, '<code>$1</code>')
+      .replace(/\[(.*?)\]\((.*?)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>');
+    
+    return processedText;
+  }
+
+  private _processMathExpressions(text: string): string {
+    const mathPatterns = [
+      { regex: /\$\$([^$]+)\$\$/g, placeholder: (match: string) => `<span class="math-display" data-math="${this._encodeForAttribute(match.slice(2, -2))}">${match}</span>` },
+      { regex: /\$([^$]+)\$/g, placeholder: (match: string) => `<span class="math-inline" data-math="${this._encodeForAttribute(match.slice(1, -1))}">${match}</span>` },
+      { regex: /\\\[([^\]]+)\\\]/g, placeholder: (match: string) => `<span class="math-display" data-math="${this._encodeForAttribute(match.slice(2, -2))}">${match}</span>` },
+      { regex: /\\\(([^)]+)\\\)/g, placeholder: (match: string) => `<span class="math-inline" data-math="${this._encodeForAttribute(match.slice(2, -2))}">${match}</span>` }
+    ];
+
+    let result = text;
+    for (const pattern of mathPatterns) {
+      result = result.replace(pattern.regex, pattern.placeholder);
+    }
+    
+    return result;
+  }
+
+  private _encodeForAttribute(text: string): string {
+    return text.replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+  }
+
+  private _sanitizeAndNormalizeText(text: string): string {
+    if (!text) return "";
+    
+    if (this._isHtmlContent(text)) {
+      const tempDiv = document.createElement('div');
+      tempDiv.innerHTML = text;
+      return tempDiv.innerHTML;
+    }
+    
+    if (this._hasMarkdownFormatting(text)) {
+      return this._processMarkdownToHtml(text);
+    }
+    
+    const textarea = document.createElement('textarea');
+    textarea.innerHTML = text;
+    return textarea.value;
+  }
+
+  /**
    * Normalize input data
    */
   private _normalizeData(data: HeadingData): HeadingData {
     if (typeof data === "object") {
       return {
-        text: data.text || "",
+        text: this._sanitizeAndNormalizeText(data.text || ""),
         level: Number(data.level) || this.defaultLevel.level,
       };
     }
@@ -106,9 +174,15 @@ export default class HeadingBlock implements BlockTool {
     const heading = document.createElement(this.currentLevel.tag) as HTMLHeadingElement;
 
     /**
-     * Add text to block
+     * Add text to block - dynamically handle HTML vs plain text with formatting
      */
-    heading.innerHTML = this._data.text;
+    const text = this._data.text;
+    if (this._isHtmlContent(text) || this._hasMarkdownFormatting(text)) {
+      heading.innerHTML = text;
+      this._renderMathInElement(heading);
+    } else {
+      heading.textContent = text;
+    }
 
     /**
      * Add styles class
@@ -127,7 +201,111 @@ export default class HeadingBlock implements BlockTool {
      */
     heading.dataset.placeholder = this.api.i18n.t(this.placeholder);
 
+    /**
+     * Add event listeners for math backspace handling
+     */
+    if (!this.readOnly) {
+      heading.addEventListener("keyup", (e) => {
+        if (e.code === "Backspace") {
+          this._handleMathBackspace();
+        }
+      });
+    }
+
     return heading;
+  }
+
+  /**
+   * Render math expressions in the element using modern KaTeX
+   */
+  private async _renderMathInElement(element: HTMLElement): Promise<void> {
+    try {
+      const { renderMathInElement } = await import('@/components/editor/utils/katex-renderer');
+      await renderMathInElement(element, {
+        throwOnError: false,
+        errorColor: '#cc0000',
+        output: 'htmlAndMathml'
+      });
+    } catch (error) {
+      console.warn('KaTeX rendering failed:', error);
+      this._fallbackMathRender(element);
+    }
+  }
+
+  private _fallbackMathRender(element: HTMLElement): void {
+    const mathElements = element.querySelectorAll('.math-display, .math-inline');
+    mathElements.forEach(mathEl => {
+      const mathContent = mathEl.getAttribute('data-math');
+      if (mathContent) {
+        const span = document.createElement('span');
+        span.textContent = mathContent;
+        span.style.fontFamily = 'monospace';
+        span.style.backgroundColor = '#f5f5f5';
+        span.style.padding = '2px 4px';
+        span.style.borderRadius = '3px';
+        if (mathEl.classList.contains('math-display')) {
+          span.style.display = 'block';
+          span.style.textAlign = 'center';
+          span.style.margin = '10px 0';
+        }
+        mathEl.parentNode?.replaceChild(span, mathEl);
+      }
+    });
+  }
+
+  /**
+   * Handle backspace on math expressions to convert them back to editable text
+   */
+  private _handleMathBackspace(): void {
+    try {
+      const selection = window.getSelection();
+      if (!selection || selection.rangeCount === 0) return;
+      
+      const range = selection.getRangeAt(0);
+      const startContainer = range.startContainer;
+      const startOffset = range.startOffset;
+      
+      // Check if cursor is at the beginning of a math element
+      let mathElement: Element | null = null;
+      
+      if (startContainer.nodeType === Node.TEXT_NODE) {
+        const textNode = startContainer as Text;
+        if (startOffset === 0 && textNode.parentElement) {
+          mathElement = textNode.parentElement.closest('.math-inline, .math-display');
+        }
+      } else if (startContainer.nodeType === Node.ELEMENT_NODE) {
+        const elementNode = startContainer as Element;
+        if (startOffset === 0) {
+          mathElement = elementNode.closest('.math-inline, .math-display');
+        }
+      }
+      
+      if (mathElement && mathElement.parentNode) {
+        // Get the original math expression from data attribute
+        const mathContent = mathElement.getAttribute('data-math');
+        if (mathContent) {
+          // Determine the original delimiters based on the math type
+          const isDisplay = mathElement.classList.contains('math-display');
+          const originalExpression = isDisplay ? `$$${mathContent}$$` : `$${mathContent}$`;
+          
+          // Create a text node with the original expression
+          const textNode = document.createTextNode(originalExpression);
+          
+          // Replace the math element with the text node
+          mathElement.parentNode.replaceChild(textNode, mathElement);
+          
+          // Position cursor at the beginning of the restored text
+          const newRange = document.createRange();
+          newRange.setStart(textNode, 0);
+          newRange.setEnd(textNode, 0);
+          
+          selection.removeAllRanges();
+          selection.addRange(newRange);
+        }
+      }
+    } catch (error) {
+      console.warn('Error handling math backspace in heading:', error);
+    }
   }
 
   render(): HTMLHeadingElement {
@@ -166,8 +344,45 @@ export default class HeadingBlock implements BlockTool {
   }
 
   save(toolsContent: HTMLHeadingElement): HeadingData {
+    const cloned = toolsContent.cloneNode(true) as HTMLElement;
+    
+    // Normalize formatting elements
+    cloned.querySelectorAll('strong').forEach((el) => {
+      const b = document.createElement('b');
+      b.innerHTML = el.innerHTML;
+      el.replaceWith(b);
+    });
+    cloned.querySelectorAll('em').forEach((el) => {
+      const i = document.createElement('i');
+      i.innerHTML = el.innerHTML;
+      el.replaceWith(i);
+    });
+    
+    let content = cloned.innerHTML.trim();
+    
+    // Check if content has meaningful formatting
+    const hasFormattingTags = /<(?:b|i|u|s|code|a|span|strong|em)\b[^>]*>/i.test(content);
+    const hasOnlyBr = /^[^<]*(?:<br\s*\/?>)*[^<]*$/i.test(content);
+    
+    if (!hasFormattingTags && hasOnlyBr) {
+      const textContent = cloned.textContent || "";
+      return {
+        text: textContent.trim(),
+        level: this.data.level,
+      };
+    }
+    
+    // Clean up encoding issues while preserving HTML structure
+    content = content
+      .replace(/<br\s*\/?>\s*$/gi, '')
+      .replace(/&lt;/g, '<')
+      .replace(/&gt;/g, '>')
+      .replace(/&quot;/g, '"')
+      .replace(/&#39;/g, "'")
+      .replace(/&amp;/g, '&');
+    
     return {
-      text: toolsContent.innerHTML,
+      text: content,
       level: this.data.level,
     };
   }

@@ -177,7 +177,7 @@ const SettingsPage = memo(function SettingsPage() {
               Access Denied
             </CardTitle>
             <CardDescription>
-              You don't have permission to access the settings page.
+              You cannot access the settings page.
             </CardDescription>
           </CardHeader>
           <CardContent>

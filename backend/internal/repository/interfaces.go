@@ -244,6 +244,36 @@ type Comment struct {
 	UpdatedAt       time.Time  `db:"updated_at" json:"updated_at"`
 }
 
+// AI Chat models
+type AIConversation struct {
+	ID        string    `db:"id" json:"id"`
+	UserID    int64     `db:"user_id" json:"user_id"`
+	Type      string    `db:"type" json:"type"`
+	PageID    *string   `db:"page_id" json:"page_id,omitempty"`
+	Title     *string   `db:"title" json:"title,omitempty"`
+	CreatedAt time.Time `db:"created_at" json:"created_at"`
+	UpdatedAt time.Time `db:"updated_at" json:"updated_at"`
+}
+
+type AIMessage struct {
+	ID             string          `db:"id" json:"id"`
+	ConversationID string          `db:"conversation_id" json:"conversation_id"`
+	Role           string          `db:"role" json:"role"`
+	Content        string          `db:"content" json:"content"`
+	Metadata       json.RawMessage `db:"metadata" json:"metadata"`
+	CreatedAt      time.Time       `db:"created_at" json:"created_at"`
+}
+
+type AIConversationRepository interface {
+	UpsertConversation(ctx context.Context, userID int64, chatType string, pageID *string, title *string) (*AIConversation, error)
+	GetConversation(ctx context.Context, userID int64, chatType string, pageID *string) (*AIConversation, error)
+}
+
+type AIMessageRepository interface {
+	CreateMessage(ctx context.Context, msg *AIMessage) error
+	ListMessages(ctx context.Context, conversationID string, limit, offset int) ([]*AIMessage, error)
+}
+
 // Repository Interfaces for Notes System
 
 type WorkspaceRepository interface {

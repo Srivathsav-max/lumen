@@ -35,8 +35,8 @@ interface RequestOptions {
   headers?: Record<string, string>;
   requiresAuth?: boolean;
   credentials?: RequestCredentials;
-  skipTokenRefresh?: boolean; // Skip token refresh for certain requests (like refresh itself)
-  skipAuthRedirect?: boolean; // Skip redirection to login page on auth failure
+  skipTokenRefresh?: boolean;
+  skipAuthRedirect?: boolean;
 }
 
 interface ApiResponse<T = any> {
@@ -249,7 +249,7 @@ export async function apiRequest<T = any>(
               status: retryResponse.status,
             };
           }
-        } else if (!options.skipAuthRedirect && !endpoint.includes('/profile') && !endpoint.includes('/notes/')) {
+        } else if (!options.skipAuthRedirect && !endpoint.includes('/profile') && !endpoint.includes('/notes/') && !endpoint.includes('/ai/')) {
           // Token refresh failed, redirect to login page
           // But skip redirect for profile endpoints and notes endpoints to prevent logout on content save errors
           redirectToLogin();
@@ -279,7 +279,7 @@ export async function apiRequest<T = any>(
     console.error('API request failed:', error);
     
     // Check if it's likely an authentication issue
-    if (requiresAuth && !options.skipAuthRedirect && !endpoint.includes('/profile') && !endpoint.includes('/notes/')) {
+    if (requiresAuth && !options.skipAuthRedirect && !endpoint.includes('/profile') && !endpoint.includes('/notes/') && !endpoint.includes('/ai/')) {
       // For network errors on authenticated endpoints, redirect to login
       // But skip redirect for profile endpoints and notes endpoints to prevent logout on content save errors
       // HTTP-only cookies handle authentication state

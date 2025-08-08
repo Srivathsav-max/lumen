@@ -21,6 +21,7 @@ export class EditorCore extends React.PureComponent<Props> {
   private holderRef = createRef<HTMLDivElement>();
   private EditorJS: typeof EditorJS | null = null;
   private tools: any = null;
+  private fullToolsLoaded: boolean = false;
   private isInitialized: boolean = false;
 
   async componentDidMount(): Promise<void> {
@@ -34,14 +35,34 @@ export class EditorCore extends React.PureComponent<Props> {
 
   async loadEditorJS(): Promise<void> {
     try {
-      // Dynamically import EditorJS and tools
-      const [editorModule, toolsModule] = await Promise.all([
+      // Load EditorJS and lightweight tools first
+      const [editorModule, toolsLight] = await Promise.all([
         import("@editorjs/editorjs"),
-        import("../tools"),
+        import("../tools-light"),
       ]);
       
       this.EditorJS = editorModule.default;
-      this.tools = toolsModule.tools;
+      this.tools = toolsLight.tools;
+
+      // Defer loading heavy tools until idle
+      if (typeof window !== "undefined" && "requestIdleCallback" in window) {
+        (window as any).requestIdleCallback(async () => {
+          try {
+            const full = await import("../tools");
+            this.tools = full.tools;
+            this.fullToolsLoaded = true;
+          } catch {}
+        }, { timeout: 2000 });
+      } else {
+        // Fallback: schedule after a tick
+        setTimeout(async () => {
+          try {
+            const full = await import("../tools");
+            this.tools = full.tools;
+            this.fullToolsLoaded = true;
+          } catch {}
+        }, 1500);
+      }
     } catch (error) {
       console.error("Failed to load EditorJS:", error);
     }
@@ -109,7 +130,15 @@ export class EditorCore extends React.PureComponent<Props> {
     return (
       <div>
         {children}
-        <div ref={this.holderRef} id="editor" />
+        <div
+          ref={this.holderRef}
+          id="editor"
+          className="[content-visibility:auto] [contain-intrinsic-size:0_600px]"
+          style={{
+            contentVisibility: 'auto',
+            containIntrinsicSize: '0 600px'
+          }}
+        />
       </div>
     );
   }

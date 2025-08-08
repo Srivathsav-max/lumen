@@ -6,8 +6,6 @@ import {
   type BlockTool,
   type ToolboxConfig,
   type HTMLPasteEvent,
-  type ConversionConfig,
-  type SanitizerConfig,
   type BlockToolConstructorOptions,
 } from "@editorjs/editorjs";
 
@@ -302,13 +300,33 @@ export default class ListBlock implements BlockTool {
       prevSibling.append(cursor, currentItemText);
 
       /** Adjust caret position after merged */
-      const range = new Range();
-      range.selectNodeContents(prevSibling);
-      range.collapse(true);
-      range.setStart(cursor, 0);
+      try {
+        const range = new Range();
+        range.selectNodeContents(prevSibling);
+        range.collapse(true);
 
-      selection.removeAllRanges();
-      selection.addRange(range);
+        if (cursor.parentNode && cursor.parentNode === prevSibling) {
+          const childNodes = Array.from(prevSibling.childNodes);
+          const cursorIndex = childNodes.indexOf(cursor);
+          if (cursorIndex >= 0 && cursorIndex < childNodes.length) {
+            range.setStart(cursor, 0);
+          } else {
+            range.setStart(prevSibling, prevSibling.childNodes.length);
+          }
+        } else {
+          range.setStart(prevSibling, Math.min(prevSibling.childNodes.length, 0));
+        }
+
+        selection.removeAllRanges();
+        selection.addRange(range);
+      } catch (rangeError) {
+        console.warn('Range positioning error:', rangeError);
+        try {
+          if (prevSibling instanceof HTMLElement) {
+            prevSibling.focus();
+          }
+        } catch { }
+      }
 
       event.preventDefault();
       currentItem.remove();
@@ -327,19 +345,70 @@ export default class ListBlock implements BlockTool {
     return wrapper;
   }
 
+  private _isHtmlContent(text: string): boolean {
+    return /<\/?[a-zA-Z][^>]*>/.test(text);
+  }
+
+  private _hasMarkdownFormatting(text: string): boolean {
+    return /(\*\*[^*]+\*\*)|(\*[^*]+\*)|(`[^`]+`)|(__[^_]+__)|(_[^_]+_)|(~~[^~]+~~)/.test(text);
+  }
+
+  private _processMarkdownToHtml(text: string): string {
+    if (!text) return "";
+
+    return text
+      .replace(/\*\*([^*]+)\*\*/g, '<b>$1</b>')
+      .replace(/\*([^*]+)\*/g, '<i>$1</i>')
+      .replace(/__([^_]+)__/g, '<b>$1</b>')
+      .replace(/_([^_]+)_/g, '<i>$1</i>')
+      .replace(/~~([^~]+)~~/g, '<s>$1</s>')
+      .replace(/`([^`]+)`/g, '<code>$1</code>')
+      .replace(/\[(.*?)\]\((.*?)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>');
+  }
+
+  private _sanitizeAndNormalizeText(text: string): string {
+    if (!text) return "";
+
+    if (this._isHtmlContent(text)) {
+      const tempDiv = document.createElement('div');
+      tempDiv.innerHTML = text;
+      return tempDiv.innerHTML;
+    }
+
+    if (this._hasMarkdownFormatting(text)) {
+      return this._processMarkdownToHtml(text);
+    }
+
+    const textarea = document.createElement('textarea');
+    textarea.innerHTML = text;
+    return textarea.value;
+  }
+
   private _makeListTag(innerHTML?: string): HTMLLIElement {
     const list = document.createElement("li");
     list.classList.add(this._CSS.item);
-    if (innerHTML) list.innerHTML = innerHTML;
+
+    if (innerHTML) {
+      const sanitizedContent = this._sanitizeAndNormalizeText(innerHTML);
+      if (this._isHtmlContent(sanitizedContent) || this._hasMarkdownFormatting(sanitizedContent)) {
+        list.innerHTML = sanitizedContent;
+      } else {
+        list.textContent = sanitizedContent;
+      }
+    }
 
     return list;
   }
 
   private _normalizeData(data: ListData): ListData {
     if (typeof data === "object") {
+      const normalizedItems = Array.isArray(data.items)
+        ? data.items.map(item => this._sanitizeAndNormalizeText(item))
+        : [];
+
       return {
         style: this._normalizeListStyle(data.style),
-        items: Array.isArray(data.items) ? [...data.items] : [],
+        items: normalizedItems,
       };
     }
 

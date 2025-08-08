@@ -1,12 +1,15 @@
 .ce-paragraph {
   @apply leading-6 outline-none;
+  content-visibility: auto;
+  contain-intrinsic-size: 0 24px;
+  contain: layout style paint;
+  will-change: contents;
 }
 
 .ce-paragraph[data-placeholder]:empty::before {
   @apply font-normal text-primary opacity-0 content-[attr(data-placeholder)];
 }
 
-/** Show placeholder at the first paragraph if Editor is empty */
 .codex-editor--empty .ce-block:first-child .ce-paragraph[data-placeholder]:empty::before {
   @apply opacity-100;
 }

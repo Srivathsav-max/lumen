@@ -108,9 +108,9 @@ export default class TableBlock implements BlockTool {
    * Create Tool's view
    */
   private _drawView(): HTMLDivElement {
-    const wrapper = document.createElement("DIV");
-    const table = document.createElement("TABLE");
-    const controls = document.createElement("DIV");
+    const wrapper = document.createElement("DIV") as HTMLDivElement;
+    const table = document.createElement("TABLE") as HTMLTableElement;
+    const controls = document.createElement("DIV") as HTMLDivElement;
 
     wrapper.classList.add(this._CSS.wrapper);
     table.classList.add(this._CSS.table);
@@ -359,11 +359,7 @@ export default class TableBlock implements BlockTool {
   static get sanitize(): SanitizerConfig {
     return {
       withHeadings: false,
-      content: {
-        "*": {
-          br: true,
-        },
-      },
+      content: true,
     };
   }
 }

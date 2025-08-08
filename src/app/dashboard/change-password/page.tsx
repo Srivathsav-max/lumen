@@ -340,7 +340,7 @@ const ChangePasswordPage = memo(function ChangePasswordPage() {
               Verify Your Identity
             </DialogTitle>
             <DialogDescription>
-              We've sent a 6-digit verification code to your email. Please enter it below to confirm your password change.
+              We&amp;apos;ve sent a 6-digit verification code to your email. Please enter it below to confirm your password change.
             </DialogDescription>
           </DialogHeader>
           

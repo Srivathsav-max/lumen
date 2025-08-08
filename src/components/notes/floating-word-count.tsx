@@ -78,3 +78,5 @@ export const FloatingWordCount = forwardRef<FloatingWordCountRef, FloatingWordCo
     );
   }
 );
+
+FloatingWordCount.displayName = "FloatingWordCount";

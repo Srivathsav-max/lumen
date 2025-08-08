@@ -188,6 +188,8 @@ func (r *Router) setupV1ProtectedRoutes(v1 *gin.RouterGroup) {
 
 		r.setupNotesRoutes(protected)
 
+		r.setupAIRoutes(protected)
+
 		r.setupAdminRoutes(protected)
 	}
 }
@@ -272,6 +274,15 @@ func (r *Router) setupNotesRoutes(protected *gin.RouterGroup) {
 		// Search and recent pages
 		notes.POST("/search", r.handlers.Notes.SearchPages)
 		notes.GET("/recent", r.handlers.Notes.GetRecentPages)
+	}
+}
+
+func (r *Router) setupAIRoutes(protected *gin.RouterGroup) {
+	ai := protected.Group("/ai")
+	{
+		ai.POST("/generate", r.handlers.AI.GenerateNoteContent)
+		ai.POST("/chat/exchange", r.handlers.AI.SaveExchange)
+		ai.GET("/chat/history", r.handlers.AI.GetHistory)
 	}
 }
 

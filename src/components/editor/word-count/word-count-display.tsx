@@ -59,3 +59,5 @@ export const WordCountDisplay = forwardRef<WordCountDisplayRef, WordCountDisplay
     );
   }
 );
+
+WordCountDisplay.displayName = "WordCountDisplay";

@@ -10,8 +10,9 @@ import {
   type BlockToolConstructorOptions,
 } from "@editorjs/editorjs";
 
+import { EditorPerformanceOptimizer } from "../../utils/performance-optimizer";
+
 type ParagraphData = {
-  /** Paragraph's content. Can include HTML tags: <a><b><i> */
   text: string;
 };
 
@@ -47,6 +48,10 @@ export default class ParagraphBlock implements BlockTool {
    * Paragraph css
    */
   private _CSS;
+  /**
+   * Performance optimizer instance
+   */
+  private _optimizer;
 
   constructor({
     data,
@@ -56,6 +61,7 @@ export default class ParagraphBlock implements BlockTool {
   }: BlockToolConstructorOptions<ParagraphData, ParagraphConfig>) {
     this.api = api;
     this.readOnly = readOnly;
+    this._optimizer = EditorPerformanceOptimizer.getInstance();
 
     this._CSS = {
       block: this.api.styles.block,
@@ -76,32 +82,158 @@ export default class ParagraphBlock implements BlockTool {
   }
 
   /**
+   * Safe range operations with bounds checking
+   */
+  private _createSafeRange(): Range | null {
+    try {
+      return new Range();
+    } catch (error) {
+      console.warn('Failed to create range:', error);
+      return null;
+    }
+  }
+
+  private _safeSetRangeEnd(range: Range, node: Node, offset: number): boolean {
+    try {
+      let maxOffset = 0;
+      if (node.nodeType === Node.TEXT_NODE) {
+        maxOffset = (node as Text).length;
+      } else if (node.nodeType === Node.ELEMENT_NODE) {
+        maxOffset = node.childNodes.length;
+      }
+      
+      const safeOffset = Math.min(Math.max(0, offset), maxOffset);
+      range.setEnd(node, safeOffset);
+      return true;
+    } catch (error) {
+      console.warn('Failed to set range end:', error);
+      return false;
+    }
+  }
+
+  private _safeSetRangeStart(range: Range, node: Node, offset: number): boolean {
+    try {
+      let maxOffset = 0;
+      if (node.nodeType === Node.TEXT_NODE) {
+        maxOffset = (node as Text).length;
+      } else if (node.nodeType === Node.ELEMENT_NODE) {
+        maxOffset = node.childNodes.length;
+      }
+      
+      const safeOffset = Math.min(Math.max(0, offset), maxOffset);
+      range.setStart(node, safeOffset);
+      return true;
+    } catch (error) {
+      console.warn('Failed to set range start:', error);
+      return false;
+    }
+  }
+
+  /**
+   * Dynamically detect and handle HTML content
+   */
+  private _isHtmlContent(text: string): boolean {
+    // Check for common HTML tags that indicate formatted content
+    const htmlTagPattern = /<\/?[a-zA-Z][^>]*>/;
+    return htmlTagPattern.test(text);
+  }
+
+  private _hasMarkdownFormatting(text: string): boolean {
+    // Check for common markdown patterns including math expressions
+    return /(\*\*[^*]+\*\*)|(\*[^*]+\*)|(`[^`]+`)|(__[^_]+__)|(_[^_]+_)|(~~[^~]+~~)|(\$\$[^$]+\$\$)|(\$[^$]+\$)|(\\\[[^\]]+\\\])|(\\\([^)]+\\\))/.test(text);
+  }
+
+  private _processMarkdownToHtml(text: string): string {
+    if (!text) return "";
+    
+    // First process math expressions to avoid conflicts with markdown
+    let processedText = this._processMathExpressions(text);
+    
+    // Then process markdown patterns
+    processedText = processedText
+      .replace(/\*\*([^*]+)\*\*/g, '<b>$1</b>')         // **bold**
+      .replace(/\*([^*]+)\*/g, '<i>$1</i>')             // *italic*
+      .replace(/__([^_]+)__/g, '<b>$1</b>')             // __bold__
+      .replace(/_([^_]+)_/g, '<i>$1</i>')               // _italic_
+      .replace(/~~([^~]+)~~/g, '<s>$1</s>')             // ~~strikethrough~~
+      .replace(/`([^`]+)`/g, '<code>$1</code>')         // `code`
+      .replace(/\[(.*?)\]\((.*?)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>'); // [text](url)
+    
+    return processedText;
+  }
+
+  private _processMathExpressions(text: string): string {
+    // Simple math expression detection and placeholder replacement
+    // This will be processed properly when the element is rendered
+    const mathPatterns = [
+      { regex: /\$\$([^$]+)\$\$/g, placeholder: (match: string) => `<span class="math-display" data-math="${this._encodeForAttribute(match.slice(2, -2))}">${match}</span>` },
+      { regex: /\$([^$]+)\$/g, placeholder: (match: string) => `<span class="math-inline" data-math="${this._encodeForAttribute(match.slice(1, -1))}">${match}</span>` },
+      { regex: /\\\[([^\]]+)\\\]/g, placeholder: (match: string) => `<span class="math-display" data-math="${this._encodeForAttribute(match.slice(2, -2))}">${match}</span>` },
+      { regex: /\\\(([^)]+)\\\)/g, placeholder: (match: string) => `<span class="math-inline" data-math="${this._encodeForAttribute(match.slice(2, -2))}">${match}</span>` }
+    ];
+
+    let result = text;
+    for (const pattern of mathPatterns) {
+      result = result.replace(pattern.regex, pattern.placeholder);
+    }
+    
+    return result;
+  }
+
+  private _encodeForAttribute(text: string): string {
+    return text.replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+  }
+
+  private _sanitizeAndNormalizeText(text: string): string {
+    if (!text) return "";
+    
+    return this._optimizer.measurePerformance(() => {
+      // If it already contains HTML tags, treat it as HTML
+      if (this._isHtmlContent(text)) {
+        const tempDiv = document.createElement('div');
+        tempDiv.innerHTML = text;
+        return tempDiv.innerHTML;
+      }
+      
+      // If it has markdown formatting, convert to HTML
+      if (this._hasMarkdownFormatting(text)) {
+        return this._optimizer.optimizeTextProcessing(text, (chunk) => 
+          this._processMarkdownToHtml(chunk)
+        );
+      }
+      
+      // Plain text - decode entities only
+      const textarea = document.createElement('textarea');
+      textarea.innerHTML = text;
+      return textarea.value;
+    }, 'text-sanitization', 5);
+  }
+
+  /**
    * Normalize input data
    */
   private _normalizeData(data: ParagraphData): ParagraphData {
     if (typeof data === "object") {
-      return { text: data.text || "" };
+      const text = data.text || "";
+      return { text: this._sanitizeAndNormalizeText(text) };
     }
 
     return { text: "" };
   }
 
   /**
-   * Get paragraph tag for target level
+   * Get paragraph tag for target level (optimized for LCP)
    */
   private _drawHolderNode(): HTMLParagraphElement {
+    const startTime = performance.now();
+    
     /**
      * Create element for current Block's level
      */
     const paragraph = document.createElement("P") as HTMLParagraphElement;
 
     /**
-     * Add text to block
-     */
-    paragraph.innerHTML = this._data.text;
-
-    /**
-     * Add styles class
+     * Add styles class first for better rendering
      */
     paragraph.classList.add(this._CSS.wrapper, this._CSS.block);
 
@@ -110,12 +242,146 @@ export default class ParagraphBlock implements BlockTool {
      */
     paragraph.dataset.placeholder = this.api.i18n.t(this.placeholder);
 
+    /**
+     * Add text to block - optimized for performance
+     */
+    const text = this._data.text;
+    if (text) {
+      if (this._isHtmlContent(text) || this._hasMarkdownFormatting(text)) {
+        // Set as HTML to render formatting (already processed in normalize)
+        paragraph.innerHTML = text;
+        // Defer math rendering to avoid blocking LCP
+        if (text.includes('$') || text.includes('\\(') || text.includes('\\[')) {
+          this._renderMathInElement(paragraph);
+        }
+      } else {
+        // Set as text content for plain text (fastest path)
+        paragraph.textContent = text;
+      }
+    }
+
     if (!this.readOnly) {
       paragraph.contentEditable = "true";
-      paragraph.addEventListener("keyup", this.onKeyUp);
+      // Use passive listeners for better performance
+      paragraph.addEventListener("keyup", this.onKeyUp, { passive: true });
       paragraph.addEventListener("keydown", this.onKeyDown);
     }
+
+    const renderTime = performance.now() - startTime;
+    if (renderTime > 10) {
+      console.warn(`[Performance] Paragraph render took ${renderTime.toFixed(2)}ms`);
+    }
+
     return paragraph;
+  }
+
+  /**
+   * Render math expressions in the element using modern KaTeX (deferred)
+   */
+  private async _renderMathInElement(element: HTMLElement): Promise<void> {
+    // Defer math rendering to avoid blocking LCP
+    if (typeof window !== "undefined" && "requestIdleCallback" in window) {
+      (window as any).requestIdleCallback(async () => {
+        await this._performMathRendering(element);
+      }, { timeout: 1000 });
+    } else {
+      setTimeout(() => this._performMathRendering(element), 100);
+    }
+  }
+
+  private async _performMathRendering(element: HTMLElement): Promise<void> {
+    try {
+      // Dynamic import to avoid bundling issues
+      const { renderMathInElement } = await import('@/components/editor/utils/katex-renderer');
+      await renderMathInElement(element, {
+        throwOnError: false,
+        errorColor: '#cc0000',
+        output: 'htmlAndMathml'
+      });
+    } catch (error) {
+      console.warn('KaTeX rendering failed:', error);
+      // Fallback: replace math placeholders with styled spans
+      this._fallbackMathRender(element);
+    }
+  }
+
+  /**
+   * Fallback math rendering when KaTeX is not available
+   */
+  private _fallbackMathRender(element: HTMLElement): void {
+    const mathElements = element.querySelectorAll('.math-display, .math-inline');
+    mathElements.forEach(mathEl => {
+      const mathContent = mathEl.getAttribute('data-math');
+      if (mathContent) {
+        const span = document.createElement('span');
+        span.textContent = mathContent;
+        span.style.fontFamily = 'monospace';
+        span.style.backgroundColor = '#f5f5f5';
+        span.style.padding = '2px 4px';
+        span.style.borderRadius = '3px';
+        if (mathEl.classList.contains('math-display')) {
+          span.style.display = 'block';
+          span.style.textAlign = 'center';
+          span.style.margin = '10px 0';
+        }
+        mathEl.parentNode?.replaceChild(span, mathEl);
+      }
+    });
+  }
+
+  /**
+   * Handle backspace on math expressions to convert them back to editable text
+   */
+  private _handleMathBackspace(): void {
+    try {
+      const selection = window.getSelection();
+      if (!selection || selection.rangeCount === 0) return;
+      
+      const range = selection.getRangeAt(0);
+      const startContainer = range.startContainer;
+      const startOffset = range.startOffset;
+      
+      // Check if cursor is at the beginning of a math element
+      let mathElement: Element | null = null;
+      
+      if (startContainer.nodeType === Node.TEXT_NODE) {
+        const textNode = startContainer as Text;
+        if (startOffset === 0 && textNode.parentElement) {
+          mathElement = textNode.parentElement.closest('.math-inline, .math-display');
+        }
+      } else if (startContainer.nodeType === Node.ELEMENT_NODE) {
+        const elementNode = startContainer as Element;
+        if (startOffset === 0) {
+          mathElement = elementNode.closest('.math-inline, .math-display');
+        }
+      }
+      
+      if (mathElement && mathElement.parentNode) {
+        // Get the original math expression from data attribute
+        const mathContent = mathElement.getAttribute('data-math');
+        if (mathContent) {
+          // Determine the original delimiters based on the math type
+          const isDisplay = mathElement.classList.contains('math-display');
+          const originalExpression = isDisplay ? `$$${mathContent}$$` : `$${mathContent}$`;
+          
+          // Create a text node with the original expression
+          const textNode = document.createTextNode(originalExpression);
+          
+          // Replace the math element with the text node
+          mathElement.parentNode.replaceChild(textNode, mathElement);
+          
+          // Position cursor at the beginning of the restored text
+          const newRange = document.createRange();
+          newRange.setStart(textNode, 0);
+          newRange.setEnd(textNode, 0);
+          
+          selection.removeAllRanges();
+          selection.addRange(newRange);
+        }
+      }
+    } catch (error) {
+      console.warn('Error handling math backspace:', error);
+    }
   }
 
   /**
@@ -123,8 +389,11 @@ export default class ParagraphBlock implements BlockTool {
    * We need this because some browsers (e.g. Safari) insert <br> into empty contenteditable elements
    */
   onKeyUp(e: KeyboardEvent) {
-    // Cleanup empty HTML added by some browsers
-    if (e.code === "Backspace" || e.code === "Delete") {
+    // Handle backspace on math expressions
+    if (e.code === "Backspace") {
+      this._handleMathBackspace();
+      
+      // Cleanup empty HTML added by some browsers
       if (this._holderNode.textContent === "") {
         this._holderNode.innerHTML = "";
       }
@@ -180,16 +449,44 @@ export default class ParagraphBlock implements BlockTool {
     // Only check on Space/Enter/`/ - to keep it lightweight
     if (!isSpace && !isEnter && !isBacktick && !isDash) return;
 
-    const selection = window.getSelection();
-    if (!selection || selection.rangeCount === 0) return;
-    const range = selection.getRangeAt(0);
-    if (!this._holderNode.contains(range.startContainer)) return;
+    try {
+      const selection = window.getSelection();
+      if (!selection || selection.rangeCount === 0) return;
+      const range = selection.getRangeAt(0);
+      if (!this._holderNode.contains(range.startContainer)) return;
 
-    const beforeRange = range.cloneRange();
-    beforeRange.selectNodeContents(this._holderNode);
-    beforeRange.setEnd(range.startContainer, range.startOffset);
-    const beforeText = beforeRange.toString();
+      const beforeRange = range.cloneRange();
+      beforeRange.selectNodeContents(this._holderNode);
+      
+      // Safe range end setting with bounds checking
+      const startContainer = range.startContainer;
+      const startOffset = range.startOffset;
+      
+      if (!this._safeSetRangeEnd(beforeRange, startContainer, startOffset)) {
+        // Fallback: use text content directly
+        const beforeText = this._holderNode.textContent || "";
+        const selection = window.getSelection();
+        if (selection && selection.rangeCount > 0) {
+          const currentRange = selection.getRangeAt(0);
+          // Estimate position based on text content
+          const beforePart = beforeText.substring(0, Math.min(startOffset, beforeText.length));
+          this.handleShortcuts(beforePart, e);
+        }
+        return;
+      }
+      
+      const beforeText = beforeRange.toString();
+      this.handleShortcuts(beforeText, e);
+    } catch (error) {
+      console.warn('Error in paragraph keydown handler:', error);
+      // Continue normal behavior if range operations fail
+    }
+  }
 
+  private handleShortcuts(beforeText: string, e: KeyboardEvent): void {
+    const isSpace = e.key === " ";
+    const isEnter = e.key === "Enter";
+    
     // Trim right spaces for reliable checks but keep original for length
     const beforeTrimmed = beforeText.replace(/\u00A0/g, " ");
 
@@ -274,14 +571,20 @@ export default class ParagraphBlock implements BlockTool {
   }
 
   private removeCurrentPrefixAndGetIndex(): number {
-    // Remove everything before caret (prefix + typed key) from this paragraph
-    const selection = window.getSelection();
-    const range = selection?.getRangeAt(0);
-    const index = this.api.blocks.getCurrentBlockIndex();
-    // Clear current paragraph content to avoid leftover prefix
-    this._holderNode.innerHTML = "";
-    // Ensure caret moves to new block after transform
-    return index;
+    try {
+      // Remove everything before caret (prefix + typed key) from this paragraph
+      const selection = window.getSelection();
+      const range = selection?.getRangeAt(0);
+      const index = this.api.blocks.getCurrentBlockIndex();
+      // Clear current paragraph content to avoid leftover prefix
+      this._holderNode.innerHTML = "";
+      // Ensure caret moves to new block after transform
+      return index;
+    } catch (error) {
+      console.warn('Error in removeCurrentPrefixAndGetIndex:', error);
+      // Fallback to current block index
+      return this.api.blocks.getCurrentBlockIndex();
+    }
   }
 
   private transformToHeading(level: number) {
@@ -430,84 +733,108 @@ export default class ParagraphBlock implements BlockTool {
     const text = textNode.textContent || "";
     if (!/[\*`_~\[\]:$]|https?:\/\//.test(text)) return;
 
-    const frag = document.createDocumentFragment();
-    let cursor = 0;
-    const pattern = /(\$\$[^$]+\$\$)|(\$[^$]+\$)|(`[^`]+`)|(\*\*[^*]+\*\*)|(__[^_]+__)|(~~[^~]+~~)|(~[^~]+~)|(\*[^*]+\*)|(_[^_]+_)|(\[[^\]]+\]\([^\)]+\))|(https?:\/\/[^\s)]+)|(\b[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}\b)/g;
-    let m: RegExpExecArray | null;
-    while ((m = pattern.exec(text)) !== null) {
-      const start = m.index;
-      const end = start + m[0].length;
-      if (start > cursor) frag.appendChild(document.createTextNode(text.slice(cursor, start)));
-
-      const token = m[0];
-      let el: HTMLElement | null = null;
-      if (m[1] || m[2]) {
-        // Math: $$...$$ display or $...$ inline
-        const isBlock = !!m[1];
-        const latex = token.slice(isBlock ? 2 : 1, isBlock ? -2 : -1);
-        el = document.createElement("span");
-        el.className = isBlock ? "math-block" : "math-inline";
-        // Try KaTeX if available
-        try {
-          const katex = (window as any)?.katex;
-          if (katex && typeof katex.render === "function") {
-            katex.render(latex, el, { displayMode: isBlock });
-          } else {
-            el.textContent = latex;
-            el.style.fontFamily = "monospace";
-            if (isBlock) {
-              el.style.display = "inline-block";
-              el.style.padding = "2px 4px";
-            }
-          }
-        } catch {
-          el.textContent = latex;
+    try {
+      const frag = document.createDocumentFragment();
+      let cursor = 0;
+      const pattern = /(\$\$[^$]+\$\$)|(\$[^$]+\$)|(\\\[[^\]]+\\\])|(\\\([^\)]+\\\))|(`[^`]+`)|(\*\*[^*]+\*\*)|(__[^_]+__)|(~~[^~]+~~)|(~[^~]+~)|(\*[^*]+\*)|(_[^_]+_)|(\[[^\]]+\]\([^\)]+\))|(https?:\/\/[^\s)]+)|(\b[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}\b)/g;
+      let m: RegExpExecArray | null;
+      
+      while ((m = pattern.exec(text)) !== null) {
+        const start = m.index;
+        const end = start + m[0].length;
+        
+        // Bounds checking
+        if (start < 0 || start > text.length || end < 0 || end > text.length) continue;
+        
+        if (start > cursor) {
+          const beforeText = text.slice(cursor, start);
+          if (beforeText) frag.appendChild(document.createTextNode(beforeText));
         }
-      } else if (m[3]) {
-        el = document.createElement("code");
-        el.textContent = token.slice(1, -1);
-      } else if (m[4] || m[5]) {
-        el = document.createElement("b");
-        el.textContent = token.slice(2, -2);
-      } else if (m[6] || m[7]) {
-        el = document.createElement("s");
-        el.textContent = token.startsWith("~~") ? token.slice(2, -2) : token.slice(1, -1);
-      } else if (m[8] || m[9]) {
-        el = document.createElement("i");
-        el.textContent = token.slice(1, -1);
-      } else if (m[10]) {
-        // [text](url)
-        const mm = token.match(/^\[([^\]]+)\]\(([^\)]+)\)$/);
-        if (mm) {
+
+        const token = m[0];
+        let el: HTMLElement | null = null;
+        
+        if (m[1] || m[2] || m[3] || m[4]) {
+          const isBlock = !!m[1] || !!m[3];
+          const latex = m[1]
+            ? token.slice(2, -2)
+            : m[2]
+            ? token.slice(1, -1)
+            : m[3]
+            ? token.slice(2, -2)
+            : token.slice(2, -2); // \( ... \)
+          el = document.createElement("span");
+          el.className = isBlock ? "math-block" : "math-inline";
+          try {
+            const katex = (window as any)?.katex;
+            if (katex && typeof katex.render === "function") {
+              katex.render(latex, el, { displayMode: isBlock });
+            } else {
+              el.textContent = latex;
+              el.style.fontFamily = "monospace";
+              if (isBlock) {
+                el.style.display = "inline-block";
+                el.style.padding = "2px 4px";
+              }
+            }
+          } catch {
+            el.textContent = latex;
+          }
+        } else if (m[5]) {
+          el = document.createElement("code");
+          el.textContent = token.slice(1, -1);
+        } else if (m[6] || m[7]) {
+          el = document.createElement("b");
+          el.textContent = token.slice(2, -2);
+        } else if (m[8] || m[9]) {
+          el = document.createElement("s");
+          el.textContent = token.startsWith("~~") ? token.slice(2, -2) : token.slice(1, -1);
+        } else if (m[10] || m[11]) {
+          el = document.createElement("i");
+          el.textContent = token.slice(1, -1);
+        } else if (m[12]) {
+          // [text](url)
+          const mm = token.match(/^\[([^\]]+)\]\(([^\)]+)\)$/);
+          if (mm) {
+            const a = document.createElement("a");
+            a.href = mm[2];
+            a.textContent = mm[1];
+            a.target = "_blank";
+            a.rel = "noopener noreferrer";
+            el = a;
+          }
+        } else if (m[13]) {
           const a = document.createElement("a");
-          a.href = mm[2];
-          a.textContent = mm[1];
+          a.href = token;
+          a.textContent = token;
           a.target = "_blank";
           a.rel = "noopener noreferrer";
           el = a;
+        } else if (m[14]) {
+          const a = document.createElement("a");
+          a.href = `mailto:${token}`;
+          a.textContent = token;
+          el = a;
         }
-      } else if (m[11]) {
-        const a = document.createElement("a");
-        a.href = token;
-        a.textContent = token;
-        a.target = "_blank";
-        a.rel = "noopener noreferrer";
-        el = a;
-      } else if (m[12]) {
-        const a = document.createElement("a");
-        a.href = `mailto:${token}`;
-        a.textContent = token;
-        el = a;
+
+        if (el) frag.appendChild(el);
+        else frag.appendChild(document.createTextNode(token));
+        cursor = end;
+      }
+      
+      if (cursor < text.length) {
+        const remainingText = text.slice(cursor);
+        if (remainingText) frag.appendChild(document.createTextNode(remainingText));
       }
 
-      if (el) frag.appendChild(el);
-      else frag.appendChild(document.createTextNode(token));
-      cursor = end;
+      const parent = textNode.parentNode;
+      if (parent) {
+        parent.replaceChild(frag, textNode);
+      }
+    } catch (error) {
+      console.warn('Error in markdown replacement:', error);
+      // Fallback: leave original text node unchanged
     }
-    if (cursor < text.length) frag.appendChild(document.createTextNode(text.slice(cursor)));
-
-    const parent = textNode.parentNode;
-    if (parent) parent.replaceChild(frag, textNode);
   }
 
   destroy(): void {
@@ -528,7 +855,46 @@ export default class ParagraphBlock implements BlockTool {
   }
 
   save(toolsContent: HTMLParagraphElement): ParagraphData {
-    return { text: toolsContent.innerHTML };
+    const cloned = toolsContent.cloneNode(true) as HTMLElement;
+    
+    // Normalize formatting elements to standard HTML tags
+    cloned.querySelectorAll('strong').forEach((el) => {
+      const b = document.createElement('b');
+      b.innerHTML = el.innerHTML;
+      el.replaceWith(b);
+    });
+    cloned.querySelectorAll('em').forEach((el) => {
+      const i = document.createElement('i');
+      i.innerHTML = el.innerHTML;
+      el.replaceWith(i);
+    });
+    
+    // Remove style attributes but preserve other attributes
+    cloned.querySelectorAll('[style]').forEach((el) => el.removeAttribute('style'));
+    
+    // Get the content
+    let content = cloned.innerHTML.trim();
+    
+    // If the content has no meaningful HTML tags (only text), return as plain text
+    const hasFormattingTags = /<(?:b|i|u|s|code|a|span|strong|em)\b[^>]*>/i.test(content);
+    const hasOnlyBr = /^[^<]*(?:<br\s*\/?>)*[^<]*$/i.test(content);
+    
+    if (!hasFormattingTags && hasOnlyBr) {
+      // Convert to plain text and clean up
+      const textContent = cloned.textContent || "";
+      return { text: textContent.trim() };
+    }
+    
+    // Clean up common HTML encoding issues while preserving structure
+    content = content
+      .replace(/<br\s*\/?>\s*$/gi, '') // Remove trailing <br>
+      .replace(/&lt;/g, '<')
+      .replace(/&gt;/g, '>')
+      .replace(/&quot;/g, '"')
+      .replace(/&#39;/g, "'")
+      .replace(/&amp;/g, '&'); // This should be last to avoid double-decoding
+    
+    return { text: content };
   }
 
   merge(data: ParagraphData): void {
@@ -543,89 +909,77 @@ export default class ParagraphBlock implements BlockTool {
     this.data = data;
   }
 
-  /**
-   * Get current Tools`s data
-   */
   get data(): ParagraphData {
     this._data.text = this._holderNode.innerHTML;
 
     return this._data;
   }
 
-  /**
-   * Store data in plugin:
-   * - at the this._data property
-   * - at the HTML
-   */
   set data(data) {
     this._data = this._normalizeData(data);
 
-    /**
-     * If level is set and block in DOM
-     * then replace it to a new block
-     */
     if (this._holderNode.parentNode) {
       const newParagraph = this._drawHolderNode();
 
-      /**
-       * Replace blocks
-       */
       this._holderNode.parentNode.replaceChild(newParagraph, this._holderNode);
 
-      /**
-       * Save new block to private variable
-       */
       this._holderNode = newParagraph;
+    } else {
+      // If not yet in DOM, just update the content directly
+      const text = this._data.text;
+      if (this._isHtmlContent(text) || this._hasMarkdownFormatting(text)) {
+        this._holderNode.innerHTML = text;
+        this._renderMathInElement(this._holderNode);
+      } else {
+        this._holderNode.textContent = text;
+      }
     }
   }
 
-  /**
-   * Get placeholder from paragraph config
-   */
   get placeholder(): string {
     return this._config.placeholder || `Enter text...`;
   }
 
-  /**
-   * Paste substitutions configuration
-   */
   static get pasteConfig(): PasteConfig {
     return {
       tags: ["P"],
     };
   }
 
-  /**
-   * Rules that specified how this Tool can be converted into/from another Tool
-   */
   static get conversionConfig(): ConversionConfig {
     return {
-      export: "text", // to convert Paragraph to other block, use 'text' property of saved data
-      import: "text", // to covert other block's exported string to Paragraph, fill 'text' property of tool data
+      export: "text",
+      import: "text",
     };
   }
 
-  /**
-   * Sanitizer rules description
-   */
   static get sanitize(): SanitizerConfig {
     return {
       text: {
         br: true,
+        b: true,
+        strong: true,
+        i: true,
+        em: true,
+        code: true,
+        s: true,
+        u: true,
+        a: {
+          href: true,
+          target: true,
+          rel: true,
+        } as any,
+        span: {
+          class: true,
+        } as any,
       },
     };
   }
 
-  /**
-   * Returns true to notify the core that read-only mode is supported
-   */
   static get isReadOnlySupported(): boolean {
     return true;
   }
 
-  /**
-   * Tool's Toolbox settings
-   */
   static get toolbox(): ToolboxConfig {
     return {
       title: "Text",

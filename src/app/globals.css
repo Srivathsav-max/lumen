@@ -2,8 +2,7 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Import modern handwriting and sans-serif fonts */
-@import url('https://fonts.googleapis.com/css2?family=Caveat:wght@400;500;600;700&family=Poppins:wght@300;400;500;600;700&display=swap');
+/* Fonts are now included via <head> for preload/preconnect */
 
 @layer base {
   html {
@@ -55,6 +54,7 @@
     color: #111827;
     background-color: white;
     overflow-x: hidden;
+    font-display: swap;
   }
   .dark {
     --background: 0 0% 3.9%;

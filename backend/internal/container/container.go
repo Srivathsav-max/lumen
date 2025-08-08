@@ -22,12 +22,14 @@ type Container struct {
 	VerificationTokenRepository repository.VerificationTokenRepository
 	WaitlistRepository          repository.WaitlistRepository
 	SystemSettingsRepository    repository.SystemSettingsRepository
-	
+
 	// Notes System Repositories
-	WorkspaceRepository repository.WorkspaceRepository
-	PageRepository      repository.PageRepository
-	BlockRepository     repository.BlockRepository
-	CommentRepository   repository.CommentRepository
+	WorkspaceRepository      repository.WorkspaceRepository
+	PageRepository           repository.PageRepository
+	BlockRepository          repository.BlockRepository
+	CommentRepository        repository.CommentRepository
+	AIConversationRepository repository.AIConversationRepository
+	AIMessageRepository      repository.AIMessageRepository
 
 	UserService              services.UserService
 	AuthService              services.AuthService
@@ -36,10 +38,14 @@ type Container struct {
 	RoleService              services.RoleService
 	WaitlistService          services.WaitlistService
 	SystemSettingsService    services.SystemSettingsService
-	
+
 	// Notes System Services
 	WorkspaceService services.WorkspaceService
 	PageService      services.PageService
+	AIChatService    services.AIChatService
+
+	// AI Service
+	AIService services.AIService
 
 	SecurityMiddleware *security.SecurityMiddleware
 }
@@ -157,6 +163,14 @@ func (c *Container) SetCommentRepository(repo repository.CommentRepository) {
 	c.CommentRepository = repo
 }
 
+func (c *Container) SetAIConversationRepository(repo repository.AIConversationRepository) {
+	c.AIConversationRepository = repo
+}
+
+func (c *Container) SetAIMessageRepository(repo repository.AIMessageRepository) {
+	c.AIMessageRepository = repo
+}
+
 // Notes System Service Setters
 func (c *Container) SetWorkspaceService(service services.WorkspaceService) {
 	c.WorkspaceService = service
@@ -164,6 +178,10 @@ func (c *Container) SetWorkspaceService(service services.WorkspaceService) {
 
 func (c *Container) SetPageService(service services.PageService) {
 	c.PageService = service
+}
+
+func (c *Container) SetAIService(service services.AIService) {
+	c.AIService = service
 }
 
 func (c *Container) GetUserRepository() repository.UserRepository {
@@ -231,6 +249,14 @@ func (c *Container) GetCommentRepository() repository.CommentRepository {
 	return c.CommentRepository
 }
 
+func (c *Container) GetAIConversationRepository() repository.AIConversationRepository {
+	return c.AIConversationRepository
+}
+
+func (c *Container) GetAIMessageRepository() repository.AIMessageRepository {
+	return c.AIMessageRepository
+}
+
 // Notes System Service Getters
 func (c *Container) GetWorkspaceService() services.WorkspaceService {
 	return c.WorkspaceService
@@ -238,6 +264,10 @@ func (c *Container) GetWorkspaceService() services.WorkspaceService {
 
 func (c *Container) GetPageService() services.PageService {
 	return c.PageService
+}
+
+func (c *Container) GetAIService() services.AIService {
+	return c.AIService
 }
 
 func (c *Container) Validate() error {

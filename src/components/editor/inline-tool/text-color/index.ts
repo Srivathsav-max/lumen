@@ -45,7 +45,7 @@ export class TextColorInlineTool implements InlineTool {
     '#db2777', // Pink
   ];
 
-  constructor({ api, config }: InlineToolConstructorOptions<TextColorConfig>) {
+  constructor({ api, config }: InlineToolConstructorOptions) {
     this.api = api;
     this.config = {
       defaultColor: config?.defaultColor || '#dc2626',
@@ -224,11 +224,10 @@ export class TextColorInlineTool implements InlineTool {
       // Apply new color to selection
       this.config.defaultColor = color;
       try {
-        const selection = this.api.selection.save();
-        if (selection) {
-          this.wrap(selection as Range);
-          this.api.selection.restore();
-        }
+        this.api.selection.save();
+        const range = window.getSelection()?.getRangeAt(0);
+        if (range) this.wrap(range);
+        this.api.selection.restore();
       } catch (error) {
         console.warn('Error applying text color:', error);
       }
@@ -250,12 +249,7 @@ export class TextColorInlineTool implements InlineTool {
    */
   private get button(): HTMLElement | null {
     try {
-      // Try different ways to access the toolbar
-      if (this.api.toolbar?.nodes?.wrapper) {
-        return this.api.toolbar.nodes.wrapper.querySelector(`.${this.CSS.buttonModifier}`);
-      }
-      
-      // Fallback: search in document
+      // Search in document (toolbar types are private in EditorJS)
       return document.querySelector(`.${this.CSS.buttonModifier}`);
     } catch (error) {
       console.warn('Could not find text color button:', error);
