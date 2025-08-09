@@ -189,6 +189,7 @@ func (r *Router) setupV1ProtectedRoutes(v1 *gin.RouterGroup) {
 		r.setupNotesRoutes(protected)
 
 		r.setupAIRoutes(protected)
+		r.setupNotesLMRoutes(protected)
 
 		r.setupAdminRoutes(protected)
 	}
@@ -283,6 +284,20 @@ func (r *Router) setupAIRoutes(protected *gin.RouterGroup) {
 		ai.POST("/generate", r.handlers.AI.GenerateNoteContent)
 		ai.POST("/chat/exchange", r.handlers.AI.SaveExchange)
 		ai.GET("/chat/history", r.handlers.AI.GetHistory)
+		ai.POST("/ask", r.handlers.AI.AskRAG)
+	}
+}
+
+// Deprecated knowledge routes removed in favor of /noteslm
+
+// Unified NotesLM API group
+func (r *Router) setupNotesLMRoutes(protected *gin.RouterGroup) {
+	g := protected.Group("/noteslm")
+	{
+		g.POST("/files", r.handlers.Knowledge.UploadAndIndex)
+		g.GET("/files", r.handlers.Knowledge.ListDocuments)
+		g.DELETE("/files/:document_id", r.handlers.Knowledge.DeleteDocument)
+		g.POST("/ask", r.handlers.Knowledge.Ask)
 	}
 }
 

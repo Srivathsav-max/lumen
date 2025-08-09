@@ -76,7 +76,16 @@ func (f *HandlerFactory) CreateAIHandlers() *AIHandlers {
 	)
 	// Inject chat service via exported field for simplicity
 	h.chat = f.container.AIChatService
+	h.rag = f.container.RAGService
 	return h
+}
+
+func (f *HandlerFactory) CreateKnowledgeHandlers() *KnowledgeHandlers {
+	return NewKnowledgeHandlers(
+		f.container.KnowledgeIngestService,
+		f.container.RAGService,
+		f.container.GetLogger(),
+	)
 }
 
 type AllHandlers struct {
@@ -91,6 +100,7 @@ type AllHandlers struct {
 	SystemSettings *SystemSettingsHandlers
 	Security       *SecurityHandlers
 	AI             *AIHandlers
+	Knowledge      *KnowledgeHandlers
 }
 
 func (f *HandlerFactory) CreateAllHandlers() *AllHandlers {
@@ -106,5 +116,6 @@ func (f *HandlerFactory) CreateAllHandlers() *AllHandlers {
 		SystemSettings: f.CreateSystemSettingsHandlers(),
 		Security:       f.CreateSecurityHandlers(),
 		AI:             f.CreateAIHandlers(),
+		Knowledge:      f.CreateKnowledgeHandlers(),
 	}
 }

@@ -31,6 +31,11 @@ type Container struct {
 	AIConversationRepository repository.AIConversationRepository
 	AIMessageRepository      repository.AIMessageRepository
 
+	// Knowledge repositories
+	KnowledgeDocumentRepository  repository.KnowledgeDocumentRepository
+	KnowledgeChunkRepository     repository.KnowledgeChunkRepository
+	KnowledgeEmbeddingRepository repository.KnowledgeEmbeddingRepository
+
 	UserService              services.UserService
 	AuthService              services.AuthService
 	EmailService             services.EmailService
@@ -43,6 +48,9 @@ type Container struct {
 	WorkspaceService services.WorkspaceService
 	PageService      services.PageService
 	AIChatService    services.AIChatService
+	// Knowledge services
+	KnowledgeIngestService services.KnowledgeIngestService
+	RAGService             services.RAGService
 
 	// AI Service
 	AIService services.AIService
@@ -53,6 +61,23 @@ type Container struct {
 func New() *Container {
 	return &Container{}
 }
+
+// Repository setters
+func (c *Container) SetKnowledgeDocumentRepository(r repository.KnowledgeDocumentRepository) {
+	c.KnowledgeDocumentRepository = r
+}
+func (c *Container) SetKnowledgeChunkRepository(r repository.KnowledgeChunkRepository) {
+	c.KnowledgeChunkRepository = r
+}
+func (c *Container) SetKnowledgeEmbeddingRepository(r repository.KnowledgeEmbeddingRepository) {
+	c.KnowledgeEmbeddingRepository = r
+}
+
+// Service setters
+func (c *Container) SetKnowledgeIngestService(s services.KnowledgeIngestService) {
+	c.KnowledgeIngestService = s
+}
+func (c *Container) SetRAGService(s services.RAGService) { c.RAGService = s }
 
 func (c *Container) SetConfig(config *config.Config) {
 	c.Config = config

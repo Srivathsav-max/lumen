@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"encoding/hex"
 	"fmt"
+	"os"
 	"time"
 
 	"github.com/Srivathsav-max/lumen/backend/internal/config"
@@ -88,6 +89,10 @@ func (b *Builder) WithRepositories() (*Builder, error) {
 	commentRepo := postgres.NewCommentRepository(dbManager, b.container.Logger)
 	aiConvRepo := postgres.NewAIConversationRepository(dbManager, b.container.Logger)
 	aiMsgRepo := postgres.NewAIMessageRepository(dbManager, b.container.Logger)
+	// Knowledge repos
+	knowledgeDocRepo := postgres.NewKnowledgeDocumentRepository(dbManager, b.container.Logger)
+	knowledgeChunkRepo := postgres.NewKnowledgeChunkRepository(dbManager, b.container.Logger)
+	knowledgeEmbRepo := postgres.NewKnowledgeEmbeddingRepository(dbManager, b.container.Logger)
 
 	b.container.SetUserRepository(userRepo)
 	b.container.SetRoleRepository(roleRepo)
@@ -103,6 +108,10 @@ func (b *Builder) WithRepositories() (*Builder, error) {
 	b.container.SetCommentRepository(commentRepo)
 	b.container.SetAIConversationRepository(aiConvRepo)
 	b.container.SetAIMessageRepository(aiMsgRepo)
+	// Knowledge repos
+	b.container.SetKnowledgeDocumentRepository(knowledgeDocRepo)
+	b.container.SetKnowledgeChunkRepository(knowledgeChunkRepo)
+	b.container.SetKnowledgeEmbeddingRepository(knowledgeEmbRepo)
 
 	return b, nil
 }
@@ -195,6 +204,17 @@ func (b *Builder) WithServices() (*Builder, error) {
 	b.container.SetPageService(pageService)
 	b.container.SetAIService(aiService)
 	b.container.AIChatService = aiChatService
+
+	// Knowledge services
+	appwriteEndpoint := os.Getenv("APPWRITE_ENDPOINT")
+	if appwriteEndpoint == "" {
+		appwriteEndpoint = "https://cloud.appwrite.io/v1"
+	}
+	appwriteProjectID := os.Getenv("APPWRITE_PROJECT_ID")
+	appwriteAPIKey := os.Getenv("APPWRITE_API_KEY")
+	ingestSvc, _ := services.NewKnowledgeServices(&b.container.Config.AI, services.AppwriteConfig{Endpoint: appwriteEndpoint, ProjectID: appwriteProjectID, APIKey: appwriteAPIKey}, b.container.KnowledgeDocumentRepository, b.container.KnowledgeChunkRepository, b.container.KnowledgeEmbeddingRepository, b.container.Logger)
+	b.container.KnowledgeIngestService = ingestSvc
+	b.container.RAGService = services.NewRAGService(&b.container.Config.AI, b.container.KnowledgeEmbeddingRepository, b.container.Logger)
 
 	return b, nil
 }

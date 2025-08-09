@@ -46,6 +46,26 @@ type EmailService interface {
 	HealthCheck(ctx context.Context) error
 }
 
+// Knowledge ingestion services
+type KnowledgeIngestService interface {
+	// Starts ingestion for a newly uploaded file
+	BeginIngestion(ctx context.Context, userID int64, req *BeginIngestionRequest) (*KnowledgeDocumentResponse, error)
+	// Parses content via Google parser and saves chunks
+	ParseAndChunk(ctx context.Context, documentID string) error
+	// Creates embeddings for chunks
+	EmbedChunks(ctx context.Context, documentID string) error
+	// Management
+	ListDocuments(ctx context.Context, workspaceID int64, limit, offset int) ([]KnowledgeDocumentItem, error)
+	DeleteDocument(ctx context.Context, documentID string) error
+	// Full pipeline: upload to storage and index (parse + embed)
+	UploadAndIndex(ctx context.Context, userID int64, workspaceID int64, filename string, mime string, fileBytes []byte) (*KnowledgeDocumentResponse, error)
+}
+
+type RAGService interface {
+	// Query across a workspace notebook using vector search + Gemini answers
+	Ask(ctx context.Context, req *RAGAskRequest) (*RAGAnswerResponse, error)
+}
+
 type RoleService interface {
 	AssignRole(ctx context.Context, userID int64, roleName string) error
 	RemoveRole(ctx context.Context, userID int64, roleName string) error

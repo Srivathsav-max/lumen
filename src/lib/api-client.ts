@@ -145,9 +145,11 @@ export async function apiRequest<T = any>(
     ? endpoint 
     : `${API_BASE_URL}${endpoint.startsWith('/') ? endpoint : `/${endpoint}`}`;
 
-  // Prepare headers
+  const isFormData = typeof FormData !== 'undefined' && body instanceof FormData;
+
+  // Prepare headers (do NOT set Content-Type for FormData; browser will add boundary)
   const requestHeaders: Record<string, string> = {
-    'Content-Type': 'application/json',
+    ...(isFormData ? {} : { 'Content-Type': 'application/json' }),
     ...headers,
   };
 
@@ -168,7 +170,7 @@ export async function apiRequest<T = any>(
     console.log('URL:', url);
     console.log('Method:', method);
     console.log('Headers:', Object.keys(requestHeaders)); // Don't log sensitive values
-    console.log('Body Length:', body ? JSON.stringify(body).length : 0);
+    console.log('Body Type:', isFormData ? 'FormData' : (body ? 'JSON' : 'none'));
     console.log('Credentials:', credentials);
     console.log('Security Features:', {
       csrf: !!securityService.getCSRFToken(),
@@ -180,7 +182,7 @@ export async function apiRequest<T = any>(
     let response = await fetch(url, {
       method,
       headers: requestHeaders,
-      body: body ? JSON.stringify(securityService.sanitizeJSON(body)) : undefined,
+      body: isFormData ? (body as FormData) : (body ? JSON.stringify(securityService.sanitizeJSON(body)) : undefined),
       credentials, // Include cookies in the request
     });
     
@@ -221,7 +223,7 @@ export async function apiRequest<T = any>(
           const retryResponse = await fetch(url, {
             method,
             headers: requestHeaders,
-            body: body ? JSON.stringify(body) : undefined,
+            body: isFormData ? (body as FormData) : (body ? JSON.stringify(body) : undefined),
             credentials,
           });
           

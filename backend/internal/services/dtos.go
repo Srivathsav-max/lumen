@@ -174,16 +174,16 @@ type AddWorkspaceMemberRequest struct {
 }
 
 type WorkspaceMemberResponse struct {
-	ID          int64     `json:"id"`
-	UserID      int64     `json:"user_id"`
-	Username    string    `json:"username"`
-	Email       string    `json:"email"`
-	FirstName   string    `json:"first_name"`
-	LastName    string    `json:"last_name"`
-	Role        string    `json:"role"`
-	AddedBy     int64     `json:"added_by"`
-	CreatedAt   time.Time `json:"created_at"`
-	UpdatedAt   time.Time `json:"updated_at"`
+	ID        int64     `json:"id"`
+	UserID    int64     `json:"user_id"`
+	Username  string    `json:"username"`
+	Email     string    `json:"email"`
+	FirstName string    `json:"first_name"`
+	LastName  string    `json:"last_name"`
+	Role      string    `json:"role"`
+	AddedBy   int64     `json:"added_by"`
+	CreatedAt time.Time `json:"created_at"`
+	UpdatedAt time.Time `json:"updated_at"`
 }
 
 type CreatePageRequest struct {
@@ -205,22 +205,64 @@ type UpdatePageRequest struct {
 }
 
 type PageResponse struct {
-	ID           string          `json:"id"`
-	Title        string          `json:"title"`
-	WorkspaceID  int64           `json:"workspace_id"`
-	OwnerID      int64           `json:"owner_id"`
-	ParentID     *string         `json:"parent_id,omitempty"`
-	Icon         *string         `json:"icon,omitempty"`
-	CoverURL     *string         `json:"cover_url,omitempty"`
-	IsArchived   bool            `json:"is_archived"`
-	IsTemplate   bool            `json:"is_template"`
-	Properties   json.RawMessage `json:"properties"`
-	CreatedAt    time.Time       `json:"created_at"`
-	UpdatedAt    time.Time       `json:"updated_at"`
-	LastEditedBy *int64          `json:"last_edited_by,omitempty"`
-	Permission   string          `json:"permission"` // Current user's permission level
-	ChildrenCount int            `json:"children_count"`
-	Blocks       []BlockResponse `json:"blocks,omitempty"`
+	ID            string          `json:"id"`
+	Title         string          `json:"title"`
+	WorkspaceID   int64           `json:"workspace_id"`
+	OwnerID       int64           `json:"owner_id"`
+	ParentID      *string         `json:"parent_id,omitempty"`
+	Icon          *string         `json:"icon,omitempty"`
+	CoverURL      *string         `json:"cover_url,omitempty"`
+	IsArchived    bool            `json:"is_archived"`
+	IsTemplate    bool            `json:"is_template"`
+	Properties    json.RawMessage `json:"properties"`
+	CreatedAt     time.Time       `json:"created_at"`
+	UpdatedAt     time.Time       `json:"updated_at"`
+	LastEditedBy  *int64          `json:"last_edited_by,omitempty"`
+	Permission    string          `json:"permission"` // Current user's permission level
+	ChildrenCount int             `json:"children_count"`
+	Blocks        []BlockResponse `json:"blocks,omitempty"`
+}
+
+// Knowledge ingestion DTOs
+type BeginIngestionRequest struct {
+	WorkspaceID      int64  `json:"workspace_id" validate:"required"`
+	AppwriteBucketID string `json:"appwrite_bucket_id" validate:"required"`
+	AppwriteFileID   string `json:"appwrite_file_id" validate:"required"`
+	OriginalFilename string `json:"original_filename" validate:"required"`
+	MimeType         string `json:"mime_type" validate:"required"`
+	SizeBytes        int64  `json:"size_bytes" validate:"required,min=1"`
+}
+
+type KnowledgeDocumentResponse struct {
+	ID     string `json:"id"`
+	Status string `json:"status"`
+}
+
+type KnowledgeDocumentItem struct {
+	ID               string `json:"id"`
+	OriginalFilename string `json:"original_filename"`
+	MimeType         string `json:"mime_type"`
+	SizeBytes        int64  `json:"size_bytes"`
+	Status           string `json:"status"`
+	WorkspaceID      int64  `json:"workspace_id"`
+}
+
+type RAGAskRequest struct {
+	WorkspaceID      int64  `json:"workspace_id" validate:"required"`
+	Query            string `json:"query" validate:"required,min=2"`
+	TopK             int    `json:"top_k"`
+	MaxContextTokens int    `json:"max_context_tokens"`
+}
+
+type RAGAnswerResponse struct {
+	Answer  string      `json:"answer"`
+	Sources []RAGSource `json:"sources"`
+}
+
+type RAGSource struct {
+	DocumentID string `json:"document_id"`
+	PageNumber *int   `json:"page_number,omitempty"`
+	Excerpt    string `json:"excerpt"`
 }
 
 type CreateBlockRequest struct {
@@ -252,8 +294,8 @@ type BlockResponse struct {
 }
 
 type BulkBlockOperation struct {
-	Operation string          `json:"operation" validate:"required,oneof=create update delete"`
-	BlockID   *string         `json:"block_id,omitempty"`
+	Operation string              `json:"operation" validate:"required,oneof=create update delete"`
+	BlockID   *string             `json:"block_id,omitempty"`
 	Block     *CreateBlockRequest `json:"block,omitempty"`
 	Updates   *UpdateBlockRequest `json:"updates,omitempty"`
 }
@@ -283,19 +325,19 @@ type UpdateCommentRequest struct {
 }
 
 type CommentResponse struct {
-	ID              string     `json:"id"`
-	PageID          string     `json:"page_id"`
-	BlockID         *string    `json:"block_id,omitempty"`
-	ParentCommentID *string    `json:"parent_comment_id,omitempty"`
-	AuthorID        int64      `json:"author_id"`
-	AuthorName      string     `json:"author_name"`
-	AuthorEmail     string     `json:"author_email"`
-	Content         string     `json:"content"`
-	IsResolved      bool       `json:"is_resolved"`
-	ResolvedBy      *int64     `json:"resolved_by,omitempty"`
-	ResolvedAt      *time.Time `json:"resolved_at,omitempty"`
-	CreatedAt       time.Time  `json:"created_at"`
-	UpdatedAt       time.Time  `json:"updated_at"`
+	ID              string            `json:"id"`
+	PageID          string            `json:"page_id"`
+	BlockID         *string           `json:"block_id,omitempty"`
+	ParentCommentID *string           `json:"parent_comment_id,omitempty"`
+	AuthorID        int64             `json:"author_id"`
+	AuthorName      string            `json:"author_name"`
+	AuthorEmail     string            `json:"author_email"`
+	Content         string            `json:"content"`
+	IsResolved      bool              `json:"is_resolved"`
+	ResolvedBy      *int64            `json:"resolved_by,omitempty"`
+	ResolvedAt      *time.Time        `json:"resolved_at,omitempty"`
+	CreatedAt       time.Time         `json:"created_at"`
+	UpdatedAt       time.Time         `json:"updated_at"`
 	Replies         []CommentResponse `json:"replies,omitempty"`
 }
 

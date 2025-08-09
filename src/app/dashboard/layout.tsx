@@ -73,8 +73,8 @@ export default function DashboardLayout({
             <SidebarTrigger className="-ml-1" />
           </div>
           <div className="flex justify-center">
-            {/* Centered AI chat input only on Notes pages */}
-            {pathname?.startsWith("/dashboard/notes") && <AIChatMenu />}
+            {/* Centered AI chat input on Notes and Brainstorm pages */}
+            {(pathname?.startsWith("/dashboard/notes") || pathname?.startsWith("/dashboard/brainstorm")) && <AIChatMenu />}
           </div>
           <div className="flex items-center justify-end gap-2">
             {/* Right-side actions reserved */}

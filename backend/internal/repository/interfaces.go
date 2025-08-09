@@ -200,6 +200,58 @@ type Block struct {
 	LastEditedBy  *int64          `db:"last_edited_by" json:"last_edited_by,omitempty"`
 }
 
+// Knowledge ingestion and retrieval models
+type KnowledgeDocument struct {
+	ID               string          `db:"id" json:"id"`
+	UserID           int64           `db:"user_id" json:"user_id"`
+	WorkspaceID      int64           `db:"workspace_id" json:"workspace_id"`
+	AppwriteBucketID string          `db:"appwrite_bucket_id" json:"appwrite_bucket_id"`
+	AppwriteFileID   string          `db:"appwrite_file_id" json:"appwrite_file_id"`
+	OriginalFilename string          `db:"original_filename" json:"original_filename"`
+	MimeType         string          `db:"mime_type" json:"mime_type"`
+	SizeBytes        int64           `db:"size_bytes" json:"size_bytes"`
+	Status           string          `db:"status" json:"status"`
+	PageCount        *int            `db:"page_count" json:"page_count,omitempty"`
+	Metadata         json.RawMessage `db:"metadata" json:"metadata"`
+	CreatedAt        time.Time       `db:"created_at" json:"created_at"`
+	UpdatedAt        time.Time       `db:"updated_at" json:"updated_at"`
+}
+
+type KnowledgeChunk struct {
+	ID         string    `db:"id" json:"id"`
+	DocumentID string    `db:"document_id" json:"document_id"`
+	ChunkIndex int       `db:"chunk_index" json:"chunk_index"`
+	Text       string    `db:"text" json:"text"`
+	PageNumber *int      `db:"page_number" json:"page_number,omitempty"`
+	StartChar  *int      `db:"start_char" json:"start_char,omitempty"`
+	EndChar    *int      `db:"end_char" json:"end_char,omitempty"`
+	TokenCount int       `db:"token_count" json:"token_count"`
+	CreatedAt  time.Time `db:"created_at" json:"created_at"`
+}
+
+type KnowledgeEmbedding struct {
+	ChunkID string `db:"chunk_id" json:"chunk_id"`
+}
+
+type KnowledgeDocumentRepository interface {
+	Create(ctx context.Context, d *KnowledgeDocument) error
+	UpdateStatus(ctx context.Context, id string, status string, metadata json.RawMessage) error
+	GetByID(ctx context.Context, id string) (*KnowledgeDocument, error)
+	ListByWorkspace(ctx context.Context, workspaceID int64, limit, offset int) ([]*KnowledgeDocument, error)
+	Delete(ctx context.Context, id string) error
+}
+
+type KnowledgeChunkRepository interface {
+	CreateBulk(ctx context.Context, chunks []*KnowledgeChunk) error
+	ListByDocument(ctx context.Context, documentID string) ([]*KnowledgeChunk, error)
+	DeleteByDocument(ctx context.Context, documentID string) error
+}
+
+type KnowledgeEmbeddingRepository interface {
+	UpsertForChunk(ctx context.Context, chunkID string, embedding []float32) error
+	SimilarChunks(ctx context.Context, workspaceID int64, queryEmbedding []float32, limit int) ([]*KnowledgeChunk, error)
+}
+
 type PermissionLevel string
 
 const (

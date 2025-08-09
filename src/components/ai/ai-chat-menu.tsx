@@ -168,9 +168,7 @@ export function AIChatMenu() {
     const tryResolve = async () => {
       try {
         const detectedPageId = await getCurrentPageId();
-        if (!canceled && detectedPageId) {
-          setPageId(detectedPageId);
-        }
+        if (!canceled && detectedPageId) setPageId(detectedPageId);
       } catch (error) {
       }
     };
@@ -202,18 +200,14 @@ export function AIChatMenu() {
       setPageId(currentPageId);
     }
 
-    if (!currentPageId) {
-      alert('Please make sure you are in a notes page before using AI chat.');
-      setIsOpen(false);
-      return;
-    }
+    // Allow chat without page context (e.g., Brainstorm)
 
     const ctx = await (window as any)?.lumenGetEditorContext?.();
 
     const { text, actions } = await ask(question, {
       context: {
         ...ctx,
-        page_id: currentPageId,
+        page_id: currentPageId ?? null,
         chat_type: "notes",
       },
       formatHint: "markdown for EditorJS",
