@@ -21,7 +21,7 @@ type Config struct {
 }
 
 type ServerConfig struct {
-	Port int    `validate:"required,min=1,max=65535"`
+	Port int
 	Env  string `validate:"required,oneof=development staging production"`
 }
 
@@ -55,12 +55,9 @@ type EmailConfig struct {
 	TemplatesDir string `validate:"required"`
 }
 
-// AIConfig contains configuration required for AI integrations (Gemini)
 type AIConfig struct {
-	// Gemini API key. Keep this secret and only load from environment/secrets
 	GeminiAPIKey string `validate:"required"`
-	// Model name to use. Example: gemini-2.5-flash, gemini-2.5-pro
-	GeminiModel string `validate:"required"`
+	GeminiModel  string `validate:"required"`
 }
 
 type ConfigLoader interface {
@@ -81,15 +78,13 @@ func NewEnvConfigLoader() *EnvConfigLoader {
 func (l *EnvConfigLoader) Load() (*Config, error) {
 	config := &Config{}
 
-	serverPort, err := getRequiredEnvInt("SERVER_PORT")
+	portStr := os.Getenv("PORT")
+	if portStr == "" && getRequiredEnv("ENV") == "development" {
+		portStr = getRequiredEnv("SERVER_PORT")
+	}
+	serverPort, err := strconv.Atoi(portStr)
 	if err != nil {
-		if port := os.Getenv("PORT"); port != "" {
-			if serverPort, err = strconv.Atoi(port); err != nil {
-				return nil, fmt.Errorf("invalid PORT: %w", err)
-			}
-		} else {
-			return nil, err
-		}
+		return nil, fmt.Errorf("invalid PORT/SERVER_PORT %q: %w", portStr, err)
 	}
 
 	config.Server = ServerConfig{
