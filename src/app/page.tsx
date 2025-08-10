@@ -1,16 +1,19 @@
+import { Navbar } from "@/components/ui/navbar";
+import { Hero } from "@/components/landing/hero";
+import { FeatureSection } from "@/components/landing/feature-section";
+import { CodeShowcase } from "@/components/landing/code-showcase";
+import { CTA } from "@/components/landing/cta";
+import { Footer } from "@/components/landing/footer";
+
 export default function Home() {
   return (
-    <main className="min-h-screen bg-white dark:bg-black">
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center">
-          <h1 className="text-4xl font-bold text-gray-900 dark:text-white mb-4">
-            Hi! Welcome
-          </h1>
-          <p className="text-lg text-gray-600 dark:text-gray-400">
-            Application is Under Development
-          </p>
-        </div>
-      </div>
+    <main className="relative min-h-screen bg-white antialiased dark:bg-black">
+      <Navbar />
+      <Hero />
+      <FeatureSection />
+      <CodeShowcase />
+      <CTA />
+      <Footer />
     </main>
   );
 }

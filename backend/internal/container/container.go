@@ -51,6 +51,7 @@ type Container struct {
 	// Knowledge services
 	KnowledgeIngestService services.KnowledgeIngestService
 	RAGService             services.RAGService
+	BrainstormerService    services.BrainstormerService
 
 	// AI Service
 	AIService services.AIService
@@ -77,7 +78,8 @@ func (c *Container) SetKnowledgeEmbeddingRepository(r repository.KnowledgeEmbedd
 func (c *Container) SetKnowledgeIngestService(s services.KnowledgeIngestService) {
 	c.KnowledgeIngestService = s
 }
-func (c *Container) SetRAGService(s services.RAGService) { c.RAGService = s }
+func (c *Container) SetRAGService(s services.RAGService)                   { c.RAGService = s }
+func (c *Container) SetBrainstormerService(s services.BrainstormerService) { c.BrainstormerService = s }
 
 func (c *Container) SetConfig(config *config.Config) {
 	c.Config = config

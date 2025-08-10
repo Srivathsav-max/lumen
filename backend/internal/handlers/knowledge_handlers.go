@@ -109,16 +109,20 @@ func (h *KnowledgeHandlers) ListDocuments(c *gin.Context) {
 	if o := c.Query("offset"); o != "" {
 		fmt.Sscanf(o, "%d", &offset)
 	}
-	
+
 	h.logger.Info("ListDocuments processing", "workspace_id", workspaceID, "limit", limit, "offset", offset)
-	
-	items, err := h.ingest.ListDocuments(c.Request.Context(), workspaceID, limit, offset)
+
+	var pageID *string
+	if p := c.Query("page_id"); p != "" {
+		pageID = &p
+	}
+	items, err := h.ingest.ListDocuments(c.Request.Context(), workspaceID, pageID, limit, offset)
 	if err != nil {
 		h.logger.Error("ListDocuments failed", "error", err, "workspace_id", workspaceID)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-	
+
 	h.logger.Info("ListDocuments successful", "workspace_id", workspaceID, "count", len(items))
 	c.JSON(http.StatusOK, gin.H{"data": items})
 }
@@ -139,7 +143,7 @@ func (h *KnowledgeHandlers) DeleteDocument(c *gin.Context) {
 // UploadAndIndex handles multipart upload and triggers parse+embedding
 func (h *KnowledgeHandlers) UploadAndIndex(c *gin.Context) {
 	h.logger.Info("Starting file upload and index", "method", "UploadAndIndex")
-	
+
 	workspaceIDStr := c.PostForm("workspace_id")
 	if workspaceIDStr == "" {
 		h.logger.Error("Missing workspace_id in request")
@@ -198,13 +202,19 @@ func (h *KnowledgeHandlers) UploadAndIndex(c *gin.Context) {
 
 	h.logger.Info("Calling ingest service", "userID", userID, "workspaceID", workspaceID, "filename", filename)
 
-	doc, err := h.ingest.UploadAndIndex(c.Request.Context(), userID, workspaceID, filename, mime, content)
+	var pageID *string
+	if p := c.PostForm("page_id"); p != "" {
+		pageID = &p
+	}
+	// Allow explicit context override; default handled in service
+	_ = c.PostForm("context")
+	doc, err := h.ingest.UploadAndIndex(c.Request.Context(), userID, workspaceID, pageID, filename, mime, content)
 	if err != nil {
 		h.logger.Error("Upload and index failed", "error", err, "userID", userID, "workspaceID", workspaceID, "filename", filename)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-	
+
 	h.logger.Info("Upload and index successful", "document_id", doc.ID, "status", doc.Status)
 	c.JSON(http.StatusOK, gin.H{"data": doc})
 }

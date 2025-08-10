@@ -192,6 +192,7 @@ func (r *Router) setupV1ProtectedRoutes(v1 *gin.RouterGroup) {
 		r.setupNotesLMRoutes(protected)
 
 		r.setupAdminRoutes(protected)
+		r.setupBrainstormerRoutes(protected)
 	}
 }
 
@@ -298,6 +299,22 @@ func (r *Router) setupNotesLMRoutes(protected *gin.RouterGroup) {
 		g.GET("/files", r.handlers.Knowledge.ListDocuments)
 		g.DELETE("/files/:document_id", r.handlers.Knowledge.DeleteDocument)
 		g.POST("/ask", r.handlers.Knowledge.Ask)
+	}
+}
+
+// Brainstormer API group
+func (r *Router) setupBrainstormerRoutes(protected *gin.RouterGroup) {
+	g := protected.Group("/brainstrommer")
+	{
+		// POST JSON: { workspace_id, optional document_ids[], topics[], difficulty, num_items }
+		g.POST("/flashcards", r.handlers.Brainstormer.GenerateFlashcards)
+		g.POST("/mcqs", r.handlers.Brainstormer.GenerateMCQs)
+		g.POST("/cloze", r.handlers.Brainstormer.GenerateCloze)
+
+		// Streaming endpoints (Server-Sent Events) to auto-update UI without reload
+		g.POST("/stream/flashcards", r.handlers.Brainstormer.StreamFlashcards)
+		g.POST("/stream/mcqs", r.handlers.Brainstormer.StreamMCQs)
+		g.POST("/stream/cloze", r.handlers.Brainstormer.StreamCloze)
 	}
 }
 

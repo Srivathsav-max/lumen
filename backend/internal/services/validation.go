@@ -259,3 +259,50 @@ func init() {
 func validateStruct(s interface{}) error {
 	return globalValidator.ValidateStruct(s)
 }
+
+// ValidateBrainstormerGenerateRequest applies constraints suitable for production
+func ValidateBrainstormerGenerateRequest(v *Validator, req *BrainstormerGenerateRequest) error {
+	// Set sane defaults and limits
+	if req.NumItems <= 0 {
+		req.NumItems = 10
+	}
+	if req.NumItems > 50 {
+		req.NumItems = 50
+	}
+	if req.MaxContextTokens <= 0 {
+		req.MaxContextTokens = 1600
+	}
+	if req.MaxContextTokens > 3500 {
+		req.MaxContextTokens = 3500
+	}
+
+	// Trim and bound topics
+	if len(req.Topics) > 20 {
+		req.Topics = req.Topics[:20]
+	}
+	for i := range req.Topics {
+		req.Topics[i] = strings.TrimSpace(req.Topics[i])
+	}
+
+	// Optional difficulty normalization
+	if req.Difficulty != "" {
+		d := strings.ToLower(strings.TrimSpace(req.Difficulty))
+		switch d {
+		case "easy", "medium", "hard":
+			req.Difficulty = d
+		default:
+			// Map unknown values to medium to avoid over/under shooting complexity
+			req.Difficulty = "medium"
+		}
+	}
+
+	// Limit number of document IDs and trim
+	if len(req.DocumentIDs) > 50 {
+		req.DocumentIDs = req.DocumentIDs[:50]
+	}
+	for i := range req.DocumentIDs {
+		req.DocumentIDs[i] = strings.TrimSpace(req.DocumentIDs[i])
+	}
+
+	return v.ValidateStruct(req)
+}

@@ -517,15 +517,15 @@ export default function StudioPage() {
                       <div className="grid grid-cols-1 gap-2 text-sm text-muted-foreground">
                         <div className="flex items-center justify-center space-x-2">
                           <div className="w-1 h-1 bg-muted-foreground rounded-full"></div>
-                          <span>"Summarize the main points"</span>
+                          <span>&quot;Summarize the main points&quot;</span>
                         </div>
                         <div className="flex items-center justify-center space-x-2">
                           <div className="w-1 h-1 bg-muted-foreground rounded-full"></div>
-                          <span>"Generate a mind map about..."</span>
+                          <span>&quot;Generate a mind map about...&quot;</span>
                         </div>
                         <div className="flex items-center justify-center space-x-2">
                           <div className="w-1 h-1 bg-muted-foreground rounded-full"></div>
-                          <span>"What are the key findings?"</span>
+                          <span>&quot;What are the key findings?&quot;</span>
                         </div>
                       </div>
                     </div>

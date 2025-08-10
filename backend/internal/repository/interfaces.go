@@ -205,6 +205,8 @@ type KnowledgeDocument struct {
 	ID               string          `db:"id" json:"id"`
 	UserID           int64           `db:"user_id" json:"user_id"`
 	WorkspaceID      int64           `db:"workspace_id" json:"workspace_id"`
+	PageID           *string         `db:"page_id" json:"page_id,omitempty"`
+	Context          string          `db:"context" json:"context"`
 	AppwriteBucketID string          `db:"appwrite_bucket_id" json:"appwrite_bucket_id"`
 	AppwriteFileID   string          `db:"appwrite_file_id" json:"appwrite_file_id"`
 	OriginalFilename string          `db:"original_filename" json:"original_filename"`
@@ -238,6 +240,8 @@ type KnowledgeDocumentRepository interface {
 	UpdateStatus(ctx context.Context, id string, status string, metadata json.RawMessage) error
 	GetByID(ctx context.Context, id string) (*KnowledgeDocument, error)
 	ListByWorkspace(ctx context.Context, workspaceID int64, limit, offset int) ([]*KnowledgeDocument, error)
+	ListByWorkspaceAndPage(ctx context.Context, workspaceID int64, pageID *string, limit, offset int) ([]*KnowledgeDocument, error)
+	ListByWorkspaceAndContext(ctx context.Context, workspaceID int64, context string, limit, offset int) ([]*KnowledgeDocument, error)
 	Delete(ctx context.Context, id string) error
 }
 

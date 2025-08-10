@@ -459,6 +459,28 @@ func setupV2Routes(router Router, handlers *handlers.HandlerFactory, middleware 
     v2.POST("/graphql", handlers.GraphQL.Handler, middleware.JWTAuth())
     v2.GET("/graphql/playground", handlers.GraphQL.Playground)
 }
+
+### Brainstormer Routes
+
+Under `/api/v1/brainstrommer/` (authenticated):
+
+- POST `/flashcards` → generate flashcards from uploaded knowledge context
+- POST `/mcqs` → generate multiple-choice questions
+- POST `/cloze` → generate fill-in-the-blank (cloze) items
+
+Request body:
+
+```
+{
+  "workspace_id": 123,
+  "document_ids": ["uuid-1", "uuid-2"],
+  "topics": ["algebra"],
+  "difficulty": "medium",
+  "num_items": 12
+}
+```
+
+Each endpoint returns `{ "data": { "items": [...] } }` matching the DTOs in `services/dtos.go`.
 ```
 
 ### 2. Middleware Integration

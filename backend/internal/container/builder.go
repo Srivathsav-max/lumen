@@ -215,6 +215,12 @@ func (b *Builder) WithServices() (*Builder, error) {
 	ingestSvc, _ := services.NewKnowledgeServices(&b.container.Config.AI, services.AppwriteConfig{Endpoint: appwriteEndpoint, ProjectID: appwriteProjectID, APIKey: appwriteAPIKey}, b.container.KnowledgeDocumentRepository, b.container.KnowledgeChunkRepository, b.container.KnowledgeEmbeddingRepository, b.container.Logger)
 	b.container.KnowledgeIngestService = ingestSvc
 	b.container.RAGService = services.NewRAGService(&b.container.Config.AI, b.container.KnowledgeEmbeddingRepository, b.container.Logger)
+	b.container.BrainstormerService = services.NewBrainstormerService(
+		&b.container.Config.AI,
+		b.container.KnowledgeDocumentRepository,
+		b.container.KnowledgeChunkRepository,
+		b.container.KnowledgeEmbeddingRepository,
+	)
 
 	return b, nil
 }

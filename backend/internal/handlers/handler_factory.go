@@ -101,6 +101,7 @@ type AllHandlers struct {
 	Security       *SecurityHandlers
 	AI             *AIHandlers
 	Knowledge      *KnowledgeHandlers
+	Brainstormer   *BrainstormerHandlers
 }
 
 func (f *HandlerFactory) CreateAllHandlers() *AllHandlers {
@@ -117,5 +118,12 @@ func (f *HandlerFactory) CreateAllHandlers() *AllHandlers {
 		Security:       f.CreateSecurityHandlers(),
 		AI:             f.CreateAIHandlers(),
 		Knowledge:      f.CreateKnowledgeHandlers(),
+		Brainstormer:   f.CreateBrainstormerHandlers(),
 	}
+}
+
+func (f *HandlerFactory) CreateBrainstormerHandlers() *BrainstormerHandlers {
+	return NewBrainstormerHandlers(
+		f.container.BrainstormerService,
+	)
 }

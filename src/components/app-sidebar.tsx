@@ -9,6 +9,7 @@ import {
   BookOpen, 
   BarChart2, 
   LogOut,
+  Brain,
   Bell,
   UserPlus,
   User,
@@ -66,6 +67,11 @@ const navigationItems = [
     title: "Studio",
     url: "/dashboard/studio",
     icon: GalleryVerticalEnd,
+  },
+  {
+    title: "Brainstormer",
+    url: "/dashboard/brainstormer",
+    icon: Brain,
   },
 ];
 

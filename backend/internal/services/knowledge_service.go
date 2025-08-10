@@ -53,11 +53,24 @@ func NewKnowledgeServices(aiCfg *config.AIConfig, appwrite AppwriteConfig, docRe
 	}, nil
 }
 
+func defaultContext(s string) string {
+	switch strings.ToLower(strings.TrimSpace(s)) {
+	case "studio":
+		return "studio"
+	case "brainstormer", "brainstrommer":
+		return "brainstormer"
+	default:
+		return "notes"
+	}
+}
+
 // BeginIngestion: records the upload reference
 func (s *KnowledgeServices) BeginIngestion(ctx context.Context, userID int64, req *BeginIngestionRequest) (*KnowledgeDocumentResponse, error) {
 	doc := &repository.KnowledgeDocument{
 		UserID:           userID,
 		WorkspaceID:      req.WorkspaceID,
+		PageID:           req.PageID,
+		Context:          defaultContext(req.Context),
 		AppwriteBucketID: req.AppwriteBucketID,
 		AppwriteFileID:   req.AppwriteFileID,
 		OriginalFilename: req.OriginalFilename,
@@ -108,6 +121,8 @@ func (s *KnowledgeServices) ParseAndChunk(ctx context.Context, documentID string
 	)
 	for _, p := range parts {
 		text := strings.TrimSpace(p.Text)
+		// Sanitize to avoid invalid byte sequences for Postgres (e.g., NUL 0x00)
+		text = sanitizeForPostgres(text)
 		if text == "" {
 			continue
 		}
@@ -115,6 +130,7 @@ func (s *KnowledgeServices) ParseAndChunk(ctx context.Context, documentID string
 		pageNum := p.PageNumber
 		for _, sc := range subChunks {
 			sc = strings.TrimSpace(sc)
+			sc = sanitizeForPostgres(sc)
 			if sc == "" {
 				continue
 			}
@@ -158,14 +174,14 @@ func (s *KnowledgeServices) EmbedChunks(ctx context.Context, documentID string) 
 	return nil
 }
 
-func (s *KnowledgeServices) ListDocuments(ctx context.Context, workspaceID int64, limit, offset int) ([]KnowledgeDocumentItem, error) {
-	docs, err := s.docRepo.ListByWorkspace(ctx, workspaceID, limit, offset)
+func (s *KnowledgeServices) ListDocuments(ctx context.Context, workspaceID int64, pageID *string, limit, offset int) ([]KnowledgeDocumentItem, error) {
+	docs, err := s.docRepo.ListByWorkspaceAndPage(ctx, workspaceID, pageID, limit, offset)
 	if err != nil {
 		return nil, err
 	}
 	out := make([]KnowledgeDocumentItem, 0, len(docs))
 	for _, d := range docs {
-		out = append(out, KnowledgeDocumentItem{ID: d.ID, OriginalFilename: d.OriginalFilename, MimeType: d.MimeType, SizeBytes: d.SizeBytes, Status: d.Status, WorkspaceID: d.WorkspaceID})
+		out = append(out, KnowledgeDocumentItem{ID: d.ID, OriginalFilename: d.OriginalFilename, MimeType: d.MimeType, SizeBytes: d.SizeBytes, Status: d.Status, WorkspaceID: d.WorkspaceID, PageID: d.PageID, Context: d.Context})
 	}
 	return out, nil
 }
@@ -175,7 +191,7 @@ func (s *KnowledgeServices) DeleteDocument(ctx context.Context, documentID strin
 }
 
 // UploadAndIndex: uploads raw bytes to Appwrite and then runs ParseAndChunk + EmbedChunks
-func (s *KnowledgeServices) UploadAndIndex(ctx context.Context, userID int64, workspaceID int64, filename string, mime string, fileBytes []byte) (*KnowledgeDocumentResponse, error) {
+func (s *KnowledgeServices) UploadAndIndex(ctx context.Context, userID int64, workspaceID int64, pageID *string, filename string, mime string, fileBytes []byte) (*KnowledgeDocumentResponse, error) {
 	// 1) Upload file to Appwrite
 	bucketID := ensureDefaultBucketID(s.appwrite)
 	fileID, err := s.uploadToAppwrite(ctx, bucketID, filename, mime, fileBytes)
@@ -370,6 +386,28 @@ func cleanNonUTF8(s string) string {
 		v = append(v, r)
 	}
 	return string(v)
+}
+
+// sanitizeForPostgres removes characters that Postgres text cannot store (notably NUL 0x00)
+// and ensures valid UTF-8 by delegating to cleanNonUTF8.
+func sanitizeForPostgres(s string) string {
+	if s == "" {
+		return s
+	}
+	// Remove NUL bytes which cause: invalid byte sequence for encoding "UTF8": 0x00
+	// Also strip other ASCII control chars except common whitespace \t\n\r.
+	b := make([]rune, 0, len(s))
+	for _, r := range s {
+		if r == '\u0000' { // NUL
+			continue
+		}
+		// Filter out other control runes 0x01..0x08, 0x0B, 0x0C, 0x0E..0x1F
+		if (r >= 0x01 && r <= 0x08) || r == 0x0B || r == 0x0C || (r >= 0x0E && r <= 0x1F) {
+			continue
+		}
+		b = append(b, r)
+	}
+	return cleanNonUTF8(string(b))
 }
 
 func (s *KnowledgeServices) embedText(ctx context.Context, text string) ([]float32, error) {

@@ -55,15 +55,22 @@ type KnowledgeIngestService interface {
 	// Creates embeddings for chunks
 	EmbedChunks(ctx context.Context, documentID string) error
 	// Management
-	ListDocuments(ctx context.Context, workspaceID int64, limit, offset int) ([]KnowledgeDocumentItem, error)
+	ListDocuments(ctx context.Context, workspaceID int64, pageID *string, limit, offset int) ([]KnowledgeDocumentItem, error)
 	DeleteDocument(ctx context.Context, documentID string) error
 	// Full pipeline: upload to storage and index (parse + embed)
-	UploadAndIndex(ctx context.Context, userID int64, workspaceID int64, filename string, mime string, fileBytes []byte) (*KnowledgeDocumentResponse, error)
+	UploadAndIndex(ctx context.Context, userID int64, workspaceID int64, pageID *string, filename string, mime string, fileBytes []byte) (*KnowledgeDocumentResponse, error)
 }
 
 type RAGService interface {
 	// Query across a workspace notebook using vector search + Gemini answers
 	Ask(ctx context.Context, req *RAGAskRequest) (*RAGAnswerResponse, error)
+}
+
+// Brainstormer study-aid generation
+type BrainstormerService interface {
+	GenerateFlashcards(ctx context.Context, req *BrainstormerGenerateRequest) (*FlashcardsResponse, error)
+	GenerateMCQs(ctx context.Context, req *BrainstormerGenerateRequest) (*MCQsResponse, error)
+	GenerateCloze(ctx context.Context, req *BrainstormerGenerateRequest) (*ClozeResponse, error)
 }
 
 type RoleService interface {

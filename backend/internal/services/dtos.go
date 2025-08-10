@@ -225,12 +225,14 @@ type PageResponse struct {
 
 // Knowledge ingestion DTOs
 type BeginIngestionRequest struct {
-	WorkspaceID      int64  `json:"workspace_id" validate:"required"`
-	AppwriteBucketID string `json:"appwrite_bucket_id" validate:"required"`
-	AppwriteFileID   string `json:"appwrite_file_id" validate:"required"`
-	OriginalFilename string `json:"original_filename" validate:"required"`
-	MimeType         string `json:"mime_type" validate:"required"`
-	SizeBytes        int64  `json:"size_bytes" validate:"required,min=1"`
+	WorkspaceID      int64   `json:"workspace_id" validate:"required"`
+	PageID           *string `json:"page_id,omitempty"`
+	Context          string  `json:"context,omitempty"` // notes | studio | brainstormer
+	AppwriteBucketID string  `json:"appwrite_bucket_id" validate:"required"`
+	AppwriteFileID   string  `json:"appwrite_file_id" validate:"required"`
+	OriginalFilename string  `json:"original_filename" validate:"required"`
+	MimeType         string  `json:"mime_type" validate:"required"`
+	SizeBytes        int64   `json:"size_bytes" validate:"required,min=1"`
 }
 
 type KnowledgeDocumentResponse struct {
@@ -239,12 +241,14 @@ type KnowledgeDocumentResponse struct {
 }
 
 type KnowledgeDocumentItem struct {
-	ID               string `json:"id"`
-	OriginalFilename string `json:"original_filename"`
-	MimeType         string `json:"mime_type"`
-	SizeBytes        int64  `json:"size_bytes"`
-	Status           string `json:"status"`
-	WorkspaceID      int64  `json:"workspace_id"`
+	ID               string  `json:"id"`
+	OriginalFilename string  `json:"original_filename"`
+	MimeType         string  `json:"mime_type"`
+	SizeBytes        int64   `json:"size_bytes"`
+	Status           string  `json:"status"`
+	WorkspaceID      int64   `json:"workspace_id"`
+	PageID           *string `json:"page_id,omitempty"`
+	Context          string  `json:"context"`
 }
 
 type RAGAskRequest struct {
@@ -381,4 +385,50 @@ type SearchPagesResponse struct {
 	Total  int64          `json:"total"`
 	Limit  int            `json:"limit"`
 	Offset int            `json:"offset"`
+}
+
+// Brainstormer DTOs
+type BrainstormerGenerateRequest struct {
+	WorkspaceID      int64    `json:"workspace_id" validate:"required"`
+	DocumentIDs      []string `json:"document_ids,omitempty"`
+	Topics           []string `json:"topics,omitempty"`
+	Difficulty       string   `json:"difficulty,omitempty"` // easy|medium|hard or free text
+	NumItems         int      `json:"num_items"`
+	MaxContextTokens int      `json:"max_context_tokens"`
+}
+
+type FlashcardItem struct {
+	Question         string  `json:"question"`
+	Answer           string  `json:"answer"`
+	SourceDocumentID *string `json:"source_document_id,omitempty"`
+	SourcePageNumber *int    `json:"source_page_number,omitempty"`
+}
+
+type FlashcardsResponse struct {
+	Items []FlashcardItem `json:"items"`
+}
+
+type MCQItem struct {
+	Question         string   `json:"question"`
+	Options          []string `json:"options"`
+	CorrectIndex     int      `json:"correct_index"`
+	Explanation      string   `json:"explanation"`
+	SourceDocumentID *string  `json:"source_document_id,omitempty"`
+	SourcePageNumber *int     `json:"source_page_number,omitempty"`
+}
+
+type MCQsResponse struct {
+	Items []MCQItem `json:"items"`
+}
+
+type ClozeItem struct {
+	Text             string  `json:"text"`   // contains one blank "____"
+	Answer           string  `json:"answer"` // exact hidden token/phrase
+	Explanation      string  `json:"explanation"`
+	SourceDocumentID *string `json:"source_document_id,omitempty"`
+	SourcePageNumber *int    `json:"source_page_number,omitempty"`
+}
+
+type ClozeResponse struct {
+	Items []ClozeItem `json:"items"`
 }
